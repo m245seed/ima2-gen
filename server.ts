@@ -16,7 +16,8 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { onShutdown } from "./bin/lib/platform.js";
 import { ensureDefaultSession } from "./lib/sessionStore.js";
 import { startGrokProxy } from "./lib/grokProxyLauncher.js";
-import { startOAuthProxy } from "./lib/oauthLauncher.js";
+import { startOAuthProxy, startOAuthPool } from "./lib/oauthLauncher.js";
+import { discoverOAuthPool } from "./lib/oauthPool.js";
 import { migrateGeneratedStorage } from "./lib/storageMigration.js";
 import { purgeStaleJobs } from "./lib/inflight.js";
 import { configureLogger, logError } from "./lib/logger.js";
@@ -384,6 +385,20 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
   const openai = overrides.openai ?? await createOpenAI(apiKey);
   const oauthPort = config.oauth.proxyPort;
   const grokPort = config.grokProvider.proxyPort;
+  // Discover pool early (sync discovery, but needs config loaded). May be null for single-account mode.
+  let oauthPool: import("./lib/oauthPool.js").OAuthPool | null = null;
+  try {
+    oauthPool = discoverOAuthPool(oauthPort);
+    if (oauthPool && oauthPool.size > 1) {
+      console.log(`[oauth:pool] Discovered ${oauthPool.size} Codex accounts: ${oauthPool.all.map((a) => `${a.label}→:${a.port}`).join(", ")}`);
+    } else if (oauthPool && oauthPool.size === 1) {
+      // Single discovered via pool path but env forces pool mode – respect it
+      if (process.env.IMA2_OAUTH_POOL_FORCE !== "1") oauthPool = null;
+    }
+  } catch (e) {
+    console.warn("[oauth:pool] discovery failed:", (e as Error)?.message || e);
+    oauthPool = null;
+  }
   let resolveOAuthReady: (value: string | null) => void = () => {};
   const oauthReadyPromise = new Promise<string | null>((resolve) => {
     resolveOAuthReady = resolve;
@@ -401,6 +416,8 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
     oauthActualPort: oauthPort,
     oauthUrl: `http://127.0.0.1:${oauthPort}`,
     oauthReadyState: config.oauth.autoStart ? "starting" : "disabled",
+    oauthPool,
+    oauthPoolReady: false,
     hasApiKey: !!apiKey,
     apiKey: apiKey ?? undefined,
     apiKeySource: loadedKey.apiKeySource as ApiKeySource,
@@ -462,20 +479,50 @@ export async function startServer(overrides: StartServerOverrides = {}) {
   }
   purgeStaleJobs();
   const app = buildApp(ctx);
-  const oauthChild =
-    overrides.oauthChild !== undefined
-      ? overrides.oauthChild
-      : !ctx.config.oauth.autoStart
-        ? null
-        : startOAuthProxy({
-            oauthPort: ctx.oauthPort,
-            restartDelayMs: ctx.config.oauth.restartDelayMs,
-            onReady: ({ url, port }: { url: string; port: number }) => {
-              ctx.markOAuthReady({ url, port });
-              advertise(ctx);
-            },
-            onExit: () => ctx.markOAuthFailed(),
-          });
+  // Pool mode: if 2+ accounts discovered, spawn N proxies instead of one
+  let oauthChild: any = null;
+  let oauthPoolHandle: any = null;
+  if (overrides.oauthChild !== undefined) {
+    oauthChild = overrides.oauthChild;
+  } else if (!ctx.config.oauth.autoStart) {
+    oauthChild = null;
+  } else if ((ctx as any).oauthPool && (ctx as any).oauthPool.size > 1) {
+    const pool: any = (ctx as any).oauthPool;
+    console.log(`[oauth:pool] Starting pool with ${pool.size} accounts (round-robin distribution)`);
+    oauthPoolHandle = startOAuthPool(pool, {
+      restartDelayMs: ctx.config.oauth.restartDelayMs,
+      onPoolReady: ({ url, port }: { url: string; port: number }) => {
+        // First pool account ready → mark global ready
+        ctx.markOAuthReady({ url, port });
+        (ctx as any).oauthPoolReady = true;
+        advertise(ctx);
+        console.log(`[oauth:pool] Pool ready – traffic will round-robin across ${pool.size} accounts`);
+      },
+      onAccountReady: ({ port, accountId }: { port: number; accountId: string }) => {
+        // Keep advertise up-to-date but don't re-resolve global promise
+        advertise(ctx);
+        console.log(`[oauth:pool] Account ${accountId} ready on :${port}`);
+      },
+      onAccountExit: ({ accountId }: { accountId: string }) => {
+        console.warn(`[oauth:pool] Account ${accountId} exited`);
+      },
+      onExit: () => ctx.markOAuthFailed(),
+      onPoolExit: () => ctx.markOAuthFailed(),
+    });
+    oauthChild = oauthPoolHandle;
+    // Also keep ctx.oauthPool reference for runtime routing
+    (ctx as any).oauthPool = pool;
+  } else {
+    oauthChild = startOAuthProxy({
+      oauthPort: ctx.oauthPort,
+      restartDelayMs: ctx.config.oauth.restartDelayMs,
+      onReady: ({ url, port }: { url: string; port: number }) => {
+        ctx.markOAuthReady({ url, port });
+        advertise(ctx);
+      },
+      onExit: () => ctx.markOAuthFailed(),
+    });
+  }
   if (overrides.oauthChild !== undefined || !ctx.config.oauth.autoStart) {
     ctx.markOAuthReady({ url: ctx.oauthUrl, port: ctx.oauthPort });
   }

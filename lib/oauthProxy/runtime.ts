@@ -33,7 +33,35 @@ export function buildImageTools(webSearchEnabled: boolean, imageOptions: Record<
   ];
 }
 
-export function getOAuthUrl(ctx: RouteRuntimeContext = {}) {
+export function getOAuthPool(ctx: RouteRuntimeContext = {}): any {
+  return (ctx as any)?.oauthPool ?? null;
+}
+
+export function getOAuthUrl(ctx: RouteRuntimeContext = {}): string {
+  const pool = getOAuthPool(ctx);
+  if (pool && typeof pool.next === "function") {
+    try {
+      const picked = pool.next();
+      if (picked?.url) return picked.url;
+    } catch {}
+  }
+  return ctx.oauthUrl || `http://127.0.0.1:${config.oauth.proxyPort}`;
+}
+
+/** Return the account that was selected for the current call (for logging / retry). */
+export function pickOAuthAccount(ctx: RouteRuntimeContext = {}): any | null {
+  const pool = getOAuthPool(ctx);
+  if (pool && typeof pool.next === "function") {
+    try {
+      const picked = pool.next();
+      if (picked) return picked;
+    } catch {}
+  }
+  return null;
+}
+
+export function getOAuthUrlForAccount(ctx: RouteRuntimeContext = {}, account: any): string {
+  if (account?.url) return account.url;
   return ctx.oauthUrl || `http://127.0.0.1:${config.oauth.proxyPort}`;
 }
 
@@ -68,6 +96,41 @@ export function createOAuthGenerationTimeout(ctx: RouteRuntimeContext = {}, requ
 
 export async function waitForOAuthReady(ctx: RouteRuntimeContext = {}) {
   if (!ctx || ctx.oauthReadyState === undefined) return;
+  const pool = getOAuthPool(ctx);
+  // Pool mode: wait for at least one account to be ready
+  if (pool && pool.size > 1) {
+    // If pool has at least one ready account, we're good
+    if (pool.readyAccounts.length > 0) return;
+    // Otherwise wait briefly for pool to become ready (reuse same timeout)
+    const timeoutMs = ctx.config?.oauth?.statusTimeoutMs ?? config.oauth.statusTimeoutMs;
+    if (ctx.oauthReadyPromise) {
+      await Promise.race([
+        ctx.oauthReadyPromise,
+        new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+      ]);
+    }
+    if (pool.readyAccounts.length > 0) return;
+    // If still not ready, fall through to single-state check (might be starting)
+    if (pool.all.every((a: any) => a.readyState === "failed")) {
+      throw makeOAuthError("All OAuth pool accounts are unavailable", { code: "OAUTH_UNAVAILABLE", status: 503 });
+    }
+    // If at least one is still starting, treat as not-yet-ready
+    if (pool.all.some((a: any) => a.readyState === "starting")) {
+      // Wait once more for the global ready signal
+      if (ctx.oauthReadyState === "starting") {
+        const t2 = ctx.config?.oauth?.statusTimeoutMs ?? 3000;
+        if (ctx.oauthReadyPromise) {
+          await Promise.race([
+            ctx.oauthReadyPromise,
+            new Promise((resolve) => setTimeout(resolve, t2)),
+          ]);
+        }
+      }
+      if (pool.readyAccounts.length > 0) return;
+      throw makeOAuthError("OAuth pool is not ready yet", { code: "OAUTH_UNAVAILABLE", status: 503 });
+    }
+    return;
+  }
   const initialState = ctx.oauthReadyState;
   if (initialState === "ready" || initialState === "disabled") return;
   if (initialState === "failed") {

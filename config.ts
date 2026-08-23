@@ -196,8 +196,15 @@ export const config = {
     ),
   },
   oauth: {
-    // Accept both IMA2_OAUTH_PROXY_PORT and legacy OAUTH_PORT.
     proxyPort: pickInt(firstDefined(env.IMA2_OAUTH_PROXY_PORT, env.OAUTH_PORT), fileCfg.oauth?.proxyPort, 10531),
+    // Pool mode: when 2+ Codex OAuth accounts are discovered, image generation
+    // is round-robin distributed across them. Discovery sources (priority order):
+    // IMA2_OAUTH_ACCOUNTS="auth.json:port,..." > IMA2_CODEX_HOMES="~/.codex,~/.codex-2"
+    // > IMA2_OAUTH_EXTRA_AUTH_FILES="file1,file2" > sibling ~/.codex2/auth.json (or ~/.codex-2/auth.json)
+    // > codex-switch registry (~/.telex-codex-switcher/homes/*/auth.json).
+    poolStrategy: pickStr(env.IMA2_OAUTH_POOL_STRATEGY, fileCfg.oauth?.poolStrategy, "round-robin"),
+    poolCooldownMs: pickInt(env.IMA2_OAUTH_POOL_COOLDOWN_MS, fileCfg.oauth?.poolCooldownMs, 60_000),
+    poolMaxFailures: pickInt(env.IMA2_OAUTH_POOL_MAX_FAILURES, fileCfg.oauth?.poolMaxFailures, 3),
     // IMA2_NO_OAUTH_PROXY=1 disables auto-start; default is auto-start enabled.
     autoStart: !pickBool(env.IMA2_NO_OAUTH_PROXY, fileCfg.oauth?.disableAutoStart, false),
     statusTimeoutMs: pickInt(env.IMA2_OAUTH_STATUS_TIMEOUT_MS, fileCfg.oauth?.statusTimeoutMs, 3000),

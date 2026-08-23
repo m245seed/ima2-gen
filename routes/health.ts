@@ -5,24 +5,48 @@ import { errInfo } from "../lib/errInfo.js";
 import { requireRuntimeContext, type RouteRuntimeContext } from "../lib/runtimeContext.js";
 export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
   const ctx = requireRuntimeContext(ctxRaw);
-  const runtimePorts = () => ({
-    backend: {
-      configuredPort: Number(ctx.serverConfiguredPort || ctx.config.server.port),
-      actualPort: Number(ctx.serverActualPort || ctx.config.server.port),
-      url: ctx.serverUrl || `http://localhost:${ctx.serverActualPort || ctx.config.server.port}`,
-    },
-    oauth: {
-      configuredPort: Number(ctx.oauthPort),
-      actualPort: Number(ctx.oauthActualPort || ctx.oauthPort),
-      url: ctx.oauthUrl,
-      status: ctx.oauthReadyState,
-    },
-    grok: {
-      configuredPort: Number(ctx.grokPort),
-      actualPort: Number(ctx.grokActualPort || ctx.grokPort),
-      url: ctx.grokUrl,
-    },
-  });
+  const runtimePorts = () => {
+    const pool: any = (ctx as any).oauthPool;
+    const base: any = {
+      backend: {
+        configuredPort: Number(ctx.serverConfiguredPort || ctx.config.server.port),
+        actualPort: Number(ctx.serverActualPort || ctx.config.server.port),
+        url: ctx.serverUrl || `http://localhost:${ctx.serverActualPort || ctx.config.server.port}`,
+      },
+      oauth: {
+        configuredPort: Number(ctx.oauthPort),
+        actualPort: Number(ctx.oauthActualPort || ctx.oauthPort),
+        url: ctx.oauthUrl,
+        status: ctx.oauthReadyState,
+        ...(pool
+          ? {
+              pool: {
+                size: pool.size,
+                strategy: "round-robin",
+                accounts: pool.all.map((a: any) => ({
+                  id: a.id,
+                  label: a.label,
+                  port: a.port,
+                  url: a.url,
+                  readyState: a.readyState,
+                  failureCount: a.failureCount,
+                  successCount: a.successCount,
+                  disabledUntil: a.disabledUntil,
+                })),
+                healthy: pool.healthy.length,
+                ready: pool.readyAccounts.length,
+              },
+            }
+          : {}),
+      },
+      grok: {
+        configuredPort: Number(ctx.grokPort),
+        actualPort: Number(ctx.grokActualPort || ctx.grokPort),
+        url: ctx.grokUrl,
+      },
+    };
+    return base;
+  };
 
   app.get("/api/providers", (_req: Request, res: Response) => {
     res.json({
@@ -46,6 +70,47 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
       activeJobs: listJobs().length,
       pid: process.pid,
       startedAt: ctx.startedAt,
+      runtime: runtimePorts(),
+    });
+  });
+
+  app.get("/api/oauth/pool", (_req: Request, res: Response) => {
+    const pool: any = (ctx as any).oauthPool;
+    if (!pool) {
+      return res.json({
+        enabled: false,
+        size: 1,
+        strategy: "single",
+        accounts: [
+          {
+            id: "primary",
+            label: "Primary",
+            port: ctx.oauthPort,
+            url: ctx.oauthUrl,
+            readyState: ctx.oauthReadyState,
+          },
+        ],
+        runtime: runtimePorts(),
+      });
+    }
+    res.json({
+      enabled: pool.size > 1,
+      size: pool.size,
+      strategy: "round-robin",
+      distribution: "Round-robin across accounts (requests alternate A→B→A…). 429/503 auto-failover to next healthy account.",
+      accounts: pool.all.map((a: any) => ({
+        id: a.id,
+        label: a.label,
+        port: a.port,
+        url: a.url,
+        readyState: a.readyState,
+        failureCount: a.failureCount,
+        successCount: a.successCount,
+        disabledUntil: a.disabledUntil,
+        healthy: pool.healthy.some((h: any) => h.id === a.id),
+      })),
+      healthy: pool.healthy.length,
+      ready: pool.readyAccounts.length,
       runtime: runtimePorts(),
     });
   });

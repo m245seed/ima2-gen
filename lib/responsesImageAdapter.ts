@@ -5,6 +5,7 @@ import { detectImageMimeFromB64 } from "./refs.js";
 import { errInfo } from "./errInfo.js";
 import { setJobPhase } from "./inflight.js";
 import { type RouteRuntimeContext, requireRuntimeContext } from "./runtimeContext.js";
+import { getOAuthPool } from "./oauthProxy/runtime.js";
 import {
   parseJson,
   parseStream,
@@ -153,11 +154,26 @@ async function getEndpoint(ctx: RouteRuntimeContext, provider: string | undefine
     };
   }
   await waitForOAuthReady(ctx);
+  const pool: any = getOAuthPool(ctx as any);
+  if (pool && pool.size > 1) {
+    const picked = pool.next();
+    if (picked?.url) {
+      return {
+        url: `${safeBaseUrl(picked.url)}/v1/responses`,
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+        account: picked,
+      } as any;
+    }
+  }
   const port = ctx?.config?.oauth?.proxyPort || 10531;
   return {
-    url: `${safeBaseUrl(ctx?.oauthUrl || `http://127.0.0.1:${port}`)}/v1/responses`,
+    url: `${safeBaseUrl((ctx as any)?.oauthUrl || `http://127.0.0.1:${port}`)}/v1/responses`,
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
   };
+}
+
+function isPoolRetryableStatus(status: number): boolean {
+  return status === 429 || status === 503 || status === 502 || status === 401 || status === 403;
 }
 
 type ReferenceRef = string | { b64?: string | undefined; detectedMime?: string | null; declaredMime?: string | null };
@@ -213,67 +229,189 @@ async function postResponses({
   onPartialImage = null,
   onFinalImage = null,
 }: PostResponsesArgs) {
-  const { url, headers } = await getEndpoint(ctx, provider, scope);
-  const timeoutMs = ctx?.config?.oauth?.generationTimeoutMs || 400 * 1000;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  const fetchSignal = signal
-    ? combineAbortSignals([controller.signal, signal])
-    : controller.signal;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: headers as Record<string, string>,
-      signal: fetchSignal,
-      body: JSON.stringify(payload),
-    });
-    logEvent(scope, "response", { requestId, provider, status: res.status, contentType: res.headers.get("content-type") });
-    if (!res.ok) {
-      const text = await res.text();
-      const upstream = parseOpenAIErrorBody(text);
-      if (res.status >= 400 && res.status < 500 && upstream?.message) {
-        throw makeError(safeUpstreamClientMessage(upstream, res.status), {
+  const pool: any = provider !== "api" ? getOAuthPool(ctx as any) : null;
+  const usePool = !!(pool && pool.size > 1);
+  let endpoint: any = await getEndpoint(ctx, provider, scope);
+  const triedIds = new Set<string>();
+  if (endpoint.account?.id) triedIds.add(endpoint.account.id);
+
+  for (let attempt = 0; attempt < (usePool ? pool.size : 1); attempt++) {
+    const { url, headers, account } = endpoint as any;
+    const timeoutMs = ctx?.config?.oauth?.generationTimeoutMs || 400 * 1000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const fetchSignal = signal
+      ? combineAbortSignals([controller.signal, signal])
+      : controller.signal;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: headers as Record<string, string>,
+        signal: fetchSignal,
+        body: JSON.stringify(payload),
+      });
+      logEvent(scope, "response", {
+        requestId,
+        provider,
+        status: res.status,
+        contentType: res.headers.get("content-type"),
+        ...(account?.id ? { accountId: account.id } : {}),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        const upstream = parseOpenAIErrorBody(text);
+        const retryable = isPoolRetryableStatus(res.status) && usePool && attempt + 1 < pool.size;
+        if (retryable) {
+          logEvent(scope, "pool_retry", {
+            requestId,
+            provider,
+            fromAccount: account?.id,
+            status: res.status,
+            attempt: attempt + 1,
+            remaining: pool.size - attempt - 1,
+          });
+          try { if (account?.id) pool.markFailure(account.id, `http_${res.status}`); } catch {}
+          let next: any = null;
+          for (const cand of pool.failoverOrder(account?.id)) {
+            if (!triedIds.has(cand.id)) { next = cand; break; }
+          }
+          if (!next) {
+            for (let i = 0; i < pool.size; i++) {
+              const cand = pool.next();
+              if (cand && !triedIds.has(cand.id)) { next = cand; break; }
+            }
+          }
+          if (next) {
+            triedIds.add(next.id);
+            endpoint = { url: `${safeBaseUrl(next.url)}/v1/responses`, headers, account: next };
+            clearTimeout(timer);
+            continue;
+          }
+        } else if (account?.id) {
+          try {
+            if (isPoolRetryableStatus(res.status)) pool.markFailure(account.id, `http_${res.status}`);
+            else pool.markSuccess(account.id);
+          } catch {}
+        }
+        if (res.status >= 400 && res.status < 500 && upstream?.message) {
+          throw makeError(safeUpstreamClientMessage(upstream, res.status), {
+            status: res.status,
+            code: normalizedCode(upstream),
+            upstreamBodyChars: text.length,
+            upstreamCode: upstream.code,
+            upstreamType: upstream.type,
+            upstreamParam: upstream.param,
+            upstreamMessageRedacted: true,
+          });
+        }
+        throw makeError(`${provider === "api" ? "OpenAI API" : "OAuth proxy"} returned ${res.status}`, {
           status: res.status,
-          code: normalizedCode(upstream),
           upstreamBodyChars: text.length,
-          upstreamCode: upstream.code,
-          upstreamType: upstream.type,
-          upstreamParam: upstream.param,
-          upstreamMessageRedacted: true,
         });
       }
-      throw makeError(`${provider === "api" ? "OpenAI API" : "OAuth proxy"} returned ${res.status}`, {
-        status: res.status,
-        upstreamBodyChars: text.length,
+      if (account?.id) {
+        try { pool.markSuccess(account.id); } catch {}
+        logEvent(scope, "pool_pick", { requestId, provider, accountId: account.id });
+      }
+      if (requestId) setJobPhase(requestId, "streaming");
+      const contentType = res.headers.get("content-type") || "";
+      const parsed = contentType.includes("text/event-stream")
+        ? await parseStream(res, { requestId, scope, maxImages, onPartialImage, onFinalImage })
+        : await parseJson(res, maxImages);
+      clearTimeout(timer);
+      return parsed;
+    } catch (e) {
+      clearTimeout(timer);
+      const err = errInfo(e as any);
+      if (err.name === "AbortError") {
+        if (signal?.aborted) {
+          throw makeError("Generation canceled", {
+            status: 499,
+            code: "GENERATION_CANCELED",
+            cause: err.raw,
+          });
+        }
+        // Timeout is not pool-retryable (likely stuck upstream); still try next account if pool
+        const canRetryTimeout = usePool && attempt + 1 < pool.size;
+        if (canRetryTimeout) {
+          const failedId = (endpoint as any)?.account?.id;
+          logEvent(scope, "pool_retry_timeout", { requestId, provider, fromAccount: failedId, attempt: attempt + 1 });
+          if (failedId) try { pool.markFailure(failedId, "timeout"); } catch {}
+          let next: any = null;
+          for (const cand of pool.failoverOrder(failedId)) {
+            if (!triedIds.has(cand.id)) { next = cand; break; }
+          }
+          if (!next) {
+            for (let i = 0; i < pool.size; i++) {
+              const cand = pool.next();
+              if (cand && !triedIds.has(cand.id)) { next = cand; break; }
+            }
+          }
+          if (next) {
+            triedIds.add(next.id);
+            endpoint = { url: `${safeBaseUrl(next.url)}/v1/responses`, headers: endpoint.headers, account: next };
+            continue;
+          }
+        }
+        throw makeError("Responses image generation timed out", { status: 504, code: "RESPONSES_IMAGE_TIMEOUT", cause: err.raw });
+      }
+      if (isKnownResponsesError(err.raw)) {
+        // If it's a known error with retryable status, try pool failover
+        const status = (err.raw as any)?.status;
+        const canRetryKnown = usePool && isPoolRetryableStatus(status) && attempt + 1 < pool.size;
+        if (canRetryKnown) {
+          const failedId = (endpoint as any)?.account?.id;
+          logEvent(scope, "pool_retry_known", { requestId, provider, fromAccount: failedId, status, attempt: attempt + 1 });
+          if (failedId) try { pool.markFailure(failedId, `known_${status}`); } catch {}
+          let next: any = null;
+          for (const cand of pool.failoverOrder(failedId)) {
+            if (!triedIds.has(cand.id)) { next = cand; break; }
+          }
+          if (!next) {
+            for (let i = 0; i < pool.size; i++) {
+              const cand = pool.next();
+              if (cand && !triedIds.has(cand.id)) { next = cand; break; }
+            }
+          }
+          if (next) {
+            triedIds.add(next.id);
+            endpoint = { url: `${safeBaseUrl(next.url)}/v1/responses`, headers: endpoint.headers, account: next };
+            continue;
+          }
+        }
+        throw err.raw;
+      }
+      const isNetwork = (err.raw as any)?.code === "NETWORK_FAILED" || err.name === "TypeError";
+      const canRetryNetwork = usePool && isNetwork && attempt + 1 < pool.size;
+      if (canRetryNetwork) {
+        const failedId = (endpoint as any)?.account?.id;
+        logEvent(scope, "pool_retry_network", { requestId, provider, fromAccount: failedId, attempt: attempt + 1 });
+        if (failedId) try { pool.markFailure(failedId, "network"); } catch {}
+        let next: any = null;
+        for (const cand of pool.failoverOrder(failedId)) {
+          if (!triedIds.has(cand.id)) { next = cand; break; }
+        }
+        if (!next) {
+          for (let i = 0; i < pool.size; i++) {
+            const cand = pool.next();
+            if (cand && !triedIds.has(cand.id)) { next = cand; break; }
+          }
+        }
+        if (next) {
+          triedIds.add(next.id);
+          endpoint = { url: `${safeBaseUrl(next.url)}/v1/responses`, headers: endpoint.headers, account: next };
+          continue;
+        }
+      }
+      throw makeError("Responses request failed before receiving a response", {
+        status: 502,
+        code: "NETWORK_FAILED",
+        errorName: err.name,
+        upstreamMessageRedacted: true,
       });
     }
-    if (requestId) setJobPhase(requestId, "streaming");
-    const contentType = res.headers.get("content-type") || "";
-    return contentType.includes("text/event-stream")
-      ? await parseStream(res, { requestId, scope, maxImages, onPartialImage, onFinalImage })
-      : await parseJson(res, maxImages);
-  } catch (e) {
-    const err = errInfo(e);
-    if (err.name === "AbortError") {
-      if (signal?.aborted) {
-        throw makeError("Generation canceled", {
-          status: 499,
-          code: "GENERATION_CANCELED",
-          cause: err.raw,
-        });
-      }
-      throw makeError("Responses image generation timed out", { status: 504, code: "RESPONSES_IMAGE_TIMEOUT", cause: err.raw });
-    }
-    if (isKnownResponsesError(err.raw)) throw err.raw;
-    throw makeError("Responses request failed before receiving a response", {
-      status: 502,
-      code: "NETWORK_FAILED",
-      errorName: err.name,
-      upstreamMessageRedacted: true,
-    });
-  } finally {
-    clearTimeout(timer);
   }
+  throw makeError("All OAuth pool accounts failed", { status: 503, code: "OAUTH_POOL_EXHAUSTED" });
 }
 
 interface GenerateOptions {

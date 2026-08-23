@@ -2,6 +2,7 @@ import type OpenAI from "openai";
 import { config as runtimeConfigDefault } from "../config.js";
 import type { McpConnectionManager } from "./mcp/connectionManager.js";
 import type { GrokProxyHandle } from "./grokProxyLauncher.js";
+import type { OAuthPool } from "./oauthPool.js";
 
 export type AppConfig = typeof runtimeConfigDefault;
 export type ApiKeySource = "env" | "oauth" | "config" | "none" | undefined;
@@ -31,6 +32,10 @@ export interface RuntimeContext {
   oauthReadyPromise: Promise<void> | null;
   oauthReadyState: OAuthReadyState;
   oauthUrl: string;
+  /** Pool mode: when 2+ OAuth accounts are present, requests are round-robin distributed. */
+  oauthPool?: OAuthPool | null;
+  oauthPoolReady?: boolean;
+  oauthPoolAccounts?: import("./oauthPool.js").OAuthPoolAccount[];
   openai: OpenAI | null;
   packageVersion: string;
   rootDir: string;
@@ -110,6 +115,8 @@ export function requireRuntimeContext(ctx: RouteRuntimeContext | undefined): Run
   if (target.oauthUrl === undefined) {
     target.oauthUrl = `http://127.0.0.1:${(target.config as AppConfig).oauth?.proxyPort ?? target.oauthPort ?? 11782}`;
   }
+  if ((target as any).oauthPool === undefined) (target as any).oauthPool = null;
+  if ((target as any).oauthPoolReady === undefined) (target as any).oauthPoolReady = false;
   if (target.openai === undefined) target.openai = null;
   if (target.packageVersion === undefined) target.packageVersion = "0.0.0";
   if (target.rootDir === undefined) target.rootDir = process.cwd();
@@ -181,6 +188,8 @@ export function createTestRuntimeContext(over: RuntimeContextOverrides = {}): Ru
     oauthReadyPromise: null,
     oauthReadyState: undefined,
     oauthUrl: "http://127.0.0.1:11782",
+    oauthPool: null,
+    oauthPoolReady: false,
     openai: null,
     packageVersion: "0.0.0-test",
     rootDir: process.cwd(),
