@@ -14,9 +14,9 @@
 >
 > **Read in other languages**: [한국어](docs/README.ko.md) · [日本語](docs/README.ja.md) · [正體中文](docs/README.zh-TW.md) · [简体中文](docs/README.zh-CN.md)
 
-`ima2-gen` is a local-first visual generation runtime and studio for people and coding agents, with reproducible image and video workflows across multiple providers.
+`ima2-gen` is a local-first visual generation runtime and studio for people and coding agents, with reproducible image workflows across multiple providers.
 
-Install globally and generate images and videos from eight core lanes: OpenAI OAuth/API, Grok OAuth/API, Antigravity CLI, Gemini API, AtlasCloud, and MiniMax. Runway and Higgsfield remain separate MCP-backed integrations. Iterate with history, references, node branches, multimode batches, and Canvas Mode cleanup — now with one-click GPT background transparency (server-verified real alpha), annotation hover feedback, and a full light/dark/system theme.
+Install globally and generate images from two providers: OpenAI OAuth and OpenAI API key. Iterate with history, references, node branches, multimode batches, and Canvas Mode cleanup — now with one-click GPT background transparency (server-verified real alpha), annotation hover feedback, and a full light/dark/system theme.
 
 ![ima2-gen classic workspace in light mode with a transparent-background result on the canvas.](assets/screenshots/classic-generate-lightmode.png)
 
@@ -39,18 +39,15 @@ docker run -d -p 3333:3333 -e IMA2_LAN_TOKEN=change-me -v ima2-data:/data ima2-g
 
 See [docs/DOCKER.md](docs/DOCKER.md) for compose usage, required environment, and limitations.
 
-To generate from the CLI, inspect the live lane catalog and choose explicit image/video defaults once:
+To generate from the CLI, inspect the live lane catalog and choose an explicit image default once:
 
 ```bash
 ima2 models
 ima2 defaults set image oauth/gpt-5.6-luna
-ima2 defaults set video grok/grok-imagine-video-1.5
 ima2 gen "a clean product photo of a red guitar pedal"
-ima2 video "a cat playing piano" --duration 5 --resolution 720p
-ima2 video "animate this scene" --ref photo.png --duration 10
 ```
 
-`ima2 gen` and generate-mode `ima2 video` fail closed with `NO_DEFAULT_MODEL` until a CLI target is configured, unless that call passes `--model <lane>/<model>` or an explicit `--provider <lane>`. This prevents an upgrade from silently switching providers or billing lanes.
+`ima2 gen` fails closed with `NO_DEFAULT_MODEL` until a CLI target is configured, unless that call passes `--model <lane>/<model>` or an explicit `--provider <lane>`. This prevents an upgrade from silently switching providers or billing lanes.
 
 If `3333` is already occupied, `ima2-gen` binds the next available port and writes the actual URL to `~/.ima2/server.json`. Use `ima2 open` or the URL printed in the terminal instead of assuming the port.
 
@@ -79,14 +76,11 @@ Each script checks for nvm/fnm/brew/winget, installs Node LTS through the best a
 
 ### Setup
 
-`ima2 setup` offers four authentication choices:
+`ima2 setup` offers two authentication choices:
 
 1. **GPT OAuth** — login with ChatGPT account (free, images only)
-2. **Grok OAuth** — login with xAI/Grok account (images + video)
-3. **Both** — GPT OAuth + Grok OAuth (full feature access)
-4. **Web setup** — configure everything in the web UI
-
-Video generation requires Grok OAuth (option 2 or 3). Run `ima2 grok login` separately if you already have GPT OAuth configured and want to add video support; it defaults to the manual-paste flow.
+2. **API key** — use an OpenAI API key for the Responses API image path
+3. **Web setup** — configure everything in the web UI
 
 ### Updating
 
@@ -104,8 +98,7 @@ Ctrl+C now performs a clean shutdown — closing the database, stopping child pr
 - **Classic mode**: generate, edit, reuse the current image, paste references, and continue from history.
 - **Node mode**: branch a good image into multiple directions without losing the original.
 - **Multimode batches**: launch several Classic outputs from one prompt, watch slot-by-slot progress, and continue from the best result.
-- **Video generation**: create short videos from text, a single image, or multiple reference images via Grok video models. SSE streaming shows planning → submitted → progress % → done. Video frame copy buttons (First/Mid/Last) let you extract and copy keyframes from generated videos.
-- **Storyboard mode**: toggle storyboard mode in the composer to maintain character and scene continuity across sequential frames. Works with both image and video generation — image keyframes are composed for video production, and video clips inherit character/environment lock rules.
+- **Storyboard mode**: toggle storyboard mode in the composer to maintain character and scene continuity across sequential frames.
 - **Canvas Mode**: zoom, pan, annotate (with hover highlighting), erase, clean backgrounds, keep transparent previews, and export either alpha or matte-backed versions. A one-click **GPT transparency** button sends the current image through the i2i edit lane and reports honestly whether the result carries real pixel alpha — verified on the server, never trusted from provider metadata.
 - **Light & dark themes**: a token-based light mode with tinted neutrals and AA contrast, switchable between light / dark / system in Settings, with no flash on load.
 - **Local gallery**: keep generated assets on your machine with session-aware history. By default the gallery shows the current session and an All Images toggle reveals the full history; the default scope is sticky across sessions. Each image records its generation time and reasoning effort in the result metadata, so they persist across reloads.
@@ -117,13 +110,13 @@ Ctrl+C now performs a clean shutdown — closing the database, stopping child pr
 ### Agent Skills
 
 ima2-gen ships three packaged skills for AI coding agents. These are Markdown
-instruction files that agents load to get structured workflows for image/video
+instruction files that agents load to get structured workflows for image
 generation, frontend asset production, and design direction discovery.
 
 | Skill | Command | What It Covers |
 |-------|---------|----------------|
-| **Core** | `ima2 skill` | CLI reference, prompting protocol, provider routing, Korean text, video workflows |
-| **Frontend** | `ima2 skill front` | Asset pipeline (parallel gen, variant selection, provider routing), motion/video for web, responsive, a11y, anti-slop, 30+ reference files |
+| **Core** | `ima2 skill` | CLI reference, prompting protocol, provider routing, Korean text |
+| **Frontend** | `ima2 skill front` | Asset pipeline (parallel gen, variant selection, provider routing), responsive, a11y, anti-slop, 30+ reference files |
 | **UI/UX Design** | `ima2 skill uiux` | Image-first design direction discovery, UX states, design-isms, product personalities, DESIGN.md workflow, 18 reference files |
 
 ```bash
@@ -141,32 +134,21 @@ ima2 skill install --tmp            # install to temp dir (fallback)
 The Frontend and UI/UX skills are production-grade design engineering guides
 adapted for the ima2 workflow. They cover typography, color systems, layout
 discipline, Korean UX patterns, motion choreography, and visual verification,
-with every asset generation step mapped to `ima2 gen`, `ima2 video`, and
+with every asset generation step mapped to `ima2 gen` and
 `ima2 multimode` commands.
-
 ### SSE Multiplexing
 
-The web UI uses a single `GET /api/events` Server-Sent Events connection for all generation progress. Multimode, node, and video requests are submitted as async POST (`202 { requestId }`) and progress events are multiplexed through a shared event bus. This eliminates the browser 6-connection limit that previously caused gallery hangs during concurrent generation. CLI clients that do not send `async: true` still receive per-request SSE streams for backward compatibility.
+The web UI uses a single `GET /api/events` Server-Sent Events connection for all generation progress. Multimode and node requests are submitted as async POST (`202 { requestId }`) and progress events are multiplexed through a shared event bus. This eliminates the browser 6-connection limit that previously caused gallery hangs during concurrent generation. CLI clients that do not send `async: true` still receive per-request SSE streams for backward compatibility.
 
 ## Provider Paths
 
-Image generation can run through the local Codex/ChatGPT OAuth path, a configured OpenAI API key, the bundled Grok provider, or the Gemini provider via Antigravity CLI.
+Image generation runs through two providers: the local ChatGPT OAuth proxy or a configured OpenAI API key.
 
 - `provider: "oauth"` uses the local Codex OAuth proxy.
 - `provider: "api"` calls the OpenAI Responses API with the hosted `image_generation` tool.
-- `provider: "grok"` starts bundled `progrok` on `127.0.0.1:18645`, runs mandatory xAI Web Search plus a planner pass (default: `grok-4.5`, configurable in settings or via `--planner-model`), then calls xAI Images API through the local proxy. `grok-4.3` remains available as an explicit compatibility override.
-- `provider: "grok-api"` calls the xAI Images API directly with `XAI_API_KEY` (no bundled progrok OAuth proxy).
-- `provider: "agy"` spawns the Antigravity CLI (`agy -p`) to generate images via Google Gemini's `default_api:generate_image` tool (model: `nano-banana-2`). Output is fixed at 1024×1024 JPEG, max 3 reference images. No web search, quality, or size controls.
-- `provider: "gemini-api"` calls the Google Generative Language API directly. Supports two models: `nano-banana-2` (Gemini 3.1 Flash Image) and `nano-banana-pro` (Gemini 3 Pro Image). Auth is via `GEMINI_API_KEY` env var, web UI key management, or a Vertex AI service account JSON (`VERTEX_SERVICE_ACCOUNT_JSON`). When both an API key and Vertex credentials are configured, Vertex takes priority. Supports variable aspect ratios (1:1 through 21:9) and four resolution tiers (512px, 1K, 2K, 4K); these controls are only honored on the direct API path — the Vertex AI endpoint ignores aspect/size because it does not accept the `response_format` field. Per-model cost differs: `nano-banana-2` (Flash): 512=$0.001, 1K=$0.003, 2K=$0.004, 4K=$0.006; `nano-banana-pro`: 1K=$0.007, 2K=$0.007, 4K=$0.013. No web search or mask controls.
 - API-key generation supports classic generate, edit, mask-guided edit, multimode, and node generation.
-- Grok generation supports Classic, Node, and Agent flows. If a Classic reference, Node parent image, or Agent current image is present, ima2 switches the final Grok call to xAI image edit so image-to-image context is preserved.
 
-If no provider is specified, the app keeps the current GPT OAuth/default behavior. GPT OAuth and API-key generation default to `gpt-5.6-luna`; the API-key path also defaults to `low` reasoning and `1024x1024` unless the request passes validated options. Grok image generation defaults to `grok-imagine-image-quality`.
-
-Grok image generation exposes a model picker (`grok-imagine-image` / `grok-imagine-image-quality`) and a size picker (aspect ratio + 1k/2k resolution). The Settings page prefers the Grok Build weekly credits percentage and reset time from `GET /v1/billing?format=credits`; if that source is unavailable, it falls back to the legacy monthly billing window and `$used/$limit`. A **Switch Account** button starts a device-code OAuth flow (`POST /api/auth/switch`) for re-authenticating without leaving the app.
-
-Grok video generation defaults to canonical `grok-imagine-video-1.5`; `grok-imagine-video` remains available for base-model-only Ref2V, V2V edit, and extension paths, and the legacy `grok-imagine-video-1.5-preview` string is accepted as an alias. Three modes are auto-detected from reference count: text-to-video (0 refs), image-to-video (1 ref), and reference-to-video (2-7 refs, max 10s duration). 1080p is available for `grok-imagine-video-1.5` prompt-only text-to-video and single image/frame image-to-video; prompt-only 1.5 uses the internal white-canvas I2V shim before the upstream request. Video controls include duration (1-15s), resolution (480p, 720p, 1080p when supported), and aspect ratio (1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, auto).
-
+If no provider is specified, the app keeps the current GPT OAuth/default behavior. GPT OAuth and API-key generation default to `gpt-5.6-luna`; the API-key path also defaults to `low` reasoning and `1024x1024` unless the request passes validated options.
 ![Settings workspace showing GPT OAuth active and API key provider available.](assets/screenshots/settings-oauth-generation.png)
 
 ## Model Guidance
@@ -264,13 +246,12 @@ These require a running `ima2 serve`. The CLI covers every server route. The mos
 
 | Command | Description |
 |---|---|
-| `ima2 models [--kind image\|video] [--lane <lane>] [--json]` | List live lanes, status, model IDs, and capabilities |
-| `ima2 defaults set image\|video <lane>/<model>` | Persist the fail-closed CLI target for image or video generation |
-| `ima2 defaults reset image\|video` | Remove a persisted CLI generation target |
+| `ima2 models [--kind image] [--lane <lane>] [--json]` | List live lanes, status, model IDs, and capabilities |
+| `ima2 defaults set image <lane>/<model>` | Persist the fail-closed CLI target for image generation |
+| `ima2 defaults reset image` | Remove a persisted CLI generation target |
 | `ima2 gen <prompt> [--model <lane>/<model>]` | Generate from the CLI; requires an explicit target or saved image default |
 | `ima2 edit <file> --prompt <text>` | Edit an existing image |
 | `ima2 multimode <prompt>` | Multi-image SSE generation |
-| `ima2 video <prompt> [--model <lane>/<model>]` | Generate video through a Grok or MCP lane; requires an explicit target or saved video default |
 | `ima2 ls [--session <id>] [--favorites]` | List recent history |
 | `ima2 show <name> [--metadata]` | Reveal a generated asset |
 | `ima2 prompt ls -q <search>` | Search the prompt library |
@@ -285,11 +266,8 @@ ima2 models --kind image
 ima2 gen "poster" --model oauth/gpt-5.6-luna --reasoning-effort high
 ima2 edit input.png --prompt "make it rainy" --web-search
 ima2 multimode "two cats playing" -n 2
-ima2 video "a cat playing piano" --model grok/grok-imagine-video-1.5 --duration 5 --resolution 720p
-ima2 video "animate this" --model grok/grok-imagine-video-1.5 --ref photo.png --aspect-ratio 16:9
 ima2 inflight ls --terminal
 ima2 config set imageModels.reasoningEffort high
-```
 
 Full reference: [docs/CLI.md](docs/CLI.md).
 
@@ -316,25 +294,11 @@ environment variables > ~/.ima2/config.json > built-in defaults
 | `IMA2_LOG_LEVEL` | `info` | Normal serve defaults to `info`; dev mode defaults to `debug`; supports `debug`, `info`, `warn`, `error`, or `silent` |
 | `IMA2_INFLIGHT_TERMINAL_TTL_MS` | `300000` | Recent terminal job retention for debug views |
 | `OPENAI_API_KEY` | — | API key for the `provider: "api"` Responses API image path and auxiliary API-key features |
-| `XAI_API_KEY` | — | API key for `provider: "grok-api"` direct xAI Images API path |
 | `IMA2_API_IMAGE_MODEL_DEFAULT` | `gpt-5.6-luna` | Default image model for `provider: "api"` |
 | `IMA2_API_REASONING_EFFORT` | `low` | Default reasoning effort for `provider: "api"` |
 | `IMA2_API_IMAGE_SIZE` | `1024x1024` | Default size for `provider: "api"` |
 | `IMA2_API_ALLOW_WEB_SEARCH` | `true` | Toggle web search for `provider: "api"` |
-| `IMA2_GROK_PROXY_HOST` | `127.0.0.1` | Host for the bundled progrok proxy |
-| `IMA2_GROK_PROXY_PORT` | `18645` | Port for the bundled progrok proxy |
-| `IMA2_NO_GROK_PROXY` | — | Set `1` to disable automatic progrok startup |
-| `IMA2_GROK_PLANNER_MODEL` | `grok-4.5` | Grok search/planner model (also configurable via settings UI or `--planner-model` CLI flag) |
-| `IMA2_GROK_PLANNER_TIMEOUT_MS` | `900000` | Timeout for the Grok planner call |
-| `IMA2_GROK_SEARCH_TIMEOUT_MS` | `300000` | Timeout for the Grok web-search brief (degrades instead of failing) |
-| `IMA2_GROK_VIDEO_PLAN_TOTAL_TIMEOUT_MS` | `1500000` | Ceiling on the whole video planning phase (clamped above search + planner) |
-| `IMA2_GROK_IMAGE_MODEL_DEFAULT` | `grok-imagine-image-quality` | Default final Grok image model |
-| `IMA2_GROK_VIDEO_MODEL_DEFAULT` | `grok-imagine-video-1.5` | Default Grok video model |
-| `IMA2_GROK_GENERATION_TIMEOUT_MS` | `120000` | Timeout for the final Grok Images API call |
 | `IMA2_OAUTH_MASKED_EDIT_ENABLED` | `false` | Opt-in feature flag for masked-edit requests on the OAuth path (#31, groundwork only) |
-| `GEMINI_API_KEY` | — | API key for `provider: "gemini-api"` direct Generative Language API path |
-| `VERTEX_SERVICE_ACCOUNT_JSON` | — | Google service account JSON for Vertex AI auth with `provider: "gemini-api"`; takes priority over `GEMINI_API_KEY` when both are set |
-| `IMA2_AGY_BIN` | `agy` on PATH | Explicit path to the Antigravity CLI binary for `provider: "agy"` |
 | `IMA2_MAX_PARALLEL` | `24` | Server-wide parallel generation cap |
 
 ### Logging modes

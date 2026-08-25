@@ -6,11 +6,12 @@ import { out, die, color, json, exitCodeForError } from "../lib/output.js";
 import { config } from "../../config.js";
 import { createCliRequestId, recoverGeneratedOutputs, formatRecoveryHint } from "../lib/recover-output.js";
 import { canonicalizeImageModel } from "../lib/model-aliases.js";
-import { deriveProviderIds } from "../../lib/providers/derive.js";
+import { deriveCliImageModelSet, deriveProviderIds } from "../../lib/providers/derive.js";
 
 const MAX_GENERATION_COUNT = Math.max(1, Math.trunc(Number(config.limits.maxGeneratedImages) || 24));
 const MAX_REFERENCE_COUNT = Math.max(1, Math.trunc(Number(config.limits.maxRefCount) || 5));
-const PROVIDER_VALUES = ["auto", ...deriveProviderIds()];
+const IMAGE_MODEL_VALUES = deriveCliImageModelSet();
+const PROVIDER_VALUES = deriveProviderIds();
 
 const SPEC = {
   flags: {
@@ -50,10 +51,9 @@ const HELP = `
     -o, --out <file>                    First image (implies --max-images 1)
     -d, --out-dir <dir>                 Output dir for multiple images
         --json
-        --model <gpt-5.5|gpt-5.4|gpt-5.4-mini|gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna|gpt-5.3-codex-spark|grok-imagine-image-2.0|grok-imagine-image|grok-imagine-image-quality|nano-banana-2|nano-banana-pro>  Default: gpt-5.6-luna
+        --model <${[...IMAGE_MODEL_VALUES].join("|")}>  Default: gpt-5.6-luna
                                       Aliases: luna, sol, terra, spark
-        --provider <${PROVIDER_VALUES.join("|")}>
-                                      Provider (oauth = GPT OAuth; grok = xAI Grok; agy/gemini-api = Gemini)
+        --provider <${PROVIDER_VALUES.join("|")}>  Provider lane
         --mode <auto|direct>            Prompt handling mode. Default: auto
         --ref <file>                    Attach reference image (repeatable, max ${MAX_REFERENCE_COUNT})
         --reasoning-effort <none|low|medium|high|xhigh|max>
@@ -74,7 +74,7 @@ export default async function multimodeCmd(argv: string[]) {
   const prompt = args.positional.join(" ");
   if (!prompt) die(2, "prompt required");
 
-  const VALID_PROVIDERS = new Set(PROVIDER_VALUES);
+  const VALID_PROVIDERS: Set<string> = new Set(PROVIDER_VALUES);
   const VALID_MODES = new Set(["auto", "direct"]);
   const VALID_REASONING = new Set(["none", "low", "medium", "high", "xhigh", "max"]);
   if (args.provider && !VALID_PROVIDERS.has(String(args.provider))) {
@@ -90,7 +90,11 @@ export default async function multimodeCmd(argv: string[]) {
 
   let server;
   try { server = await resolveServer({ serverFlag: args.server }); }
-  catch (e: any) { die(exitCodeForError(e), e.message); throw e; }
+  catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    die(exitCodeForError(error), message);
+    throw error;
+  }
 
   const maxImages = Math.max(1, Math.min(MAX_GENERATION_COUNT, parseInt(String(args.count ?? args["max-images"])) || 4));
   const refs = (Array.isArray(args.ref) ? args.ref : []) as string[];
@@ -101,7 +105,7 @@ export default async function multimodeCmd(argv: string[]) {
   const requestId = createCliRequestId("req_cli_multimode");
   const timeoutMs = (parseInt(String(args.timeout)) || 600) * 1000;
 
-  const body: any = {
+  const body: Record<string, unknown> = {
     prompt,
     quality: args.quality,
     size: args.size,
@@ -130,8 +134,8 @@ export default async function multimodeCmd(argv: string[]) {
   process.once("SIGTERM", onSig);
 
   const url = `${server.base}/api/generate/multimode`;
-  const images: any[] = [];
-  let doneInfo: any = null;
+  const images: Array<Record<string, unknown>> = [];
+  let doneInfo: Record<string, unknown> | null = null;
   try {
     for await (const ev of streamSse(url, { body, signal: ac.signal, headers: { "X-Request-Id": requestId } })) {
       switch (ev.event) {
@@ -155,9 +159,12 @@ export default async function multimodeCmd(argv: string[]) {
           die(1, `multimode error: ${ev.data.error || ev.data}${ev.data.code ? ` (${ev.data.code})` : ""}`);
       }
     }
-  } catch (e: any) {
-    const isTimeout = e.name === "TimeoutError" || (e.name === "AbortError" && timedOut);
-    if (e.name === "AbortError" && !timedOut) return;
+  } catch (error: unknown) {
+    const info = error instanceof Error ? error : new Error(String(error));
+    const coded = typeof error === "object" && error !== null && "code" in error
+      && typeof error.code === "string" ? error.code : undefined;
+    const isTimeout = info.name === "TimeoutError" || (info.name === "AbortError" && timedOut);
+    if (info.name === "AbortError" && !timedOut) return;
     if (isTimeout && (explicitOut || outDir)) {
       const result = await recoverGeneratedOutputs(server.base, requestId, {
         explicitOut,
@@ -176,7 +183,7 @@ export default async function multimodeCmd(argv: string[]) {
       }
       if (!args.json) out(formatRecoveryHint(result));
     }
-    die(exitCodeForError(e), `${e.message}${e.code ? ` (${e.code})` : ""}`);
+    die(exitCodeForError(error), `${info.message}${coded ? ` (${coded})` : ""}`);
   } finally {
     clearTimeout(timeoutTimer);
     process.off("SIGINT", onSig);
@@ -191,13 +198,15 @@ export default async function multimodeCmd(argv: string[]) {
   const savedPaths: string[] = [];
   for (let i = 0; i < images.length; i++) {
     const im = images[i];
-    if (!im.image) continue;
+    if (!im) continue;
+    const image = im.image;
+    if (typeof image !== "string" || !image) continue;
     let target;
     if (explicitOut && i === 0) target = explicitOut;
     else if (outDir) target = `${outDir}/${defaultOutName(i, images.length)}`;
     else target = `${config.storage.generatedDir}/${defaultOutName(i, images.length)}`;
     if (target) {
-      await dataUriToFile(im.image, target);
+      await dataUriToFile(image, target);
       savedPaths.push(target);
     }
   }

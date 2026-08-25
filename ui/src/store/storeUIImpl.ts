@@ -1,4 +1,4 @@
-import type { VideoResolutionUI, GenerateItem } from "../types";
+import type { GenerateItem } from "../types";
 import { cancelInflight } from "../lib/api";
 import {
   getVisibleGalleryItems,
@@ -23,7 +23,6 @@ import {
 import {
   loadImageModel,
   loadSelectedFilename,
-  loadVideoDefaults,
   persistCanvasExportBackground,
 } from "./storePersistence";
 import {
@@ -64,7 +63,6 @@ export function syncFromStorageImpl(set: StoreSet, get: StoreGet): void {
   const nextInflight = loadInFlight();
   const nextSelected = loadSelectedFilename();
   const nextImageModel = loadImageModel();
-  const nextVideo = loadVideoDefaults();
   set((s) => {
     const matched = nextSelected
       ? s.history.find((h) => h.filename === nextSelected) ?? null
@@ -80,10 +78,6 @@ export function syncFromStorageImpl(set: StoreSet, get: StoreGet): void {
       inFlight: nextInflight,
       activeGenerations: nextInflight.length,
       imageModel: nextImageModel,
-      videoModelSelected: nextVideo.model,
-      videoDuration: nextVideo.duration,
-      videoResolution: nextVideo.resolution as VideoResolutionUI,
-      videoAspectRatio: nextVideo.aspectRatio,
       currentImage:
         nextSelected && currentImage?.filename !== nextSelected
           ? normalized ?? currentImage

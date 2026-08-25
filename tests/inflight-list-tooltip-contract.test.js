@@ -14,8 +14,8 @@ describe("in-flight prompt tooltip contract", () => {
   it("keeps compact prompt rows while exposing the full prompt", () => {
     const source = readSource("ui/src/components/InFlightList.tsx");
 
-    assert.match(source, /const fullPrompt = f\.prompt\.trim\(\)\.replace\(/);
-    assert.match(source, /const promptLabel = fullPrompt \|\| t\("inflight\.noPrompt"\)/);
+    assert.match(source, /const promptLabel = f\.prompt\.trim\(\)\.replace\(/);
+    assert.match(source, /\|\| t\("inflight\.noPrompt"\)/);
     assert.match(source, /title=\{promptLabel\}/);
     assert.match(source, /aria-label=\{`\$\{phaseLabel\}: \$\{promptLabel\}`\}/);
     assert.match(source, /\{truncate\(f\.prompt\)\}/);

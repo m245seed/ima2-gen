@@ -47,22 +47,15 @@ describe("compileElements", () => {
     assert.deepEqual(result.referenceSlots.map((slot) => slot.elementId), ["second", "first"]);
   });
 
-  it("limits refs to Grok per-element capacity", () => {
-    const result = compile(["hero"], [element("hero", { refs: Array.from({ length: 6 }, (_, index) => `/hero-${index}.png`) })], {
-      provider: "grok", capacity: ELEMENT_CAPACITY_DEFAULTS.grok.image,
-    });
-    assert.equal(result.referenceSlots.length, 4);
-    assert.deepEqual(result.droppedRefs, []);
-  });
 
   it("preserves continuity references in video mode", () => {
     const result = compile(["hero"], [element("hero", { refs: ["/hero-1.png", "/hero-2.png"] })], {
       existingRefs: [{ source: "continuity", path: "/previous.png" }],
-      provider: "gemini", mode: "video", capacity: ELEMENT_CAPACITY_DEFAULTS.gemini.video,
+      provider: "gpt", mode: "video", capacity: { maxTotalRefs: 2, maxRefsPerElement: 6 },
     });
     // retainedExistingRefs are canonicalized via path.resolve — platform-aware (260719).
     assert.deepEqual(result.retainedExistingRefs, [{ source: "continuity", path: resolve("/previous.png") }]);
-    assert.equal(result.referenceSlots.length, 2);
+    assert.equal(result.referenceSlots.length, 1);
   });
 
   it("rejects notes-only elements without usable reference slots", () => {

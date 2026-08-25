@@ -7,12 +7,9 @@ export {
   postMultimodeGenerateStream,
   postEdit,
   importLocalImage,
-  postVideoGenerateStream,
   postPromptBuilderChat,
   type PromptBuilderChatRequest,
   type PromptBuilderChatResponse,
-  type VideoGenerateRequest,
-  type VideoGenerateDone,
 } from "./api-generation";
 export {
   getHistory,

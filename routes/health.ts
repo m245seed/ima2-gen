@@ -2,16 +2,17 @@ import type { Express, Request, Response } from "express";
 import { abortJob, listJobs, listTerminalJobs } from "../lib/inflight.js";
 
 import { errInfo } from "../lib/errInfo.js";
-import { requireRuntimeContext, type RouteRuntimeContext } from "../lib/runtimeContext.js";
+import { requireRuntimeContext, type RouteRuntimeContext, type RuntimeContext } from "../lib/runtimeContext.js";
 export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
   const ctx = requireRuntimeContext(ctxRaw);
   const runtimePorts = () => {
-    const pool: any = (ctx as any).oauthPool;
-    const base: any = {
+    const pool = ctx.oauthPool;
+    const serverActualPort = (ctx as RuntimeContext & { serverActualPort?: number }).serverActualPort;
+    const base = {
       backend: {
         configuredPort: Number(ctx.serverConfiguredPort || ctx.config.server.port),
-        actualPort: Number(ctx.serverActualPort || ctx.config.server.port),
-        url: ctx.serverUrl || `http://localhost:${ctx.serverActualPort || ctx.config.server.port}`,
+        actualPort: Number(serverActualPort || ctx.config.server.port),
+        url: ctx.serverUrl || `http://localhost:${serverActualPort || ctx.config.server.port}`,
       },
       oauth: {
         configuredPort: Number(ctx.oauthPort),
@@ -23,7 +24,7 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
               pool: {
                 size: pool.size,
                 strategy: "round-robin",
-                accounts: pool.all.map((a: any) => ({
+                accounts: pool.all.map((a) => ({
                   id: a.id,
                   label: a.label,
                   port: a.port,
@@ -38,11 +39,6 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
               },
             }
           : {}),
-      },
-      grok: {
-        configuredPort: Number(ctx.grokPort),
-        actualPort: Number(ctx.grokActualPort || ctx.grokPort),
-        url: ctx.grokUrl,
       },
     };
     return base;
@@ -75,7 +71,7 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
   });
 
   app.get("/api/oauth/pool", (_req: Request, res: Response) => {
-    const pool: any = (ctx as any).oauthPool;
+    const pool = ctx.oauthPool;
     if (!pool) {
       return res.json({
         enabled: false,
@@ -98,7 +94,7 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
       size: pool.size,
       strategy: "round-robin",
       distribution: "Round-robin across accounts (requests alternate A→B→A…). 429/503 auto-failover to next healthy account.",
-      accounts: pool.all.map((a: any) => ({
+      accounts: pool.all.map((a) => ({
         id: a.id,
         label: a.label,
         port: a.port,
@@ -107,7 +103,7 @@ export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
         failureCount: a.failureCount,
         successCount: a.successCount,
         disabledUntil: a.disabledUntil,
-        healthy: pool.healthy.some((h: any) => h.id === a.id),
+        healthy: pool.healthy.some((h) => h.id === a.id),
       })),
       healthy: pool.healthy.length,
       ready: pool.readyAccounts.length,

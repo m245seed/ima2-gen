@@ -52,7 +52,6 @@ function emptyWorkspace(): AgentWorkspacePayload {
       "ima2.get_image_context",
       "ima2.web_search",
       "ima2.generate_image",
-      "ima2.generate_video",
       "ima2.get_generation_errors",
     ],
     manifest: null,
@@ -62,7 +61,6 @@ function emptyWorkspace(): AgentWorkspacePayload {
 }
 
 function historyItemFromAgentImage(handle: AgentImageHandle): GenerateItem {
-  const isVideo = handle.filename.endsWith(".mp4");
   return {
     image: handle.url,
     url: handle.url,
@@ -71,7 +69,7 @@ function historyItemFromAgentImage(handle: AgentImageHandle): GenerateItem {
     prompt: handle.prompt ?? undefined,
     revisedPrompt: handle.revisedPrompt ?? null,
     createdAt: handle.createdAt,
-    mediaType: isVideo ? "video" : "image",
+    mediaType: "image",
     kind: "agent",
   };
 }

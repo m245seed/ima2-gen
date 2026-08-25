@@ -17,20 +17,6 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, existsSync } from "node:fs";
 import { deriveSupportedImageModels, deriveUnsupportedImageModels } from "./lib/providers/derive.js";
 
-// 4.6 rewrites prompts in ways that read worse than 4.3 for this planner's job, which
-// is judged by the result rather than a benchmark. 4.6 stays selectable below.
-export const DEFAULT_GROK_PLANNER_MODEL = "grok-4.3";
-export const GROK_PLANNER_MODELS = [
-  DEFAULT_GROK_PLANNER_MODEL,
-  "grok-4.6",
-  "grok-4.5",
-  "gpt-5.6-luna",
-  "gpt-5.6-terra",
-  "gpt-5.6-sol",
-  "gpt-5.5",
-  "gpt-5.4",
-  "gpt-5.4-mini",
-] as const;
 
 const env = process.env;
 const packageRoot = dirname(fileURLToPath(import.meta.url));
@@ -239,15 +225,6 @@ export const config = {
   github: {
     token: pickStr(env.IMA2_GITHUB_TOKEN, fileCfg.github?.token, ""),
   },
-  mcp: {
-    // Remote MCP provider connections (030 WP3). Ids must exist in the compiled
-    // provider registry (lib/mcp/providerRegistry.ts); this is an enable list,
-    // not an arbitrary endpoint connector.
-    enabledProviders: (pickStr(env.IMA2_MCP_PROVIDERS, Array.isArray(fileCfg.mcp?.enabledProviders) ? fileCfg.mcp.enabledProviders.join(",") : undefined, "runway,higgsfield"))
-      .split(",").map((s: string) => s.trim()).filter(Boolean),
-    tokenDir: pickStr(env.IMA2_MCP_TOKEN_DIR, fileCfg.mcp?.tokenDir, join(configDir, "mcp")),
-    snapshotDir: pickStr(env.IMA2_MCP_SNAPSHOT_DIR, fileCfg.mcp?.snapshotDir, join(configDir, "mcp", "snapshots")),
-  },
   storage: {
     configDir,
     packageRoot,
@@ -280,11 +257,9 @@ export const config = {
     nodeHexBytes: pickInt(env.IMA2_NODE_HEX_BYTES, fileCfg.ids?.nodeHexBytes, 5),
   },
   inflight: {
-    // Must exceed the longest legal request. Grok video can legitimately run ~70 min
-    // (planning + start + poll + poll overshoot + download), and purgeStaleJobs() drops the
-    // job row without aborting its worker, so a 10-minute TTL used to erase live jobs
+    // Must exceed the longest legal request, and purgeStaleJobs() drops the job
+    // row without aborting its worker, so a 10-minute TTL used to erase live jobs
     // mid-flight.
-    // devlog/_plan/260817_grok_video_planner_timeout/010_timeout_budgets.md
     ttlMs: pickInt(env.IMA2_INFLIGHT_TTL_MS, fileCfg.inflight?.ttlMs, 90 * 60 * 1000),
     reapMs: pickInt(env.IMA2_INFLIGHT_REAP_MS, fileCfg.inflight?.reapMs, 60 * 1000),
     terminalTtlMs: pickInt(env.IMA2_INFLIGHT_TERMINAL_TTL_MS, fileCfg.inflight?.terminalTtlMs, 5 * 60 * 1000),
@@ -320,55 +295,6 @@ export const config = {
     ),
     defaultSize: pickStr(env.IMA2_API_IMAGE_SIZE, fileCfg.apiProvider?.defaultSize, "1024x1024"),
     allowWebSearch: pickBool(env.IMA2_API_ALLOW_WEB_SEARCH, fileCfg.apiProvider?.allowWebSearch, true),
-  },
-  grokProvider: {
-    proxyPort: pickInt(env.IMA2_GROK_PROXY_PORT, fileCfg.grokProvider?.proxyPort, 18645),
-    proxyHost: pickStr(env.IMA2_GROK_PROXY_HOST, fileCfg.grokProvider?.proxyHost, "127.0.0.1"),
-    autoStart: !pickBool(env.IMA2_NO_GROK_PROXY, fileCfg.grokProvider?.disableAutoStart, false),
-    restartDelayMs: pickInt(env.IMA2_GROK_RESTART_DELAY_MS, fileCfg.grokProvider?.restartDelayMs, 2000),
-    // 6 attempts at 2s doubling to a 60s cap is roughly two minutes: enough to ride out a
-    // transient port conflict, short of spinning forever on a broken binary.
-    restartMaxAttempts: pickInt(env.IMA2_GROK_RESTART_MAX_ATTEMPTS, fileCfg.grokProvider?.restartMaxAttempts, 6),
-    restartMaxDelayMs: pickInt(env.IMA2_GROK_RESTART_MAX_DELAY_MS, fileCfg.grokProvider?.restartMaxDelayMs, 60_000),
-    restartHealthyMs: pickInt(env.IMA2_GROK_RESTART_HEALTHY_MS, fileCfg.grokProvider?.restartHealthyMs, 60_000),
-    plannerModel: pickStr(env.IMA2_GROK_PLANNER_MODEL, fileCfg.grokProvider?.plannerModel, DEFAULT_GROK_PLANNER_MODEL),
-    // Measured 260817: the forced web_search brief takes 70-73 s idle / 44-79 s concurrent,
-    // and the planner tool call 9-32 s idle / 28-41 s concurrent. But the reported failure
-    // was a planner call that STALLED for its entire 300 s budget while an isolated probe
-    // of the same payload answered in 32 s. Budgets are therefore calibrated against the
-    // stall, not the probe: 900 s is 3x the observed stall.
-    // devlog/_plan/260817_grok_video_planner_timeout/010_timeout_budgets.md
-    plannerTimeoutMs: pickInt(env.IMA2_GROK_PLANNER_TIMEOUT_MS, fileCfg.grokProvider?.plannerTimeoutMs, 900_000),
-    // The web-search brief gets its own bound: it is an enhancement, not a requirement, so
-    // it degrades instead of failing the request (lib/grokVideoAdapter.ts).
-    searchTimeoutMs: pickInt(env.IMA2_GROK_SEARCH_TIMEOUT_MS, fileCfg.grokProvider?.searchTimeoutMs, 300_000),
-    // Wired ceiling on search + planner combined, so the two stages cannot sum unbounded.
-    // It must be STRICTLY greater than searchTimeoutMs + plannerTimeoutMs (invariant enforced
-    // by tests): if it equals the sum, a slow search followed by a stalled planner lands both
-    // timers together, the phase ceiling wins the race, and the local planner fallback never
-    // runs. The margin exists so the planner's own timeout always fires first.
-    videoPlanTotalTimeoutMs: pickInt(env.IMA2_GROK_VIDEO_PLAN_TOTAL_TIMEOUT_MS, fileCfg.grokProvider?.videoPlanTotalTimeoutMs, 1_500_000),
-    defaultImageModel: pickStr(env.IMA2_GROK_IMAGE_MODEL_DEFAULT, fileCfg.grokProvider?.defaultImageModel, "grok-imagine-image-2.0"),
-    // grok-imagine-image-2.0 measured 43-97 s per image; 2k/batch requests run longer,
-    // so the image call gets the same generous 300 s ceiling as the planner.
-    generationTimeoutMs: pickInt(env.IMA2_GROK_GENERATION_TIMEOUT_MS, fileCfg.grokProvider?.generationTimeoutMs, 300_000),
-    statusTimeoutMs: pickInt(env.IMA2_GROK_STATUS_TIMEOUT_MS, fileCfg.grokProvider?.statusTimeoutMs, 3000),
-    defaultVideoModel: pickStr(env.IMA2_GROK_VIDEO_MODEL_DEFAULT, fileCfg.grokProvider?.defaultVideoModel, "grok-imagine-video-1.5"),
-    videoStartTimeoutMs: pickInt(env.IMA2_GROK_VIDEO_START_TIMEOUT_MS, fileCfg.grokProvider?.videoStartTimeoutMs, 300_000),
-    videoPollIntervalMs: pickInt(env.IMA2_GROK_VIDEO_POLL_INTERVAL_MS, fileCfg.grokProvider?.videoPollIntervalMs, 5_000),
-    videoPollMaxConsecutiveErrors: pickInt(env.IMA2_GROK_VIDEO_POLL_MAX_ERRORS, fileCfg.grokProvider?.videoPollMaxConsecutiveErrors, 5),
-    videoTimeoutMs: pickInt(env.IMA2_GROK_VIDEO_TIMEOUT_MS, fileCfg.grokProvider?.videoTimeoutMs, 1_800_000),
-    videoDownloadTimeoutMs: pickInt(env.IMA2_GROK_VIDEO_DOWNLOAD_TIMEOUT_MS, fileCfg.grokProvider?.videoDownloadTimeoutMs, 300_000),
-  },
-  // Direct MiniMax image-generation provider (text-to-image / image-to-image).
-  // Region selects the global (.io) or China (.minimaxi.com) OpenAI-compatible
-  // base URL; the regional fields are shared with the MiniMax text endpoints.
-  minimaxProvider: {
-    defaultImageModel: pickStr(env.IMA2_MINIMAX_IMAGE_MODEL_DEFAULT, fileCfg.minimaxProvider?.defaultImageModel, "image-01"),
-    region: pickStr(env.IMA2_MINIMAX_REGION, fileCfg.minimaxProvider?.region, "global_en"),
-    globalBaseUrl: pickStr(env.IMA2_MINIMAX_GLOBAL_BASE_URL, fileCfg.minimaxProvider?.globalBaseUrl, "https://api.minimax.io/v1"),
-    cnBaseUrl: pickStr(env.IMA2_MINIMAX_CN_BASE_URL, fileCfg.minimaxProvider?.cnBaseUrl, "https://api.minimaxi.com/v1"),
-    generationTimeoutMs: pickInt(env.IMA2_MINIMAX_GENERATION_TIMEOUT_MS, fileCfg.minimaxProvider?.generationTimeoutMs, 120_000),
   },
   log: {
     level: pickStr(env.IMA2_LOG_LEVEL, fileCfg.log?.level, defaultLogLevelForEnv(env)),

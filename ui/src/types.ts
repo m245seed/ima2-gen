@@ -2,7 +2,6 @@ import type {
   CoreProviderId,
   ImageModelId,
   UnsupportedImageModelId,
-  VideoModelId,
 } from "./generated/providers";
 
 export type UIMode = "classic" | "node" | "card-news" | "agent" | "assets" | "asset-gen" | "home";
@@ -14,13 +13,7 @@ export type Quality = "low" | "medium" | "high";
 export type Format = "png" | "jpeg" | "webp";
 export type Moderation = "low" | "auto";
 export type OpenAIImageModel = Extract<ImageModelId, `gpt-${string}`>;
-export type GrokImageModel = Extract<ImageModelId, `grok-${string}`>;
-export type GeminiImageModel = Extract<ImageModelId, `nano-${string}`>;
-export type AtlasCloudImageModel = Extract<ImageModelId, `openai/${string}`>;
-export type MinimaxImageModel = Extract<ImageModelId, `image-${string}`>;
 export type ImageModel = ImageModelId;
-export type VideoModel = VideoModelId;
-export type VideoResolutionUI = "480p" | "720p" | "1080p";
 export type UnsupportedImageModel = UnsupportedImageModelId;
 export type Count = number;
 

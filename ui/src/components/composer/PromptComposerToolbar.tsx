@@ -14,9 +14,6 @@ export function PromptComposerToolbar({ canAddMore, onAttach }: PromptComposerTo
   const { t } = useI18n();
   const prompt = useAppStore((s) => s.prompt);
   const currentImage = useAppStore((s) => s.currentImage);
-  const videoModelSelected = useAppStore((s) => s.videoModelSelected);
-  const selectVideoModel = useAppStore((s) => s.selectVideoModel);
-  const setImageModel = useAppStore((s) => s.setImageModel);
   const promptMode = useAppStore((s) => s.promptMode);
   const setPromptMode = useAppStore((s) => s.setPromptMode);
   const storyboardActive = useAppStore((s) => s.storyboardActive);
@@ -50,25 +47,6 @@ export function PromptComposerToolbar({ canAddMore, onAttach }: PromptComposerTo
           title={t("prompt.continueTitle")}
         >
           {t("prompt.continue")}
-        </button>
-        <button
-          type="button"
-          className={`composer__tool${videoModelSelected ? " composer__tool--on" : ""}`}
-          onClick={() => {
-            if (videoModelSelected) {
-              setImageModel("gpt-5.6-luna");
-            } else {
-              selectVideoModel("grok-imagine-video-1.5");
-            }
-          }}
-          title={t("prompt.videoToggleTitle")}
-          aria-label={t("prompt.videoToggleTitle")}
-          aria-pressed={!!videoModelSelected}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polygon points="23 7 16 12 23 17 23 7" />
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-          </svg>
         </button>
         <button
           type="button"

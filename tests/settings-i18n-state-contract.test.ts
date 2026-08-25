@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (path: string) => readFileSync(path, "utf8");
 const quota = read("ui/src/components/settings/QuotaCard.tsx");
 const apiKey = read("ui/src/components/ApiKeyInput.tsx");
-const vertex = read("ui/src/components/VertexJsonInput.tsx");
+
 const locales = ["en", "ko", "zh-Hant", "zh-Hans"].map((locale) => JSON.parse(read(`ui/src/i18n/${locale}.json`)));
 
 describe("settings i18n state contract", () => {
@@ -22,16 +22,13 @@ describe("settings i18n state contract", () => {
     assert.doesNotMatch(quota, /Starting login|Enter this code|Waiting for approval|Switch failed|Try again|Not logged in/);
   });
 
-  it("localizes API key and Vertex failure/configured branches", () => {
-    for (const [source, label] of [[apiKey, "ApiKeyInput"], [vertex, "VertexJsonInput"]] as const) {
-      assert.match(source, /settings\.apiKeys\.saveFailed/, `${label} missing save fallback`);
-      assert.match(source, /settings\.apiKeys\.networkError/, `${label} missing network fallback`);
-      assert.match(source, /settings\.apiKeys\.removeFailed/, `${label} missing remove fallback`);
-      assert.doesNotMatch(source, /Failed to save|Network error|Failed to remove/);
-    }
-    assert.match(vertex, /settings\.apiKeys\.configuredReplace/);
-    assert.doesNotMatch(vertex, /configured — click to replace/);
+  it("localizes API key failure/configured branches", () => {
+    assert.match(apiKey, /settings\.apiKeys\.saveFailed/, "ApiKeyInput missing save fallback");
+    assert.match(apiKey, /settings\.apiKeys\.networkError/, "ApiKeyInput missing network fallback");
+    assert.match(apiKey, /settings\.apiKeys\.removeFailed/, "ApiKeyInput missing remove fallback");
+    assert.doesNotMatch(apiKey, /Failed to save|Network error|Failed to remove/);
   });
+
 
   it("keeps every new settings key symmetric across locales", () => {
     for (const locale of locales) {

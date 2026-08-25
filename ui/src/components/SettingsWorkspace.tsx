@@ -8,8 +8,6 @@ import { LanguageToggle } from "./LanguageToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { HistoryStripLayoutToggle } from "./HistoryStripLayoutToggle";
 import { WorkspaceProfileSettings } from "./settings/WorkspaceProfileSettings";
-import { GrokPlannerSelect } from "./settings/GrokPlannerSelect";
-import { McpProviderConnections } from "./settings/McpProviderConnections";
 import { useAppStore } from "../store/useAppStore";
 import type { GalleryScope } from "../store/useAppStore";
 import { useI18n } from "../i18n";
@@ -56,7 +54,6 @@ export function SettingsWorkspace() {
   const openReadinessPopup = useAppStore((s) => s.openReadinessPopup);
   const galleryDefaultScope = useAppStore((s) => s.galleryDefaultScope);
   const setGalleryDefaultScope = useAppStore((s) => s.setGalleryDefaultScope);
-  const provider = useAppStore((s) => s.provider);
   const contentRef = useRef<HTMLElement | null>(null);
   const unlockTimerRef = useRef<number | null>(null);
   const isProgrammaticScroll = useRef(false);
@@ -188,7 +185,6 @@ export function SettingsWorkspace() {
           <section ref={contentRef} className="settings-content" aria-label={t("settings.contentAria")}>
             <SettingsSectionBlock id="providers" setRef={setSectionRef}>
               <AccountSettings />
-              <McpProviderConnections />
               <article className="settings-row">
                 <div className="settings-row__copy">
                   <h4>{t("readiness.settingsTitle")}</h4>
@@ -212,45 +208,24 @@ export function SettingsWorkspace() {
                   <ImageModelSelect variant="settings" />
                 </div>
               </article>
-              {provider === "grok" ? (
-                <>
-                  <article className="settings-row">
-                    <div className="settings-row__copy">
-                      <h4>{t("settings.grokCompatibility.title")}</h4>
-                      <p>{t("settings.grokCompatibility.body")}</p>
-                    </div>
-                  </article>
-                  <GrokPlannerSelect />
-                </>
-              ) : provider === "agy" || provider === "gemini-api" ? (
-                <article className="settings-row">
-                  <div className="settings-row__copy">
-                    <h4>{provider === "gemini-api" ? t("provider.geminiApiCompatTitle") : t("provider.agyCompatTitle")}</h4>
-                    <p>{provider === "gemini-api" ? t("provider.geminiApiCompatBodyLong") : t("provider.agyCompatBodyLong")}</p>
-                  </div>
-                </article>
-              ) : (
-                <>
-                  <article className="settings-row">
-                    <div className="settings-row__copy">
-                      <h4>{t("settings.reasoning.title")}</h4>
-                      <p>{t("settings.reasoning.body")}</p>
-                    </div>
-                    <div className="settings-row__control">
-                      <ReasoningEffortSelect />
-                    </div>
-                  </article>
-                  <article className="settings-row">
-                    <div className="settings-row__copy">
-                      <h4>{t("settings.webSearch.title")}</h4>
-                      <p>{t("settings.webSearch.body")}</p>
-                    </div>
-                    <div className="settings-row__control">
-                      <WebSearchToggle />
-                    </div>
-                  </article>
-                </>
-              )}
+              <article className="settings-row">
+                <div className="settings-row__copy">
+                  <h4>{t("settings.reasoning.title")}</h4>
+                  <p>{t("settings.reasoning.body")}</p>
+                </div>
+                <div className="settings-row__control">
+                  <ReasoningEffortSelect />
+                </div>
+              </article>
+              <article className="settings-row">
+                <div className="settings-row__copy">
+                  <h4>{t("settings.webSearch.title")}</h4>
+                  <p>{t("settings.webSearch.body")}</p>
+                </div>
+                <div className="settings-row__control">
+                  <WebSearchToggle />
+                </div>
+              </article>
             </SettingsSectionBlock>
 
             <SettingsSectionBlock id="workspace" setRef={setSectionRef}>

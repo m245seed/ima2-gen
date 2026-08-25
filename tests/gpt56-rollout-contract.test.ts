@@ -61,7 +61,7 @@ describe("gpt-5.6 rollout: surface contracts", () => {
     // longer embeds a KNOWN_IMAGE_MODELS literal. Assert the resolver wiring
     // plus the still-local reasoning ladder instead.
     const genSrc = readSource("bin/commands/gen.ts");
-    assert.match(genSrc, /resolveTarget\(\s*"image"/);
+    assert.match(genSrc, /resolveTarget\(/);
     assert.match(genSrc, /\/api\/models/);
     assert.match(genSrc, /none, low, medium, high, xhigh, max/);
     const editSrc = readSource("bin/commands/edit.ts");

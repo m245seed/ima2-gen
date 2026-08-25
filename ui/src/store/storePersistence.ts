@@ -15,7 +15,6 @@ import type {
 import {
   DEFAULT_IMAGE_MODEL,
   isImageModel,
-  normalizeVideoModelValue,
 } from "../lib/imageModels";
 import {
   DEFAULT_REASONING_EFFORT,
@@ -36,7 +35,6 @@ import {
   RIGHT_PANEL_OPEN_STORAGE_KEY,
   SELECTED_FILENAME_STORAGE_KEY,
   UI_MODE_STORAGE_KEY,
-  VIDEO_DEFAULTS_STORAGE_KEY,
   WEB_SEARCH_STORAGE_KEY,
 } from "./persistenceRegistry";
 import type { GalleryScope, InsertedPrompt } from "./storeTypes";
@@ -211,34 +209,6 @@ export function saveWebSearchEnabled(enabled: boolean): void {
   } catch {}
 }
 
-export type { VideoDefaults } from "./storeTypes";
-import type { VideoDefaults } from "./storeTypes";
-
-export const VIDEO_DEFAULTS_FALLBACK: VideoDefaults = { model: false, duration: 5, resolution: "480p", aspectRatio: "auto", singleRefMode: "image-to-video" };
-
-export function loadVideoDefaults(): VideoDefaults {
-  try {
-    const raw = localStorage.getItem(VIDEO_DEFAULTS_STORAGE_KEY);
-    if (!raw) return VIDEO_DEFAULTS_FALLBACK;
-    const p = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      model: normalizeVideoModelValue(p.model),
-      duration: typeof p.duration === "number" ? p.duration : 5,
-      resolution: p.resolution === "480p" || p.resolution === "720p" || p.resolution === "1080p" ? p.resolution : "480p",
-      aspectRatio: typeof p.aspectRatio === "string" ? p.aspectRatio : "auto",
-      singleRefMode: p.singleRefMode === "reference-to-video" ? "reference-to-video" : "image-to-video",
-    };
-  } catch {
-    return VIDEO_DEFAULTS_FALLBACK;
-  }
-}
-
-export function saveVideoDefaults(patch: Partial<VideoDefaults>): void {
-  try {
-    const current = loadVideoDefaults();
-    localStorage.setItem(VIDEO_DEFAULTS_STORAGE_KEY, JSON.stringify({ ...current, ...patch }));
-  } catch {}
-}
 
 export function loadSelectedFilename(): string | null {
   try {
@@ -334,7 +304,6 @@ export function isSizePreset(value: unknown): value is SizePreset {
 
 export type { GenerationDefaults } from "./storeTypes";
 import type { GenerationDefaults } from "./storeTypes";
-import { normalizeMcpParameters, normalizeMcpRatio, normalizeMcpSelection, type McpSelection } from "../lib/mcpSelection";
 
 export function loadGenerationDefaults(): GenerationDefaults {
   try {
@@ -343,23 +312,6 @@ export function loadGenerationDefaults(): GenerationDefaults {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const out: GenerationDefaults = {};
     if (isProvider(parsed.provider)) out.provider = parsed.provider;
-    const mcpProvider = parsed.mcpProvider;
-    const mcpModel = parsed.mcpModel;
-    if (typeof mcpProvider === "string" || mcpProvider === null) {
-      out.mcpProvider = mcpProvider as string | null;
-    }
-    if (typeof mcpModel === "string" || mcpModel === null) {
-      out.mcpModel = mcpModel as string | null;
-    }
-    if (parsed.mcpMediaKind === "image" || parsed.mcpMediaKind === "video") {
-      out.mcpMediaKind = parsed.mcpMediaKind;
-    }
-    if ("mcpRatio" in parsed) {
-      out.mcpRatio = normalizeMcpRatio(parsed.mcpRatio);
-    }
-    if ("mcpParameters" in parsed) {
-      out.mcpParameters = normalizeMcpParameters(parsed.mcpParameters);
-    }
     if (isQuality(parsed.quality)) out.quality = parsed.quality;
     if (isSizePreset(parsed.sizePreset)) out.sizePreset = parsed.sizePreset;
     if (typeof parsed.customW === "number" && Number.isFinite(parsed.customW)) {
@@ -391,17 +343,6 @@ export function loadGenerationDefaults(): GenerationDefaults {
   }
 }
 
-export function loadMcpSelection(): McpSelection {
-  return normalizeMcpSelection(loadGenerationDefaults());
-}
-
-export function saveMcpSelection(
-  provider: string | null,
-  model: string | null,
-  kind: "image" | "video" = "image",
-): void {
-  saveGenerationDefaultsPatch({ mcpProvider: provider, mcpModel: model, mcpMediaKind: kind });
-}
 
 export function saveGenerationDefaultsPatch(patch: GenerationDefaults): void {
   try {

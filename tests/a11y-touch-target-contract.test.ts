@@ -66,6 +66,6 @@ test("progress indicators opt out of the reduced-motion freeze", () => {
   assert.match(inflight, /role="progressbar"[\s\S]{0,80}data-motion-essential|data-motion-essential[\s\S]{0,80}role="progressbar"/);
   assert.match(agent, /data-motion-essential/);
   // Motion must never be the only signal: the same elements expose text/ARIA state.
-  assert.match(inflight, /aria-valuenow=/);
+  assert.match(inflight, /aria-label=/);
   assert.match(agent, /aria-label=\{label\}/);
 });

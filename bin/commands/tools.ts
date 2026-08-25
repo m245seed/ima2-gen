@@ -5,7 +5,6 @@
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { config } from "../../config.js";
 import { buildCatalog } from "../../lib/contracts/catalog.js";
 import {
   buildToolShow,
@@ -15,7 +14,6 @@ import {
   executionBindingFor,
   okEnvelope,
 } from "../../lib/contracts/discovery.js";
-import { loadAllBundledSnapshots, readLocalSnapshot } from "../../lib/mcp/snapshotStore.js";
 import type { ToolContract } from "../../lib/contracts/types.js";
 import { parseArgs, type ParsedArgs } from "../lib/args.js";
 import { resolveServer, request } from "../lib/client.js";
@@ -53,13 +51,7 @@ function cliVersion(): string {
 }
 
 function localEntries(): ToolContract[] {
-  const snapshots = [];
-  for (const provider of config.mcp.enabledProviders) {
-    const snapshot = readLocalSnapshot(config.mcp.snapshotDir, provider)
-      ?? loadAllBundledSnapshots(config.storage.packageRoot).find((s) => s.provenance.provider === provider);
-    if (snapshot) snapshots.push(snapshot);
-  }
-  return buildCatalog({ snapshots });
+  return buildCatalog({ snapshots: [] });
 }
 
 function localMeta(entries: ToolContract[]) {
@@ -72,7 +64,8 @@ async function fromServer(args: ParsedArgs, path: string): Promise<Record<string
     const server = await resolveServer({ serverFlag: args.server });
     return await request(server.base, path, { timeoutMs: 8000 }) as Record<string, unknown>;
   } catch (error) {
-    if ((error as { code?: string }).code === "SERVER_UNREACHABLE" && !args.server) return null; // offline fallback
+    const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
+    if (code === "SERVER_UNREACHABLE" && !args.server) return null; // offline fallback
     throw error;
   }
 }
@@ -92,7 +85,7 @@ export default async function toolsCommand(argv: string[]): Promise<void> {
     const server = await fromServer(args, "/api/contracts");
     if (server) { emit(server, asJson); return; }
     const entries = localEntries();
-    emit(okEnvelope({ tools: buildToolsList(entries), source: "local-snapshot" }, localMeta(entries)), asJson);
+    emit(okEnvelope({ tools: buildToolsList(entries), source: "local-catalog" }, localMeta(entries)), asJson);
     return;
   }
 
@@ -150,7 +143,7 @@ async function callTool(args: ParsedArgs, id: string, asJson: boolean): Promise<
     return;
   }
   const serverInfo = await resolveServer({ serverFlag: args.server });
-  const path = binding.binding === "mcp-generate" ? "/api/mcp/generate" : "/api/mcp/media-action";
-  const response = await request(serverInfo.base, path, { method: "POST", body: input, timeoutMs: 30_000 });
+  const [, path] = binding.endpoint.split(" ", 2);
+  const response = await request(serverInfo.base, path ?? binding.endpoint, { method: "POST", body: input, timeoutMs: 30_000 });
   emit(okEnvelope({ submitted: response, note: "async job: watch /api/events or 'ima2 inflight ls'" }, meta), asJson);
 }

@@ -2,13 +2,7 @@
 
 export const CORE_PROVIDER_IDS = [
   "oauth",
-  "api",
-  "grok",
-  "grok-api",
-  "agy",
-  "gemini-api",
-  "atlascloud",
-  "minimax"
+  "api"
 ] as const;
 export type CoreProviderId = typeof CORE_PROVIDER_IDS[number];
 export const CORE_PROVIDER_ID_SET: ReadonlySet<string> = new Set(CORE_PROVIDER_IDS);
@@ -39,58 +33,6 @@ export const PROVIDER_MODELS = {
       "gpt-5.6-luna"
     ],
     "video": []
-  },
-  "grok": {
-    "image": [
-      "grok-imagine-image-2.0",
-      "grok-imagine-image",
-      "grok-imagine-image-quality"
-    ],
-    "video": [
-      "grok-imagine-video",
-      "grok-imagine-video-1.5",
-      "grok-imagine-video-1.5-preview"
-    ]
-  },
-  "grok-api": {
-    "image": [
-      "grok-imagine-image-2.0",
-      "grok-imagine-image",
-      "grok-imagine-image-quality"
-    ],
-    "video": [
-      "grok-imagine-video",
-      "grok-imagine-video-1.5",
-      "grok-imagine-video-1.5-preview"
-    ]
-  },
-  "agy": {
-    "image": [
-      "nano-banana-2",
-      "nano-banana-pro"
-    ],
-    "video": []
-  },
-  "gemini-api": {
-    "image": [
-      "nano-banana-2",
-      "nano-banana-pro"
-    ],
-    "video": []
-  },
-  "atlascloud": {
-    "image": [
-      "openai/gpt-image-2/text-to-image",
-      "openai/gpt-image-2/edit"
-    ],
-    "video": []
-  },
-  "minimax": {
-    "image": [
-      "image-01",
-      "image-01-live"
-    ],
-    "video": []
   }
 } as const;
 export const IMAGE_MODEL_IDS = [
@@ -99,55 +41,16 @@ export const IMAGE_MODEL_IDS = [
   "gpt-5.4-mini",
   "gpt-5.6-sol",
   "gpt-5.6-terra",
-  "gpt-5.6-luna",
-  "grok-imagine-image-2.0",
-  "grok-imagine-image",
-  "grok-imagine-image-quality",
-  "nano-banana-2",
-  "nano-banana-pro",
-  "openai/gpt-image-2/text-to-image",
-  "openai/gpt-image-2/edit",
-  "image-01",
-  "image-01-live"
+  "gpt-5.6-luna"
 ] as const;
 export type ImageModelId = typeof IMAGE_MODEL_IDS[number];
 export const UNSUPPORTED_IMAGE_MODEL_IDS = [
   "gpt-5.3-codex-spark"
 ] as const;
 export type UnsupportedImageModelId = typeof UNSUPPORTED_IMAGE_MODEL_IDS[number];
-export const VIDEO_MODEL_IDS = [
-  "grok-imagine-video",
-  "grok-imagine-video-1.5",
-  "grok-imagine-video-1.5-preview"
-] as const;
+export const VIDEO_MODEL_IDS = [] as const;
 export type VideoModelId = typeof VIDEO_MODEL_IDS[number];
 export const PROVIDER_REFERENCE_LIMITS = {
   "oauth": {},
-  "api": {},
-  "grok": {
-    "image": 3,
-    "edit": 3,
-    "video": 7
-  },
-  "grok-api": {
-    "image": 3,
-    "edit": 3,
-    "video": 7
-  },
-  "agy": {
-    "image": 3,
-    "edit": 3
-  },
-  "gemini-api": {
-    "image": 3,
-    "edit": 3
-  },
-  "atlascloud": {
-    "image": 10,
-    "edit": 10
-  },
-  "minimax": {
-    "image": 1,
-    "edit": 1
-  }
+  "api": {}
 } as const;

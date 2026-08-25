@@ -237,7 +237,6 @@ export function removeTrayItemImpl(tokenId: string, set: StoreSet, get: StoreGet
         : state.canvasReferenceImage;
       if (clearContinuity) {
         patch.insertedPrompts = withoutContinuityPrompts(state);
-        patch.videoContinuityLineage = null;
       }
     }
     return { result: undefined, patch };

@@ -26,7 +26,7 @@ import {
 import { addHistory } from "./storeGraphSave";
 import type { AppState } from "./storeTypes";
 import { clearFlightAbort, registerFlightAbort } from "./flightAbortRegistry";
-import { compilePresets, type PresetProvider } from "../../../lib/presetCompiler.js";
+import { compilePresets } from "../../../lib/presetCompiler.js";
 import { getAllPresets } from "../lib/presets";
 
 type StoreSet = (p: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void;
@@ -37,11 +37,6 @@ function selectedElementIds(state: AppState): string[] {
   return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
 }
 
-function toPresetProvider(provider: AppState["provider"]): PresetProvider {
-  if (provider === "grok" || provider === "grok-api") return "grok";
-  if (provider === "gemini-api") return "gemini";
-  return "gpt";
-}
 
 export async function generateMultimodeImpl(
   sizeOverride: string | undefined,
@@ -55,7 +50,7 @@ export async function generateMultimodeImpl(
   const compiled = compilePresets({
     catalog: getAllPresets(),
     presetIds: s.selectedPresetIds,
-    provider: toPresetProvider(s.provider),
+    provider: "gpt",
     mode: "image",
   });
   const prompt = compiled.promptFragment
@@ -276,7 +271,7 @@ export async function runGenerateImpl(
   const compiled = compilePresets({
     catalog: getAllPresets(),
     presetIds: s.selectedPresetIds,
-    provider: toPresetProvider(s.provider),
+    provider: "gpt",
     mode: "image",
   });
   const prompt = compiled.promptFragment

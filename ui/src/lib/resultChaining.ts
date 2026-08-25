@@ -8,7 +8,7 @@ import { isVideoItem } from "./videoMedia";
 
 /* ── Action definitions ── */
 
-export type ChainingActionId = "animate" | "edit" | "useAsRef" | "rebake" | "saveToAssets" | "saveAsElement";
+export type ChainingActionId = "edit" | "useAsRef" | "rebake" | "saveToAssets" | "saveAsElement";
 
 export interface ChainingAction {
   id: ChainingActionId;
@@ -18,11 +18,6 @@ export interface ChainingAction {
 }
 
 export const CHAINING_ACTIONS: ChainingAction[] = [
-  {
-    id: "animate",
-    labelKey: "chain.animate",
-    available: (item) => Boolean(item.filename) && !isVideoItem(item),
-  },
   {
     id: "edit",
     labelKey: "chain.edit",
@@ -62,7 +57,6 @@ export async function executeChaining(
   actionId: ChainingActionId,
   item: GenerateItem,
   getStore: () => {
-    animateImage: (filename: string, prompt?: string) => Promise<boolean>;
     openCanvas: () => void;
     selectHistory: (item: GenerateItem) => void;
     addReferences: (files: File[]) => Promise<void>;
@@ -74,19 +68,6 @@ export async function executeChaining(
 ): Promise<void> {
   const store = getStore();
   switch (actionId) {
-    case "animate": {
-      if (!item.filename) return;
-      try {
-        const started = await store.animateImage(item.filename, item.prompt ?? undefined);
-        if (started) store.showToast(t("toast.animateDone"));
-      } catch (error) {
-        store.showToast(
-          error instanceof Error ? error.message : t("toast.animateFailed"),
-          true,
-        );
-      }
-      break;
-    }
     case "edit": {
       store.selectHistory(item);
       store.openCanvas();
@@ -107,38 +88,25 @@ export async function executeChaining(
       break;
     }
     case "rebake": {
-      try {
-        const { continueFromItem } = await import("./continueFromItem");
-        const result = await continueFromItem(item);
-        store.showToast(t(result.hasPrompt ? "toast.forkStarted" : "toast.forkStartedNoPrompt"));
-      } catch {
-        store.showToast(t("toast.forkFailed"), true);
-      }
-      // Focus the prompt composer
-      const promptEl = document.querySelector<HTMLTextAreaElement>(
-        'textarea[name="prompt"], textarea#prompt, .sidebar textarea',
-      );
-      if (promptEl) {
-        promptEl.focus();
-        promptEl.setSelectionRange(promptEl.value.length, promptEl.value.length);
-      }
+      store.selectHistory(item);
       break;
     }
     case "saveToAssets": {
       try {
         const ok = await store.saveToAssets(item);
-        store.showToast(t(ok ? "chain.savedToAssets" : "chain.saveToAssetsFailed"), !ok);
+        store.showToast(ok ? t("chain.saved") : t("chain.saveFailed"), !ok);
       } catch {
-        store.showToast(t("chain.saveToAssetsFailed"), true);
+        store.showToast(t("chain.saveFailed"), true);
       }
       break;
     }
     case "saveAsElement": {
+      if (!store.saveAsElement) return;
       try {
-        const ok = await store.saveAsElement?.(item);
-        store.showToast(t(ok ? "chain.savedToAssets" : "chain.saveToAssetsFailed"), !ok);
+        const ok = await store.saveAsElement(item);
+        store.showToast(ok ? t("chain.saved") : t("chain.saveFailed"), !ok);
       } catch {
-        store.showToast(t("chain.saveToAssetsFailed"), true);
+        store.showToast(t("chain.saveFailed"), true);
       }
       break;
     }

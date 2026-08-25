@@ -12,7 +12,7 @@ export function CostEstimate() {
   const size = getResolvedSize();
 
   const imageModel = useAppStore((s) => s.imageModel);
-  const free = provider === "oauth" || provider === "grok" || provider === "agy";
+  const free = provider === "oauth";
   const cost = estimateCost(quality, size, provider, imageModel);
   const label = free
     ? t("cost.free")

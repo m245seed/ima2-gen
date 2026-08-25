@@ -35,7 +35,7 @@ function loadConfig() {
 }
 
 function missingRuntimeDeps() {
-  const deps = ["express", "better-sqlite3", "openai", "openai-oauth", "progrok/package.json", "@openai/codex/package.json", "zod"];
+  const deps = ["express", "better-sqlite3", "openai", "openai-oauth", "@openai/codex/package.json", "zod"];
   const missing = deps.filter((dep) => {
     try {
       requireFromRoot.resolve(dep);

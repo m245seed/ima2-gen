@@ -15,9 +15,8 @@ import { dirname, join } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { onShutdown } from "./bin/lib/platform.js";
 import { ensureDefaultSession } from "./lib/sessionStore.js";
-import { startGrokProxy } from "./lib/grokProxyLauncher.js";
 import { startOAuthProxy, startOAuthPool } from "./lib/oauthLauncher.js";
-import { discoverOAuthPool } from "./lib/oauthPool.js";
+import { discoverOAuthPool, type OAuthPool } from "./lib/oauthPool.js";
 import { migrateGeneratedStorage } from "./lib/storageMigration.js";
 import { purgeStaleJobs } from "./lib/inflight.js";
 import { configureLogger, logError } from "./lib/logger.js";
@@ -26,7 +25,7 @@ import { configureApiCachePolicy } from "./lib/apiCachePolicy.js";
 import { configureRoutes } from "./routes/index.js";
 import { config } from "./config.js";
 import { getServerPort, listenWithPortFallback } from "./lib/runtimePorts.js";
-import { shutdownServerAndMcp, startMcpRestoreAfterListen } from "./lib/mcp/shutdown.js";
+import type { Server } from "node:net";
 import type { RuntimeContext, RuntimeContextOverrides, ApiKeySource } from "./lib/runtimeContext.js";
 
 import { closeDb } from "./lib/db.js";
@@ -35,14 +34,8 @@ import { reapCardNewsJobs } from "./lib/cardNewsJobStore.js";
 import { reapTerminalJobs } from "./lib/inflight.js";
 import { errInfo } from "./lib/errInfo.js";
 import { timingSafeEqual } from "node:crypto";
-import {
-  cleanupExpiredMcpTempReferences,
-  MCP_TEMP_REFERENCE_JSON_BODY_LIMIT_BYTES,
-  MCP_TEMP_REFERENCE_SWEEP_INTERVAL_MS,
-} from "./lib/mcpTempReferenceStore.js";
 
 type BootRuntimeContext = RuntimeContext & {
-  markGrokProxyPort: (info?: { url?: string; port?: number }) => void;
   markOAuthReady: (info?: { url?: string; port?: number }) => void;
   markOAuthFailed: () => void;
 };
@@ -69,121 +62,6 @@ async function loadApiKey(): Promise<ApiKeyLoadResult> {
   return { apiKey: null, apiKeySource: "none" };
 }
 
-async function loadXaiApiKey(): Promise<ApiKeyLoadResult> {
-  if (process.env.XAI_API_KEY) {
-    return { apiKey: process.env.XAI_API_KEY, apiKeySource: "env" };
-  }
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { xaiApiKey?: string };
-      if (cfg.xaiApiKey) return { apiKey: cfg.xaiApiKey, apiKeySource: "config" };
-    } catch {}
-  }
-  return { apiKey: null, apiKeySource: "none" };
-}
-
-async function loadGeminiApiKey(): Promise<ApiKeyLoadResult> {
-  if (process.env.GEMINI_API_KEY) {
-    return { apiKey: process.env.GEMINI_API_KEY, apiKeySource: "env" };
-  }
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { geminiApiKey?: string };
-      if (cfg.geminiApiKey) return { apiKey: cfg.geminiApiKey, apiKeySource: "config" };
-    } catch {}
-  }
-  return { apiKey: null, apiKeySource: "none" };
-}
-
-async function loadAtlasCloudApiKey(): Promise<ApiKeyLoadResult> {
-  if (process.env.ATLASCLOUD_API_KEY) {
-    return { apiKey: process.env.ATLASCLOUD_API_KEY, apiKeySource: "env" };
-  }
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { atlasCloudApiKey?: string };
-      if (cfg.atlasCloudApiKey) return { apiKey: cfg.atlasCloudApiKey, apiKeySource: "config" };
-    } catch {}
-  }
-  return { apiKey: null, apiKeySource: "none" };
-}
-
-async function loadMinimaxApiKey(): Promise<ApiKeyLoadResult> {
-  if (process.env.MINIMAX_API_KEY) {
-    return { apiKey: process.env.MINIMAX_API_KEY, apiKeySource: "env" };
-  }
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { minimaxApiKey?: string };
-      if (cfg.minimaxApiKey) return { apiKey: cfg.minimaxApiKey, apiKeySource: "config" };
-    } catch {}
-  }
-  return { apiKey: null, apiKeySource: "none" };
-}
-
-type VertexKeyLoadResult = { json: string | null; projectId: string | null; source: ApiKeySource };
-
-async function loadVertexKey(): Promise<VertexKeyLoadResult> {
-  const envJson = process.env.VERTEX_SERVICE_ACCOUNT_JSON;
-  if (envJson) {
-    try {
-      const parsed = JSON.parse(envJson);
-      return { json: envJson, projectId: parsed.project_id || null, source: "env" };
-    } catch {
-      return { json: null, projectId: null, source: "none" };
-    }
-  }
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { vertexServiceAccountJson?: string };
-      if (cfg.vertexServiceAccountJson) {
-        const parsed = JSON.parse(cfg.vertexServiceAccountJson);
-        return { json: cfg.vertexServiceAccountJson, projectId: parsed.project_id || null, source: "config" };
-      }
-    } catch {}
-  }
-  return { json: null, projectId: null, source: "none" };
-}
-
-async function loadGeminiAuthMode(): Promise<string | undefined> {
-  const candidates = [
-    config.storage.configFile,
-    join(rootDir, ".ima2", "config.json"),
-  ];
-  for (const cfgPath of candidates) {
-    if (!existsSync(cfgPath)) continue;
-    try {
-      const cfg = JSON.parse(await readFile(cfgPath, "utf-8")) as { geminiAuthMode?: string };
-      if (cfg.geminiAuthMode === "vertex" || cfg.geminiAuthMode === "apikey") return cfg.geminiAuthMode;
-    } catch {}
-  }
-  return undefined;
-}
 
 async function createOpenAI(apiKey: string | null | undefined) {
   if (!apiKey) return null;
@@ -252,7 +130,6 @@ export function buildApp(ctx: RuntimeContext) {
   configureLogger({ level: ctx.config.log.level });
   app.use(createRequestLogger());
   app.use(createLanApiGuard(ctx.config.server.host, ctx.config.server.lanToken));
-  app.use("/api/mcp/temp-references", express.json({ limit: MCP_TEMP_REFERENCE_JSON_BODY_LIMIT_BYTES }));
   app.use(express.json({ limit: ctx.config.server.bodyLimit }));
   app.use(express.static(join(ctx.rootDir, "ui", "dist"), {
     setHeaders: setUiStaticHeaders,
@@ -295,14 +172,9 @@ function runtimeHostUrl(host: string | undefined): string {
 
 /**
  * Pure payload builder, exported so the liveness contract is testable without
- * booting a server or spawning a real progrok child.
- *
- * The grok section only carries an endpoint while a supervised child is actually
- * listening. Publishing `actualPort`/`url` for a dead child is a claim the file
- * cannot back up, so those go null and `configuredPort` stays for diagnostics.
+ * booting a server.
  */
 export function buildAdvertisePayload(ctx: RuntimeContext) {
-  const grokLive = ctx.grokProxyLive === true;
   return {
     port: Number(ctx.serverActualPort || ctx.config.server.port),
     url: ctx.serverUrl,
@@ -320,12 +192,6 @@ export function buildAdvertisePayload(ctx: RuntimeContext) {
       actualPort: Number(ctx.oauthActualPort || ctx.oauthPort),
       url: ctx.oauthUrl,
       status: ctx.oauthReadyState,
-    },
-    grok: {
-      configuredPort: Number(ctx.grokPort),
-      actualPort: grokLive ? Number(ctx.grokActualPort || ctx.grokPort) : null,
-      url: grokLive ? ctx.grokUrl : null,
-      live: grokLive,
     },
   };
 }
@@ -375,18 +241,11 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
           apiKeySource: overrides.apiKeySource ?? (overrides.apiKey ? "env" : "none"),
         }
       : await loadApiKey();
-  const loadedXaiKey = await loadXaiApiKey();
-  const loadedGeminiKey = await loadGeminiApiKey();
-  const loadedAtlasCloudKey = await loadAtlasCloudApiKey();
-  const loadedMinimaxKey = await loadMinimaxApiKey();
-  const loadedVertexKey = await loadVertexKey();
-  const geminiAuthMode = await loadGeminiAuthMode();
   const apiKey = loadedKey.apiKey;
   const openai = overrides.openai ?? await createOpenAI(apiKey);
   const oauthPort = config.oauth.proxyPort;
-  const grokPort = config.grokProvider.proxyPort;
   // Discover pool early (sync discovery, but needs config loaded). May be null for single-account mode.
-  let oauthPool: import("./lib/oauthPool.js").OAuthPool | null = null;
+  let oauthPool: OAuthPool | null = null;
   try {
     oauthPool = discoverOAuthPool(oauthPort);
     if (oauthPool && oauthPool.size > 1) {
@@ -409,9 +268,6 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
     serverConfiguredPort: config.server.port,
     serverActualPort: undefined,
     serverUrl: `http://${runtimeHostUrl(config.server.host)}:${config.server.port}`,
-    grokPort,
-    grokActualPort: grokPort,
-    grokUrl: `http://${config.grokProvider.proxyHost}:${grokPort}/v1`,
     oauthPort,
     oauthActualPort: oauthPort,
     oauthUrl: `http://127.0.0.1:${oauthPort}`,
@@ -425,28 +281,7 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
     startedAt: overrides.startedAt ?? Date.now(),
     packageVersion: overrides.packageVersion ?? readPackageVersion(),
     adminNonce: randomUUID(),
-    xaiApiKey: loadedXaiKey.apiKey ?? undefined,
-    xaiApiKeySource: loadedXaiKey.apiKeySource as ApiKeySource,
-    hasXaiApiKey: !!loadedXaiKey.apiKey,
-    geminiApiKey: loadedGeminiKey.apiKey ?? undefined,
-    geminiApiKeySource: loadedGeminiKey.apiKeySource as ApiKeySource,
-    hasGeminiApiKey: !!loadedGeminiKey.apiKey,
-    atlasCloudApiKey: loadedAtlasCloudKey.apiKey ?? undefined,
-    atlasCloudApiKeySource: loadedAtlasCloudKey.apiKeySource as ApiKeySource,
-    hasAtlasCloudApiKey: !!loadedAtlasCloudKey.apiKey,
-    minimaxApiKey: loadedMinimaxKey.apiKey ?? undefined,
-    minimaxApiKeySource: loadedMinimaxKey.apiKeySource as ApiKeySource,
-    hasMinimaxApiKey: !!loadedMinimaxKey.apiKey,
-    vertexServiceAccountJson: loadedVertexKey.json ?? undefined,
-    vertexProjectId: loadedVertexKey.projectId ?? undefined,
-    hasVertexKey: !!loadedVertexKey.json,
-    geminiAuthMode,
     oauthReadyPromise: oauthReadyPromise as unknown as Promise<void>,
-    markGrokProxyPort: ({ url, port }: { url?: string; port?: number } = {}) => {
-      if (port) ctx.grokActualPort = port;
-      if (url) ctx.grokUrl = url;
-      else if (port) ctx.grokUrl = `http://${ctx.config.grokProvider.proxyHost}:${port}/v1`;
-    },
     markOAuthReady: ({ url, port }: { url?: string; port?: number } = {}) => {
       if (url) ctx.oauthUrl = url;
       if (port) ctx.oauthActualPort = port;
@@ -459,12 +294,6 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
     },
   };
   if (!config.oauth.autoStart) ctx.markOAuthReady({ url: ctx.oauthUrl, port: ctx.oauthPort });
-  if (loadedVertexKey.json) {
-    try {
-      const { initVertexAuth } = await import("./lib/vertexAuth.js");
-      initVertexAuth(loadedVertexKey.json);
-    } catch { /* vertex init failure is non-fatal */ }
-  }
   return ctx;
 }
 
@@ -472,29 +301,24 @@ export async function startServer(overrides: StartServerOverrides = {}) {
   const ctx = await createRuntimeContext(overrides);
   assertLanAccessConfiguration(ctx.config.server.host, ctx.config.server.lanToken);
   await migrateGeneratedStorage(ctx);
-  try {
-    await cleanupExpiredMcpTempReferences(ctx.config.storage.generatedDir);
-  } catch (error) {
-    console.warn("[mcp.temp-references] startup cleanup failed:", errInfo(error).message);
-  }
   purgeStaleJobs();
   const app = buildApp(ctx);
   // Pool mode: if 2+ accounts discovered, spawn N proxies instead of one
-  let oauthChild: any = null;
-  let oauthPoolHandle: any = null;
+  let oauthChild: { stop?: () => void; kill?: () => void } | null = null;
+  let oauthPoolHandle: { stop?: () => void; kill?: () => void } | null = null;
   if (overrides.oauthChild !== undefined) {
     oauthChild = overrides.oauthChild;
   } else if (!ctx.config.oauth.autoStart) {
     oauthChild = null;
-  } else if ((ctx as any).oauthPool && (ctx as any).oauthPool.size > 1) {
-    const pool: any = (ctx as any).oauthPool;
+  } else if (ctx.oauthPool && ctx.oauthPool.size > 1) {
+    const pool = ctx.oauthPool;
     console.log(`[oauth:pool] Starting pool with ${pool.size} accounts (round-robin distribution)`);
     oauthPoolHandle = startOAuthPool(pool, {
       restartDelayMs: ctx.config.oauth.restartDelayMs,
       onPoolReady: ({ url, port }: { url: string; port: number }) => {
         // First pool account ready → mark global ready
         ctx.markOAuthReady({ url, port });
-        (ctx as any).oauthPoolReady = true;
+        ctx.oauthPoolReady = true;
         advertise(ctx);
         console.log(`[oauth:pool] Pool ready – traffic will round-robin across ${pool.size} accounts`);
       },
@@ -511,7 +335,7 @@ export async function startServer(overrides: StartServerOverrides = {}) {
     });
     oauthChild = oauthPoolHandle;
     // Also keep ctx.oauthPool reference for runtime routing
-    (ctx as any).oauthPool = pool;
+    ctx.oauthPool = pool;
   } else {
     oauthChild = startOAuthProxy({
       oauthPort: ctx.oauthPort,
@@ -526,50 +350,18 @@ export async function startServer(overrides: StartServerOverrides = {}) {
   if (overrides.oauthChild !== undefined || !ctx.config.oauth.autoStart) {
     ctx.markOAuthReady({ url: ctx.oauthUrl, port: ctx.oauthPort });
   }
-  const grokChild = ctx.config.grokProvider.autoStart
-    ? await startGrokProxy({
-        host: ctx.config.grokProvider.proxyHost,
-        port: ctx.config.grokProvider.proxyPort,
-        restartDelayMs: ctx.config.grokProvider.restartDelayMs,
-        onPortSelected: ({ url, port }: { url: string; port: number }) => {
-          ctx.markGrokProxyPort({ url, port });
-          // Port selection is an intent to bind, not a successful bind.
-          ctx.grokProxyLive = false;
-          advertise(ctx);
-        },
-        onReady: ({ url, port }: { url: string; port: number }) => {
-          ctx.markGrokProxyPort({ url, port });
-          ctx.grokProxyLive = true;
-          advertise(ctx);
-        },
-        onExit: () => {
-          // Without this the advertise file keeps publishing the port of a child
-          // that is already gone.
-          ctx.grokProxyLive = false;
-          advertise(ctx);
-        },
-      })
-    : null;
-  ctx.grokProxy = grokChild ?? undefined;
 
-  let server: import("node:net").Server;
+  let server: Server;
   let reapTimer: NodeJS.Timeout;
-  let tempReferenceReapTimer: NodeJS.Timeout | undefined;
 
   onShutdown(async () => {
     unadvertise(ctx);
     try { oauthChild?.stop?.(); } catch {}
     try { oauthChild?.kill?.(); } catch {}
-    try { grokChild?.stop?.(); } catch {}
-    try { grokChild?.kill?.(); } catch {}
     stopAgentQueueWorker();
     clearInterval(reapTimer);
-    if (tempReferenceReapTimer) clearInterval(tempReferenceReapTimer);
-    await shutdownServerAndMcp({
-      closeServer: () => new Promise<void>((resolve) => {
-        if (server) server.close(() => resolve()); else resolve();
-      }),
-      shutdownMcp: () => ctx.mcpConnectionManager?.shutdown() ?? Promise.resolve(),
+    await new Promise<void>((resolve) => {
+      if (server) server.close(() => resolve()); else resolve();
     });
     closeDb();
   });
@@ -584,11 +376,8 @@ export async function startServer(overrides: StartServerOverrides = {}) {
   });
   ctx.serverActualPort = getServerPort(server) || ctx.config.server.port;
   ctx.serverUrl = `http://${runtimeHostUrl(ctx.config.server.host)}:${ctx.serverActualPort}`;
-  void startMcpRestoreAfterListen(ctx).catch((error) => {
-    console.warn(`[mcp.restore] code=${String((error as Error)?.message ?? error).split(":")[0]}`);
-  });
   console.log(`Image Gen running at ${ctx.serverUrl}`);
-  console.log(`Provider policy: GPT OAuth, API-key Responses, and Grok Images providers. GPT OAuth proxy port ${ctx.oauthPort}; Grok proxy port ${ctx.grokActualPort || ctx.grokPort}.`);
+  console.log(`Provider policy: GPT OAuth and API-key Responses providers. GPT OAuth proxy port ${ctx.oauthPort}.`);
   advertise(ctx);
   try {
     const s = ensureDefaultSession();
@@ -624,13 +413,6 @@ export async function startServer(overrides: StartServerOverrides = {}) {
     reapCardNewsJobs();
   }, 60_000);
   reapTimer.unref?.();
-
-  tempReferenceReapTimer = setInterval(() => {
-    cleanupExpiredMcpTempReferences(ctx.config.storage.generatedDir).catch((error) => {
-      console.warn("[mcp.temp-references] hourly cleanup failed:", errInfo(error).message);
-    });
-  }, MCP_TEMP_REFERENCE_SWEEP_INTERVAL_MS);
-  tempReferenceReapTimer.unref?.();
 
   process.on("uncaughtException", (err) => {
     console.error("[fatal] uncaughtException:", err);

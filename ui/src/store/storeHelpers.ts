@@ -40,13 +40,6 @@ export function getInflightQueryScopes(state: {
   if (state.inFlight.some((job) => job.kind === "multimode")) {
     scopes.push({ kind: "multimode" });
   }
-  scopes.push({ kind: "video" });
-  scopes.push({ kind: "mcp-image" }, { kind: "mcp-video" });
-  for (const job of state.inFlight) {
-    if (job.kind?.startsWith("mcp-action-") && !scopes.some((scope) => scope.kind === job.kind)) {
-      scopes.push({ kind: job.kind });
-    }
-  }
   return scopes;
 }
 
@@ -64,7 +57,6 @@ export async function fetchInflightScopes(scopes: InflightQueryScope[]): Promise
 }> {
   const responses = await Promise.all(scopes.map((scope) =>
     getInflight({
-      // api-inflight's legacy union has not yet adopted the server's extensible MCP kinds.
       kind: scope.kind as NonNullable<Parameters<typeof getInflight>[0]>["kind"],
       sessionId: scope.sessionId,
       includeTerminal: true,
@@ -79,9 +71,9 @@ export async function fetchInflightScopes(scopes: InflightQueryScope[]): Promise
 export function toPersistedInFlightJob(job: ServerInFlightJob): PersistedInFlight {
   const meta = job.meta ?? {};
   const kind =
-    job.kind === "classic" || job.kind === "node" || job.kind === "multimode" || job.kind === "video"
+    job.kind === "classic" || job.kind === "node" || job.kind === "multimode"
       ? job.kind
-      : meta.kind === "classic" || meta.kind === "node" || meta.kind === "multimode" || meta.kind === "video"
+      : meta.kind === "classic" || meta.kind === "node" || meta.kind === "multimode"
         ? meta.kind
         : normalizeInflightKind(job.kind) ?? normalizeInflightKind(meta.kind);
   return {
@@ -152,9 +144,7 @@ export function loadInFlight(): PersistedInFlight[] {
         sessionId: typeof x.sessionId === "string" ? x.sessionId : null,
         parentNodeId: typeof x.parentNodeId === "string" ? x.parentNodeId : null,
         clientNodeId: typeof x.clientNodeId === "string" ? x.clientNodeId : null,
-        kind: x.kind === "classic" || x.kind === "node" || x.kind === "multimode" || x.kind === "video"
-          ? x.kind
-          : normalizeInflightKind(x.kind),
+        kind: normalizeInflightKind(x.kind),
       }));
   } catch {
     return [];
@@ -162,11 +152,7 @@ export function loadInFlight(): PersistedInFlight[] {
 }
 
 export function normalizeInflightKind(value: unknown): PersistedInFlight["kind"] {
-  if (
-    value === "classic" || value === "node" || value === "multimode" || value === "video" ||
-    value === "mcp-image" || value === "mcp-video"
-  ) return value;
-  return typeof value === "string" && value.startsWith("mcp-action-") ? value as `mcp-action-${string}` : undefined;
+  if (value === "classic" || value === "node" || value === "multimode") return value;
 }
 
 export const HISTORY_LIMIT = 500;
@@ -342,7 +328,6 @@ export function getCustomSizeConfirmation(
   state: AppState,
   continuation: NonNullable<CustomSizeConfirmState>["continuation"],
 ): CustomSizeConfirmState {
-  if (state.provider === "grok" || state.provider === "grok-api" || state.provider === "agy" || state.provider === "gemini-api" || state.provider === "atlascloud" || state.provider === "minimax") return null;
   if (state.sizePreset !== "custom") return null;
   const result = normalizeCustomSizePairDetailed(
     state.customW,

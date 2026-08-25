@@ -44,7 +44,6 @@
     "localImportInvalid": "Only PNG, JPEG, or WebP is supported",
     "localStorageFull": "Local storage is full — recent state may not persist.",
     "refLimitExceeded": "References are capped at 5. Extra images were dropped.",
-    "minimaxModelRequiresReference": "image-01-live needs a reference image outside China. Attach one, or switch to image-01.",
     "refLimitTrayFull": "Reference tray is full ({max}). Remove an item with its X to attach more — deleted @tags can be re-mentioned with @.",
     "refLimitPartial": "Only {added} of {total} images were added (limit {max}).",
     "refOverProviderLimit": "This provider accepts up to {max} reference images. Remove {excess} to generate.",
@@ -122,8 +121,6 @@
   },
   "size": {
     "title": "Size",
-    "grokAspectTitle": "Aspect Ratio",
-    "grokResolutionTitle": "Resolution",
     "width": "Width",
     "height": "Height",
     "hint": "16px steps, max edge 3840, ratio up to 3:1, 655K–8.29M pixels",
@@ -169,8 +166,6 @@
   },
   "quality": {
     "title": "Quality",
-    "grokTitle": "Grok quality",
-    "grokModelTitle": "Model",
     "lowLabel": "Low",
     "lowSub": "Fast",
     "mediumLabel": "Medium",
@@ -279,7 +274,6 @@
       "outputTokens": "Output",
       "reasoningTokens": "Reasoning",
       "webSearchCalls": "Web searches",
-      "grokCostTicks": "Grok cost ticks",
       "usage": "Usage",
       "filename": "Filename",
       "createdAt": "Created",
@@ -331,8 +325,6 @@
     "model": "Model",
     "reasoning": "Reasoning",
     "webSearch": "Web search",
-    "grokApi": "Grok API",
-    "grokApiBody": "Runs through bundled progrok: mandatory search, Grok 4.5 image-and-text tool planning in English, then xAI Images API. Attached references use xAI image editing so i2i context is preserved.",
     "openAccount": "Open account settings"
   },
   "generate": {
@@ -702,15 +694,6 @@
     "oauthStarting": "GPT OAuth proxy is starting. Try again in a few seconds.",
     "serverUnreachable": "Cannot reach the server. Make sure the backend is running.",
     "apiInvalid": "API key is missing or invalid. Check OPENAI_API_KEY in the server's .env.",
-    "grokOffline": "Grok proxy is not running.",
-    "grokNoImageModel": "No Grok image generation model found.",
-    "grokNotReady": "Grok is not available.",
-    "grokOfflineHint": "Run `ima2 grok login` once if needed, then start `ima2 serve`; ima2 starts the bundled Grok proxy automatically.",
-    "grokManagedByIma2": "Grok runs locally inside `ima2 serve` through the bundled progrok proxy at 127.0.0.1:18645.",
-    "grokClassicOnly": "Grok image generation is not available in this surface.",
-    "grokClassicOnlyHint": "Use a generation surface with Grok enabled.",
-    "grokCompatTitle": "Grok image API",
-    "grokCompatBody": "ima2 serve manages the bundled progrok proxy at 127.0.0.1:18645. Grok always searches before image generation, sends attached references into the Grok 4.5 planner, keeps them through xAI image editing, and maps size to xAI aspect ratio/resolution. Output format, moderation, and reasoning are OpenAI-provider settings only.",
     "settingsBody": "Choose which provider future generation requests use.",
     "availableTitle": "{name} available",
     "availableAria": "{name}: available",
@@ -718,118 +701,9 @@
     "availableSr": "(available)",
     "unavailableSr": "(unavailable)",
     "xaiApiKeyRequired": "xAI API key required",
-    "geminiApiKeyRequired": "Gemini API key required",
-    "atlasCloudApiKeyRequired": "Atlas Cloud API key required",
-    "minimaxApiKeyRequired": "MiniMax API key required",
     "comingSoon": "Coming soon",
-    "agyCompatTitle": "Gemini (agy)",
-    "agyCompatBody": "1024x1024 fixed, JPEG output, max 3 refs. No quality/size control.",
-    "agyCompatBodyLong": "1024x1024 fixed output, JPEG format, max 3 reference images. No web search, no quality/size control.",
-    "geminiApiCompatTitle": "Gemini API",
-    "geminiApiCompatBody": "Google Gemini API. Supports aspect ratio and resolution control from 512px to 4K.",
-    "geminiApiCompatBodyLong": "Google Gemini API direct. Supports nano-banana-2 (Flash) and nano-banana-pro (Pro), with aspect ratio and resolution control from 512px to 4K.",
     "gptCompatTitle": "GPT Image",
     "gptCompatBody": "OpenAI image generation via Responses API. Supports quality, size, format, moderation, and web search settings."
-  },
-  "mcp": {
-    "connectionsTitle": "MCP provider connections",
-    "connectionsBody": "Connect official provider accounts and review tool status. Only connected providers appear in the generation selector.",
-    "providerLabel": "Generation provider",
-    "modelLabel": "Generation model",
-    "coreProviders": "Core providers",
-    "connectedProviders": "Connected MCP providers",
-    "imageModels": "Image models",
-    "videoModels": "Video models",
-    "chooseModel": "Choose a model",
-    "loadingModels": "Loading models",
-    "loadingProviders": "Checking connections",
-    "providersLoadFailed": "Could not load MCP provider status.",
-    "modelsLoadFailed": "Models failed to load — tap to retry",
-    "retryModels": "Retry",
-    "noModels": "No models are available for this mode.",
-    "refreshingConnection": "Refreshing…",
-    "exitLane": "Use core providers",
-    "modelSectionTitle": "Model",
-    "ratioAutoHelp": "Auto lets the model pick its own aspect ratio. Presets may be rejected by some models.",
-    "aspectRatioLabel": "Aspect ratio",
-    "durationLabel": "Duration",
-    "resolutionLabel": "Resolution",
-    "qualityLabel": "Quality",
-    "modeLabel": "Mode",
-    "audioLabel": "Audio",
-    "onLabel": "On",
-    "offLabel": "Off",
-    "toolInputsLabel": "Reference media",
-    "referenceNone": "None",
-    "referenceSelect": "Choose from gallery",
-    "referenceCurrent": "Current gallery item",
-    "referenceMissing": "Not in loaded history",
-    "startFrameLabel": "Start frame",
-    "endFrameLabel": "End frame",
-    "endFrameNeedsStart": "Choose a start frame first.",
-    "imageReferencesLabel": "Image references (up to 3)",
-    "imageReferenceAria": "Image reference {index}",
-    "referenceTagAria": "Tag for image reference {index}",
-    "referenceTagPlaceholder": "Optional tag",
-    "referenceTagInvalid": "Use 1–32 letters, numbers, underscores, or hyphens for the tag.",
-    "referenceAttachLocal": "Attach local image",
-    "referenceAttachHelp": "Local images are uploaded temporarily and removed after generation settles.",
-    "referenceLocalFallback": "Local image",
-    "referenceLocalInvalidType": "Choose a PNG, JPEG, or WebP image.",
-    "referenceLocalReadFailed": "Could not read this image. Choose it again.",
-    "referenceSource": {
-      "asset": "Asset",
-      "element": "Element",
-      "local": "Local attachment"
-    },
-    "videoReferenceLabel": "Video reference",
-    "videoReferenceCostNote": "Using a video reference may add provider charges.",
-    "advancedPresetsLabel": "Advanced presets",
-    "providerDefaultsHelp": "This model uses provider defaults without additional presets.",
-    "chooseModelForPresets": "Choose a model in the top selector to see its supported presets.",
-    "refreshList": "Refresh status",
-    "connect": "Connect",
-    "connecting": "Connecting",
-    "connectOpensBrowser": "Opens provider sign-in in a browser window.",
-    "refreshConnection": "Reconnect",
-    "disconnect": "Disconnect",
-    "connectionActionFailed": "The connection action could not be completed. Try again shortly.",
-    "popupBlocked": "The sign-in window was blocked. Allow popups, then connect again.",
-    "locked": "Locked",
-    "unavailable": "Unavailable",
-    "unknownProvider": "Connection information for {provider} is unavailable.",
-    "disconnectedSelection": "The saved provider is disconnected. Reconnect it in Settings.",
-    "disabledProvider": "This provider is disabled in the current server configuration.",
-    "selectionUnavailable": "The selected MCP provider is unavailable. Check its connection in Settings.",
-    "higgsfieldLocked": "Generation is locked for this provider.",
-    "toolCount": "{count} tools",
-    "toolCountUnknown": "Tool count unknown",
-    "snapshotChanges": "{count} schema changes",
-    "billingLabel": "Billing",
-    "billingSubscription": "Subscription credits",
-    "billingApi": "API usage billing",
-    "billingUnknown": "Unknown",
-    "generateFailed": "Could not start MCP generation.",
-    "errorUnsupportedInput": "This model does not support one of the selected reference types. Choose a compatible model or remove it.",
-    "errorEndRequiresStart": "Choose a start frame before adding an end frame.",
-    "errorInvalidReferences": "One or more reference images are no longer available. Choose them again.",
-    "errorInvalidFrame": "The selected frame or video is no longer available. Choose it again.",
-    "errorTempReferences": "Could not prepare the local reference image. Choose it again.",
-    "status": {
-      "disconnected": "Disconnected",
-      "connecting": "Connecting",
-      "auth_required": "Sign-in required",
-      "connected": "Connected",
-      "offline": "Offline",
-      "error": "Error"
-    },
-    "characterSlotLabel": "Character",
-    "characterSlotNone": "No character binding",
-    "characterSlotConflictHint": "Remove @element mentions to use a character binding — they cannot be combined."
-  },
-  "grokMode": {
-    "image": "Image",
-    "video": "Video"
   },
   "cost": {
     "free": "free",
@@ -1206,8 +1080,6 @@
     "imageModelLabel": "Model",
     "imageSectionLabel": "Image",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "grokImageSubLabel": "Grok Imagine",
-    "geminiImageSubLabel": "Gemini",
     "videoSectionLabel": "Video",
     "imageModelAria": "Choose image model",
     "quickSettingsAria": "Choose model and reasoning effort. Current model {model}, reasoning {effort}",
@@ -1252,17 +1124,6 @@
       "apiReady": "Ready",
       "apiUnavailable": "Unavailable",
       "apiUnknown": "Status unknown",
-      "grokEyebrow": "Local xAI proxy",
-      "grokTitle": "Grok",
-      "grokBody": "Uses progrok at the configured local port for xAI Images API generation.",
-      "agyEyebrow": "Antigravity CLI",
-      "agyTitle": "Gemini (agy)",
-      "agyInstalledBody": "Login status can't be detected. Run `agy login` in your terminal if generation fails.",
-      "agyMissingBody": "Not installed. Get the",
-      "agyMissingLink": "Antigravity CLI",
-      "agyFineprint": "Antigravity models and image quota are billed separately.",
-      "agyInstalled": "Installed",
-      "agyMissing": "Not installed",
       "status": {
         "ready": "Ready",
         "authRequired": "Login required",
@@ -1277,7 +1138,6 @@
       "codexNotLoggedIn": "Not logged in",
       "fetchError": "Could not load quota",
       "noData": "No usage data",
-      "grokUsageLink": "View Grok usage →",
       "switchAccount": "Switch {provider} account",
       "startingLogin": "Starting login…",
       "enterCode": "Enter this code in the opened tab:",
@@ -1298,17 +1158,9 @@
       "gpt56Sol": "GPT-5.6 Sol",
       "gpt56Terra": "GPT-5.6 Terra",
       "gpt56Luna": "GPT-5.6 Luna",
-      "grokImagine20": "Grok Imagine Image 2.0",
-      "grokImagine": "Grok Imagine",
-      "grokImagineQuality": "Grok Imagine Quality",
       "nanoBanana2": "Nano Banana 2",
       "nanoBanana2Api": "Nano Banana 2",
       "nanoBananaPro": "Nano Banana Pro",
-      "atlasCloudGptImage2": "Atlas Cloud GPT Image 2",
-      "atlasCloudGptImage2Edit": "Atlas Cloud GPT Image 2 Edit",
-      "minimaxImage01": "MiniMax image-01",
-      "minimaxImage01Live": "MiniMax image-01-live",
-      "agy": "Antigravity (agy)",
       "gpt53CodexSpark": "GPT-5.3 Codex Spark — unsupported for images",
       "unsupportedHelp": "Grok models use xAI's Images API through the bundled local proxy. GPT models use OpenAI Responses image generation."
     },
@@ -1319,28 +1171,6 @@
       "openai": {
         "label": "GPT API Key (OpenAI)",
         "placeholder": "Paste your OpenAI API key (sk-...)"
-      },
-      "xai": {
-        "label": "Grok API Key (xAI)",
-        "placeholder": "Paste your xAI API key (xai-...)"
-      },
-      "gemini": {
-        "label": "Gemini (Google)",
-        "placeholder": "Paste your Gemini API key (AI...)"
-      },
-      "atlascloud": {
-        "label": "Atlas Cloud",
-        "placeholder": "Paste your Atlas Cloud API key (apikey-...)"
-      },
-      "minimax": {
-        "label": "MiniMax",
-        "placeholder": "Paste your MiniMax API key"
-      },
-      "vertex": {
-        "label": "Vertex AI (Service Account)",
-        "placeholder": "Paste your Google Cloud service account JSON { \"type\": \"service_account\", ... }",
-        "authModeApiKey": "API Key",
-        "authModeVertex": "Vertex JSON"
       },
       "save": "Save",
       "saved": "Saved",
@@ -1354,10 +1184,6 @@
         "valid": "Valid",
         "notConfigured": "Not configured"
       }
-    },
-    "videoModel": {
-      "grokImagine": "Grok Imagine Video",
-      "grokImagine15": "Grok Imagine Video 1.5"
     },
     "reasoning": {
       "title": "Reasoning effort",
@@ -1374,14 +1200,6 @@
       "body": "Use live search before generation for real people, brands, products, places, and recent events.",
       "on": "Search on",
       "off": "Search off"
-    },
-    "grokCompatibility": {
-      "title": "Grok compatibility",
-      "body": "Grok image generation first runs mandatory web search, then sends text and attached images to a local image-tool planner that writes the final image prompt in English. Attached references route through xAI image editing; size is mapped to aspect ratio/resolution. Output format, moderation, and reasoning are only used by GPT OAuth and API key providers."
-    },
-    "grokPlanner": {
-      "title": "Grok planner model",
-      "body": "The model used for search and image/video prompt planning. Grok 4.5 is the default and supports image input for I2V/Ref2V planning; Grok 4.3 remains available as a compatibility override."
     },
     "gallery": {
       "defaultScopeTitle": "Default gallery view",
@@ -1513,26 +1331,6 @@
     "apikeyDisabled": {
       "title": "API-key mode is unavailable",
       "body": "This build supports API-key generation, but the current request could not use a configured key. Switch to GPT OAuth or update the API key.",
-      "cta": "OK"
-    },
-    "agyGenerationFailed": {
-      "title": "Gemini generation failed",
-      "body": "The Antigravity CLI returned an error. Check that the agy binary is installed and your Gemini account is active.",
-      "cta": "Retry"
-    },
-    "agyTimeout": {
-      "title": "Gemini generation timed out",
-      "body": "The agy process did not respond within the timeout window (360s). Try again or check the agy CLI status.",
-      "cta": "Retry"
-    },
-    "agyProcessError": {
-      "title": "Gemini process error",
-      "body": "The agy CLI exited with an unexpected error. Verify the binary is working with 'agy --version'.",
-      "cta": "Retry"
-    },
-    "agyQuotaExhausted": {
-      "title": "Gemini quota exhausted",
-      "body": "You have exhausted your Gemini image generation capacity. Your quota will reset automatically — check the reset timer in the error details.",
       "cta": "OK"
     },
     "authClass": {
@@ -1731,12 +1529,10 @@
     "backgroundHintTransparent": "GPT Image 2 renders a real alpha channel, so no keying step is needed. Saved as PNG.",
     "model": "Model",
     "modelGpt": "GPT",
-    "modelGrok": "Grok",
     "kind": "Output",
     "kindImage": "Image",
     "kindVideo": "Video",
     "videoSoon": "Video assets arrive in a later phase",
-    "videoGrokOnly": "Video generation runs on Grok — switch the model to Grok",
     "videoOptions": "Video options",
     "videoDuration": "Duration",
     "videoResolution": "Resolution",
@@ -1873,7 +1669,10 @@
     "refFailed": "Could not add reference",
     "saveToAssets": "Save to assets",
     "savedToAssets": "Saved to assets",
-    "saveToAssetsFailed": "Could not save to assets"
+    "saveToAssetsFailed": "Could not save to assets",
+    "saveAsElement": "Save as element",
+    "saved": "Saved",
+    "saveFailed": "Could not save"
   },
   "assets": {
     "title": "Assets",

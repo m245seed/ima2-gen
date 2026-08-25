@@ -1,8 +1,8 @@
 /**
  * Pure renderers for background-service artifacts. Kept free of process/fs so
  * contract tests can snapshot them (adversarial audit 260821c: PATH must be
- * baked — launchd/systemd hand jobs a minimal environment and the grok/oauth
- *  proxies spawn bare binaries that silently die without the user's PATH).
+ * baked — launchd/systemd hand jobs spawn proxy binaries without relying on
+ * the user's interactive PATH.
  */
 
 export const LAUNCHD_LABEL = "com.ima2.server";

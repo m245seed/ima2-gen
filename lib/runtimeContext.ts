@@ -1,8 +1,6 @@
 import type OpenAI from "openai";
 import { config as runtimeConfigDefault } from "../config.js";
-import type { McpConnectionManager } from "./mcp/connectionManager.js";
-import type { GrokProxyHandle } from "./grokProxyLauncher.js";
-import type { OAuthPool } from "./oauthPool.js";
+import type { OAuthPool, OAuthPoolAccount } from "./oauthPool.js";
 
 export type AppConfig = typeof runtimeConfigDefault;
 export type ApiKeySource = "env" | "oauth" | "config" | "none" | undefined;
@@ -19,13 +17,6 @@ export interface RuntimeContext {
    */
   adminNonce: string;
   config: AppConfig;
-  grokActualPort: number | undefined;
-  grokPort: number;
-  grokUrl: string;
-  /** Supervisor handle. Optional: absent when autoStart is off or in test contexts. */
-  grokProxy?: GrokProxyHandle | undefined;
-  /** True only while a supervised child is actually listening. */
-  grokProxyLive?: boolean | undefined;
   hasApiKey: boolean;
   oauthActualPort: number | undefined;
   oauthPort: number;
@@ -35,7 +26,7 @@ export interface RuntimeContext {
   /** Pool mode: when 2+ OAuth accounts are present, requests are round-robin distributed. */
   oauthPool?: OAuthPool | null;
   oauthPoolReady?: boolean;
-  oauthPoolAccounts?: import("./oauthPool.js").OAuthPoolAccount[];
+  oauthPoolAccounts?: OAuthPoolAccount[];
   openai: OpenAI | null;
   packageVersion: string;
   rootDir: string;
@@ -43,24 +34,6 @@ export interface RuntimeContext {
   serverConfiguredPort: number;
   serverUrl: string;
   startedAt: number;
-  xaiApiKey: string | undefined;
-  xaiApiKeySource: ApiKeySource;
-  hasXaiApiKey: boolean;
-  geminiApiKey: string | undefined;
-  geminiApiKeySource: ApiKeySource;
-  hasGeminiApiKey: boolean;
-  atlasCloudApiKey: string | undefined;
-  atlasCloudApiKeySource: ApiKeySource;
-  hasAtlasCloudApiKey: boolean;
-  minimaxApiKey: string | undefined;
-  minimaxApiKeySource: ApiKeySource;
-  hasMinimaxApiKey: boolean;
-  vertexServiceAccountJson: string | undefined;
-  vertexProjectId: string | undefined;
-  hasVertexKey: boolean;
-  geminiAuthMode?: string | undefined;
-  /** Lazily attached by routes/mcpConnections.ts (030 WP3); undefined until MCP routes register. */
-  mcpConnectionManager?: McpConnectionManager | undefined;
 }
 
 /** A partial used during boot when only some fields are known, or by callers
@@ -99,15 +72,6 @@ export function requireRuntimeContext(ctx: RouteRuntimeContext | undefined): Run
     target.apiKey = undefined;
   }
   if (target.hasApiKey === undefined) target.hasApiKey = false;
-  if (target.grokPort === undefined) {
-    target.grokPort = (target.config as AppConfig).grokProvider?.proxyPort ?? 18645;
-  }
-  if (target.grokUrl === undefined) {
-    const grokCfg = (target.config as AppConfig).grokProvider;
-    const host = grokCfg?.proxyHost ?? "127.0.0.1";
-    const port = target.grokActualPort ?? target.grokPort ?? grokCfg?.proxyPort ?? 18645;
-    target.grokUrl = `http://${host}:${port}/v1`;
-  }
   if (target.oauthPort === undefined) {
     target.oauthPort = (target.config as AppConfig).oauth?.proxyPort ?? 11782;
   }
@@ -128,21 +92,6 @@ export function requireRuntimeContext(ctx: RouteRuntimeContext | undefined): Run
     target.serverUrl = `http://localhost:${port}`;
   }
   if (target.startedAt === undefined) target.startedAt = Date.now();
-  if (target.xaiApiKey === undefined && !Object.prototype.hasOwnProperty.call(target, 'xaiApiKey')) target.xaiApiKey = undefined;
-  if (target.hasXaiApiKey === undefined) target.hasXaiApiKey = false;
-  if (target.xaiApiKeySource === undefined) target.xaiApiKeySource = undefined;
-  if (target.geminiApiKey === undefined && !Object.prototype.hasOwnProperty.call(target, 'geminiApiKey')) target.geminiApiKey = undefined;
-  if (target.hasGeminiApiKey === undefined) target.hasGeminiApiKey = false;
-  if (target.geminiApiKeySource === undefined) target.geminiApiKeySource = undefined;
-  if (target.atlasCloudApiKey === undefined && !Object.prototype.hasOwnProperty.call(target, 'atlasCloudApiKey')) target.atlasCloudApiKey = undefined;
-  if (target.hasAtlasCloudApiKey === undefined) target.hasAtlasCloudApiKey = false;
-  if (target.atlasCloudApiKeySource === undefined) target.atlasCloudApiKeySource = undefined;
-  if (target.minimaxApiKey === undefined && !Object.prototype.hasOwnProperty.call(target, 'minimaxApiKey')) target.minimaxApiKey = undefined;
-  if (target.hasMinimaxApiKey === undefined) target.hasMinimaxApiKey = false;
-  if (target.minimaxApiKeySource === undefined) target.minimaxApiKeySource = undefined;
-  if (target.vertexServiceAccountJson === undefined && !Object.prototype.hasOwnProperty.call(target, 'vertexServiceAccountJson')) target.vertexServiceAccountJson = undefined;
-  if (target.vertexProjectId === undefined) target.vertexProjectId = undefined;
-  if (target.hasVertexKey === undefined) target.hasVertexKey = false;
   return target as unknown as RuntimeContext;
 }
 
@@ -179,9 +128,6 @@ export function createTestRuntimeContext(over: RuntimeContextOverrides = {}): Ru
     apiKeySource: undefined,
     adminNonce: "",
     config: {} as AppConfig,
-    grokActualPort: undefined,
-    grokPort: 18645,
-    grokUrl: "http://127.0.0.1:18645/v1",
     hasApiKey: false,
     oauthActualPort: undefined,
     oauthPort: 11782,
@@ -197,21 +143,6 @@ export function createTestRuntimeContext(over: RuntimeContextOverrides = {}): Ru
     serverConfiguredPort: 11783,
     serverUrl: "http://127.0.0.1:11783",
     startedAt: now,
-    xaiApiKey: undefined,
-    xaiApiKeySource: undefined,
-    hasXaiApiKey: false,
-    geminiApiKey: undefined,
-    geminiApiKeySource: undefined,
-    hasGeminiApiKey: false,
-    atlasCloudApiKey: undefined,
-    atlasCloudApiKeySource: undefined,
-    hasAtlasCloudApiKey: false,
-    minimaxApiKey: undefined,
-    minimaxApiKeySource: undefined,
-    hasMinimaxApiKey: false,
-    vertexServiceAccountJson: undefined,
-    vertexProjectId: undefined,
-    hasVertexKey: false,
   };
   return { ...base, ...over };
 }

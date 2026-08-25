@@ -5,7 +5,6 @@ import sharp from "sharp";
 import { mkdtemp, rm, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
 
 const TEST_DIR = await mkdtemp(join(tmpdir(), "ima2-structured-filename-"));
 process.env.IMA2_CONFIG_DIR = TEST_DIR;
@@ -243,23 +242,5 @@ describe("structured filenames across image pipelines", () => {
       assert.ok(files[0].includes("_3x2_"), `aspect 3x2 in ${files[0]}`);
       assert.ok(files[0].includes("_wide-agent-banner."), `slug in ${files[0]}`);
     });
-  });
-
-  it("wires the effective grok/grok-api high-quality model rule into all three lanes", () => {
-    // The high-quality knob now resolves through the shared helper, which maps
-    // "high" onto the current flagship model instead of hardcoding the legacy
-    // grok-imagine-image-quality id at every call site.
-    const grokRule = /\(activeProvider === "grok" \|\| activeProvider === "grok-api"\) \? resolveGrokQualityModel\(imageModel, quality\)/;
-    const classic = readFileSync(join(process.cwd(), "lib/generatePipeline.ts"), "utf8");
-    const multimode = readFileSync(join(process.cwd(), "lib/multimodePipeline.ts"), "utf8");
-    const edit = readFileSync(join(process.cwd(), "routes/edit.ts"), "utf8");
-    const agent = readFileSync(join(process.cwd(), "lib/agentImageVideoGen.ts"), "utf8");
-    assert.match(classic, grokRule);
-    assert.match(multimode, grokRule);
-    assert.match(edit, grokRule);
-    // Agent lane: caller's effectiveModel (grok high override at :85-87) is the
-    // persisted generation.model.
-    assert.match(agent, /const effectiveModel = activeProvider === "grok"\s*\?\s*resolveGrokQualityModel\(providerOptions\.model, options\.quality\)/);
-    assert.match(agent, /buildFilename\(\{ model: generation\.model, size, createdAt, prompt, ext: format \}\)/);
   });
 });

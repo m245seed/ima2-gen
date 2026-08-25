@@ -1,21 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { useI18n } from "../i18n";
 import { exportImageToComfy } from "../lib/api";
-import { toVideoHistoryItem } from "../lib/videoHistoryItem";
-import { postVideoExtendStream } from "../lib/videoExtendStream";
-import { isVideoItem, extractFirstFrame, extractMidFrame, extractLastFrame } from "../lib/videoMedia";
 import { continueFromItem, continueFromItemAsUrl } from "../lib/continueFromItem";
 import { ResultMetadataModal } from "./ResultMetadataModal";
-import { UpscalePopover } from "./UpscalePopover";
-import { buildUpscaleBody, type UpscaleParams } from "../lib/upscaleAction";
-import { jsonFetch } from "../lib/api";
-import { listMcpProviders } from "../lib/mcpProviders";
 import type { GenerateItem } from "../types";
 
-interface ResultActionsProps { imageOverride?: GenerateItem | null; onAfterDeleteFocus?: () => void }
-
-type ExtendState = "idle" | "pending" | "error";
+interface ResultActionsProps {
+  imageOverride?: GenerateItem | null;
+  onAfterDeleteFocus?: () => void;
+}
 
 const CANVAS_MODE_PROMPT_ID = "canvas-mode-context";
 const CANVAS_MODE_PROMPT_NAME = "Canvas Mode";
@@ -28,10 +22,7 @@ const CANVAS_MODE_PROMPT_TEXT = [
   "Infer the intended edit from the canvas marks and memo text. Preserve unrelated image content.",
 ].join("\n");
 
-export function ResultActions({
-  imageOverride = null,
-  onAfterDeleteFocus,
-}: ResultActionsProps) {
+export function ResultActions({ imageOverride = null, onAfterDeleteFocus }: ResultActionsProps) {
   const { t } = useI18n();
   const currentImage = useAppStore((s) => s.currentImage);
   const showToast = useAppStore((s) => s.showToast);
@@ -39,167 +30,58 @@ export function ResultActions({
   const createRootNodeFromHistoryItem = useAppStore((s) => s.createRootNodeFromHistoryItem);
   const trashHistoryItem = useAppStore((s) => s.trashHistoryItem);
   const saveToAssetsAction = useAppStore((s) => s.saveToAssets);
-  const permanentlyDeleteHistoryItemByClick = useAppStore(
-    (s) => s.permanentlyDeleteHistoryItemByClick,
-  );
+  const permanentlyDeleteHistoryItemByClick = useAppStore((s) => s.permanentlyDeleteHistoryItemByClick);
   const canvasOpen = useAppStore((s) => s.canvasOpen);
   const openCanvas = useAppStore((s) => s.openCanvas);
   const [comfyExporting, setComfyExporting] = useState(false);
-  const [animating, setAnimating] = useState(false);
-  const [extendState, setExtendState] = useState<ExtendState>("idle");
   const [metadataOpen, setMetadataOpen] = useState(false);
-  const [upscaleOpen, setUpscaleOpen] = useState(false);
-  const [upscalePending, setUpscalePending] = useState(false);
-  const [runwayConnected, setRunwayConnected] = useState(false);
-  const extendAbortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    void listMcpProviders().then((providers) => {
-      if (!alive) return;
-      setRunwayConnected(providers.some((p) => p.id === "runway" && p.status.state === "connected"));
-    }).catch(() => undefined);
-    return () => { alive = false; };
-  }, []);
-
-  const startUpscale = async (params: UpscaleParams) => {
-    if (!actionImage?.filename || upscalePending) return;
-    const body = buildUpscaleBody(actionImage.filename, params);
-    if (!body) { showToast(t("result.upscaleInvalid"), true); return; }
-    setUpscalePending(true);
-    try {
-      await jsonFetch("/api/mcp/media-action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      setUpscaleOpen(false);
-      showToast(t("result.upscaleStarted"));
-    } catch {
-      showToast(t("result.upscaleFailed"), true);
-    } finally {
-      setUpscalePending(false);
-    }
-  };
-
-  useEffect(() => () => extendAbortRef.current?.abort(), []);
   const actionImage = imageOverride ?? currentImage;
   if (!actionImage) return null;
-  const isVideo = isVideoItem(actionImage);
-  const videoSrc = isVideo ? (actionImage.url || actionImage.image) : "";
-  const canExportToComfy = Boolean(actionImage.filename);
-  const canAnimate = Boolean(actionImage.filename) && !isVideo;
-  const canExtend = isVideo && Boolean(actionImage.filename);
-  const isGrokProvider = actionImage.provider === "grok" || actionImage.provider === "grok-api";
   const providerUrlAlive = Boolean(
-    isGrokProvider &&
-    !isVideo &&
-    actionImage.providerUrl &&
-    actionImage.createdAt &&
-    Date.now() - actionImage.createdAt < PROVIDER_URL_TTL_MS,
+    actionImage.providerUrl
+    && actionImage.createdAt
+    && Date.now() - actionImage.createdAt < PROVIDER_URL_TTL_MS,
   );
 
-  const animate = async () => {
-    if (!actionImage.filename || animating) return;
-    setAnimating(true);
-    try {
-      const started = await useAppStore.getState().animateImage(actionImage.filename, actionImage.prompt ?? undefined);
-      if (started) showToast(t("toast.animateDone"));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("toast.animateFailed");
-      showToast(message, true);
-    } finally {
-      setAnimating(false);
-    }
-  };
-
-  const extend = async () => {
-    if (!actionImage.filename || extendState === "pending") return;
-    const requestId = `vext_${crypto.randomUUID()}`;
-    const controller = new AbortController();
-    extendAbortRef.current = controller;
-    setExtendState("pending");
-    try {
-      const done = await postVideoExtendStream({
-        requestId,
-        sourceVideoId: actionImage.filename,
-        prompt: actionImage.prompt?.trim() || undefined,
-        provider: actionImage.provider === "grok-api" ? "grok-api" : "grok",
-        model: actionImage.model ?? undefined,
-      }, controller.signal);
-      useAppStore.getState().addHistoryItem(toVideoHistoryItem(done, actionImage));
-      setExtendState("idle");
-      showToast(t("toast.animateDone"));
-    } catch (error) {
-      const canceled = error instanceof DOMException && error.name === "AbortError";
-      setExtendState(canceled ? "idle" : "error");
-      if (!canceled) {
-        showToast(error instanceof Error ? error.message : t("toast.animateFailed"), true);
-      }
-    } finally {
-      if (extendAbortRef.current === controller) extendAbortRef.current = null;
-    }
-  };
-
-  const cancelExtend = () => extendAbortRef.current?.abort();
-
   const download = () => {
-    const a = document.createElement("a");
-    a.href = actionImage.image;
-    a.download = actionImage.filename || "generated.png";
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = actionImage.image;
+    anchor.download = actionImage.filename || "generated.png";
+    anchor.click();
   };
 
   const copyDataUrlToClipboard = async (dataUrl: string) => {
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
     let pngBlob: Blob;
     if (blob.type === "image/png") {
       pngBlob = blob;
     } else {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      const url = URL.createObjectURL(blob);
-      await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = url; });
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      const objectUrl = URL.createObjectURL(blob);
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext("2d")!.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-      pngBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(), "image/png"));
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d")?.drawImage(image, 0, 0);
+      URL.revokeObjectURL(objectUrl);
+      pngBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Unable to encode image")), "image/png");
+      });
     }
     await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
   };
 
   const copyImage = async () => {
     try {
-      if (isVideo) {
-        const frame = await extractLastFrame(videoSrc);
-        await copyDataUrlToClipboard(frame);
-      } else {
-        await copyDataUrlToClipboard(actionImage.image);
-      }
-      showToast(t(isVideo ? "toast.frameCopied" : "toast.imageCopied"));
-    } catch {
-      showToast(t("toast.copyFailed"), true);
-    }
-  };
-
-  const copyFirstFrame = async () => {
-    try {
-      const frame = await extractFirstFrame(videoSrc);
-      await copyDataUrlToClipboard(frame);
-      showToast(t("toast.frameCopied"));
-    } catch {
-      showToast(t("toast.copyFailed"), true);
-    }
-  };
-
-  const copyMidFrame = async () => {
-    try {
-      const frame = await extractMidFrame(videoSrc);
-      await copyDataUrlToClipboard(frame);
-      showToast(t("toast.frameCopied"));
+      await copyDataUrlToClipboard(actionImage.image);
+      showToast(t("toast.imageCopied"));
     } catch {
       showToast(t("toast.copyFailed"), true);
     }
@@ -225,9 +107,10 @@ export function ResultActions({
   };
 
   const newFromHere = async () => {
-    let result = { ok: false, isVideo: false, hasPrompt: false };
+    let hasPrompt = false;
     try {
-      result = await continueFromItem(actionImage);
+      const result = await continueFromItem(actionImage);
+      hasPrompt = result.hasPrompt;
     } catch {
       // non-fatal — fall back to prompt-only fork
     }
@@ -238,23 +121,18 @@ export function ResultActions({
         text: CANVAS_MODE_PROMPT_TEXT,
       });
     }
-    const promptEl = document.querySelector<HTMLTextAreaElement>(
+    const promptElement = document.querySelector<HTMLTextAreaElement>(
       'textarea[name="prompt"], textarea#prompt, .sidebar textarea',
     );
-    if (promptEl) {
-      promptEl.focus();
-      promptEl.setSelectionRange(promptEl.value.length, promptEl.value.length);
+    if (promptElement) {
+      promptElement.focus();
+      promptElement.setSelectionRange(promptElement.value.length, promptElement.value.length);
     }
-    showToast(t(result.hasPrompt ? "toast.forkStarted" : "toast.forkStartedNoPrompt"));
+    showToast(t(hasPrompt ? "toast.forkStarted" : "toast.forkStartedNoPrompt"));
   };
 
   const newFromHereAsUrl = async () => {
-    if (
-      isVideo ||
-      !actionImage.providerUrl ||
-      !actionImage.createdAt ||
-      Date.now() - actionImage.createdAt >= PROVIDER_URL_TTL_MS
-    ) {
+    if (!providerUrlAlive) {
       showToast(t("toast.continueAsUrlExpired"), true);
       return;
     }
@@ -263,12 +141,12 @@ export function ResultActions({
     } catch {
       // non-fatal
     }
-    const promptEl = document.querySelector<HTMLTextAreaElement>(
+    const promptElement = document.querySelector<HTMLTextAreaElement>(
       'textarea[name="prompt"], textarea#prompt, .sidebar textarea',
     );
-    if (promptEl) {
-      promptEl.focus();
-      promptEl.setSelectionRange(promptEl.value.length, promptEl.value.length);
+    if (promptElement) {
+      promptElement.focus();
+      promptElement.setSelectionRange(promptElement.value.length, promptElement.value.length);
     }
     showToast(t("toast.continueAsUrlStarted"));
   };
@@ -281,14 +159,13 @@ export function ResultActions({
       showToast(t("toast.comfyExported", { filename: result.uploadedFilename }));
     } catch (error) {
       const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined;
-      const key =
-        code === "COMFY_URL_NOT_LOCAL"
-          ? "toast.comfyExportInvalidUrl"
-          : code === "COMFY_IMAGE_INVALID"
-            ? "toast.comfyExportInvalidImage"
-            : code === "COMFY_IMAGE_NOT_FOUND"
-              ? "toast.comfyExportImageNotFound"
-              : "toast.comfyExportFailed";
+      const key = code === "COMFY_URL_NOT_LOCAL"
+        ? "toast.comfyExportInvalidUrl"
+        : code === "COMFY_IMAGE_INVALID"
+          ? "toast.comfyExportInvalidImage"
+          : code === "COMFY_IMAGE_NOT_FOUND"
+            ? "toast.comfyExportImageNotFound"
+            : "toast.comfyExportFailed";
       showToast(t(key), true);
     } finally {
       setComfyExporting(false);
@@ -318,25 +195,9 @@ export function ResultActions({
 
   return (
     <div className="result-actions">
-      <button type="button" className="action-btn" onClick={download}>
-        {t("result.download")}
-      </button>
-      <button type="button" className={`action-btn${isVideo ? " action-btn--frame" : ""}`} onClick={copyImage}>
-        {t(isVideo ? "result.copyLastFrame" : "result.copyImage")}
-      </button>
-      {isVideo && (
-        <>
-          <button type="button" className="action-btn action-btn--frame" onClick={copyFirstFrame}>
-            {t("result.copyFirstFrame")}
-          </button>
-          <button type="button" className="action-btn action-btn--frame" onClick={copyMidFrame}>
-            {t("result.copyMidFrame")}
-          </button>
-        </>
-      )}
-      <button type="button" className="action-btn" onClick={() => void copyPrompt()}>
-        {t("result.copyPrompt")}
-      </button>
+      <button type="button" className="action-btn" onClick={download}>{t("result.download")}</button>
+      <button type="button" className="action-btn" onClick={() => void copyImage()}>{t("result.copyImage")}</button>
+      <button type="button" className="action-btn" onClick={() => void copyPrompt()}>{t("result.copyPrompt")}</button>
       <button
         type="button"
         className="action-btn"
@@ -350,144 +211,39 @@ export function ResultActions({
       >
         {t("chain.saveToAssets")}
       </button>
-      <button
-        type="button"
-        className="action-btn action-btn--primary"
-        onClick={newFromHere}
-        title={t("result.continueHereTitle")}
-      >
+      <button type="button" className="action-btn action-btn--primary" onClick={newFromHere} title={t("result.continueHereTitle")}>
         {t("result.continueHere")}
       </button>
       {providerUrlAlive && (
-        <button
-          type="button"
-          className="action-btn"
-          onClick={() => void newFromHereAsUrl()}
-          title={t("result.continueAsUrlTitle")}
-        >
+        <button type="button" className="action-btn" onClick={() => void newFromHereAsUrl()} title={t("result.continueAsUrlTitle")}>
           {t("result.continueAsUrl")}
         </button>
       )}
-      {canAnimate && (
-        <button
-          type="button"
-          className="action-btn"
-          onClick={() => void animate()}
-          disabled={animating}
-          title={t("result.animateTitle")}
-        >
-          {animating ? t("result.animating") : t("result.animate")}
-        </button>
-      )}
-      {runwayConnected && actionImage.filename && (
-        isVideo ? (
-          <button
-            type="button"
-            className="action-btn"
-            disabled={upscalePending}
-            onClick={() => void startUpscale({})}
-            title={t("result.upscaleTitle")}
-          >
-            {upscalePending ? t("inflight.streaming") : t("result.upscale")}
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="action-btn"
-              disabled={upscalePending}
-              onClick={() => setUpscaleOpen((open) => !open)}
-              title={t("result.upscaleTitle")}
-            >
-              {t("result.upscale")}
-            </button>
-            {upscaleOpen ? (
-              <UpscalePopover
-                pending={upscalePending}
-                onSubmit={(params) => void startUpscale(params)}
-                onClose={() => setUpscaleOpen(false)}
-              />
-            ) : null}
-          </>
-        )
-      )}
-      {canExtend && (
-        <>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={extend}
-            disabled={extendState === "pending"}
-            aria-busy={extendState === "pending"}
-            title={t("result.extendTitle") ?? "이어가기"}
-          >
-            {extendState === "pending"
-              ? t("inflight.streaming")
-              : extendState === "error" ? t("gallery.retry") : t("result.extend") ?? "이어가기"}
-          </button>
-          {extendState === "pending" && (
-            <button type="button" className="action-btn" onClick={cancelExtend}>{t("common.cancel")}</button>
-          )}
-        </>
-      )}
-      <button
-        type="button"
-        className="action-btn"
-        onClick={generateAsFirstNode}
-        title={t("result.firstNodeTitle")}
-      >
+      <button type="button" className="action-btn" onClick={generateAsFirstNode} title={t("result.firstNodeTitle")}>
         {t("result.firstNode")}
       </button>
-      <button
-        type="button"
-        className="action-btn"
-        onClick={() => setMetadataOpen(true)}
-        title={t("result.infoTitle")}
-      >
+      <button type="button" className="action-btn" onClick={() => setMetadataOpen(true)} title={t("result.infoTitle")}>
         {t("result.info")}
       </button>
       {!canvasOpen && (
-        <button
-          type="button"
-          className="action-btn"
-          onClick={openCanvas}
-          title={t("canvas.open")}
-          aria-label={t("canvas.openAria")}
-        >
+        <button type="button" className="action-btn" onClick={openCanvas} title={t("canvas.open")} aria-label={t("canvas.openAria")}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M4 4h8v8M12 4l-8 8"/>
+            <path d="M4 4h8v8M12 4l-8 8" />
           </svg>
         </button>
       )}
       {actionImage.filename && (
         <>
-          <button
-            type="button"
-            className="action-btn action-btn--danger"
-            onClick={() => void deleteToTrash()}
-            title={t("result.deleteTitle")}
-          >
+          <button type="button" className="action-btn action-btn--danger" onClick={() => void deleteToTrash()} title={t("result.deleteTitle")}>
             {t("result.delete")}
           </button>
           <details className="result-actions__more">
             <summary className="action-btn">{t("result.more")}</summary>
             <div className="result-actions__menu">
-              {canExportToComfy && (
-                <button
-                  type="button"
-                  className="result-actions__menu-item"
-                  onClick={() => void sendToComfyUI()}
-                  title={t("result.sendToComfyUITitle")}
-                  disabled={comfyExporting}
-                >
-                  {t("result.sendToComfyUI")}
-                </button>
-              )}
-              <button
-                type="button"
-                className="result-actions__menu-item result-actions__danger-item"
-                onClick={() => void deletePermanently()}
-              >
+              <button type="button" className="result-actions__menu-item" onClick={() => void sendToComfyUI()} title={t("result.sendToComfyUITitle")} disabled={comfyExporting}>
+                {t("result.sendToComfyUI")}
+              </button>
+              <button type="button" className="result-actions__menu-item result-actions__danger-item" onClick={() => void deletePermanently()}>
                 {t("result.permanentDelete")}
               </button>
             </div>
@@ -495,11 +251,7 @@ export function ResultActions({
         </>
       )}
       {metadataOpen && (
-        <ResultMetadataModal
-          item={actionImage}
-          onClose={() => setMetadataOpen(false)}
-          onCopy={(value) => void copyMetadataValue(value)}
-        />
+        <ResultMetadataModal item={actionImage} onClose={() => setMetadataOpen(false)} onCopy={(value) => void copyMetadataValue(value)} />
       )}
     </div>
   );

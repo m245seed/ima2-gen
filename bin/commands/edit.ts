@@ -11,8 +11,8 @@ import { join } from "node:path";
 import { errInfo } from "../../lib/errInfo.js";
 const VALID_MODES = new Set(["auto", "direct"]);
 const VALID_MODERATION = new Set(["auto", "low"]);
-const PROVIDER_VALUES = ["auto", ...deriveProviderIds()];
-const VALID_PROVIDERS = new Set(PROVIDER_VALUES);
+const PROVIDER_VALUES = deriveProviderIds();
+const VALID_PROVIDERS: Set<string> = new Set(PROVIDER_VALUES);
 const KNOWN_IMAGE_MODELS = deriveCliImageModelSet();
 
 const SPEC = {
@@ -49,8 +49,7 @@ const HELP = `
         --json
         --model <${[...KNOWN_IMAGE_MODELS].join("|")}>  Default: gpt-5.6-luna
                                       Aliases: luna, sol, terra, spark
-        --provider <${PROVIDER_VALUES.join("|")}>
-                                      Provider (oauth = GPT OAuth; grok = xAI Grok; agy/gemini-api = Gemini)
+        --provider <${PROVIDER_VALUES.join("|")}>  Provider lane
         --mode <auto|direct>       Prompt handling mode. Default: auto
         --moderation <auto|low>    Default: low
         --session <id>             Apply session style sheet if enabled
@@ -108,7 +107,7 @@ export default async function editCmd(argv: string[]) {
 
   let resp;
   try {
-    const editBody: any = {
+    const editBody: Record<string, unknown> = {
       prompt: args.prompt,
       image: imageB64,
       quality: args.quality,

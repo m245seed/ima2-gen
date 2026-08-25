@@ -146,9 +146,6 @@ export function addChildNodeImpl(
 
   if (parent.data.imageUrl && isVideoUrl(parent.data.imageUrl)) {
     const videoSrc = parent.data.imageUrl;
-    if (parent.data.video && parent.data.video.topic) {
-      get().setVideoTopic(parent.data.video.topic);
-    }
     void (async () => {
       try {
         const frameDataUrl = await extractLastFrame(videoSrc);
@@ -159,7 +156,6 @@ export function addChildNodeImpl(
               : n,
           ),
         });
-        get().scheduleGraphSave();
       } catch { /* non-fatal */ }
     })();
   }

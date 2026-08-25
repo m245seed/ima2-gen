@@ -9,7 +9,6 @@ const STORE_SOURCES = [
   "ui/src/store/storeGraphSave.ts",
   "ui/src/store/storeNodeGenImpl.ts",
   "ui/src/store/storeGenImpl.ts",
-  "ui/src/store/storeVideoImpl.ts",
   "ui/src/store/storeInflightImpl.ts",
   "ui/src/store/storeGraphNodeImpl.ts",
   "ui/src/store/storeHistoryImpl.ts",

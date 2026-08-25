@@ -62,25 +62,6 @@ export const BUILTIN_TOOL_CONTRACTS: readonly ToolContract[] = [
     },
   ),
   builtin(
-    "ima2.generate_video",
-    "Generate a single video with Grok Imagine. If the session has a last image, it is used as the image-to-video source automatically; prompt-only Grok Video 1.5 uses the server white-canvas shim.",
-    {
-      type: "object",
-      properties: {
-        prompt: { type: "string", description: "Video prompt describing visual flow and motion." },
-        duration: { type: "integer", minimum: 1, maximum: 15, description: "Video duration in seconds. Default 5." },
-        resolution: { type: "string", enum: ["480p", "720p", "1080p"], description: "Output resolution. Default 480p. 1080p uses Grok Video 1.5; prompt-only requests use the white-canvas I2V shim." },
-        aspectRatio: {
-          type: "string",
-          enum: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-          description: "Output aspect ratio. Default auto.",
-        },
-      },
-      required: ["prompt"],
-      additionalProperties: false,
-    },
-  ),
-  builtin(
     "ima2.get_generation_errors",
     "Read-only lookup of the session's recent generation failures (failed queue jobs and error turns). Use when the user asks why a generation failed.",
     {

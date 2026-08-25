@@ -3,28 +3,21 @@ import { mkdir } from "fs/promises";
 import { newNodeId, saveNode, loadAssetB64, } from "./nodeStore.js";
 import { startJob, finishJob, registerJobAbortController, isJobCanceled, isStartJobFailure, INFLIGHT_RETRY_AFTER_SECONDS } from "./inflight.js";
 import { isGenerationCanceledError, makeGenerationCanceledError, throwIfJobCanceled, } from "./generationCancel.js";
-import { detectImageMimeFromB64, summarizeReferencePayload } from "./refs.js";
+import { summarizeReferencePayload } from "./refs.js";
 import { classifyUpstreamError } from "./errorClassify.js";
 import { normalizeOAuthParams } from "./oauthNormalize.js";
 import { resolveProviderOptions } from "./providerOptions.js";
 import { generateViaResponses, editViaResponses } from "./responsesImageAdapter.js";
-import { generateViaGrok } from "./grokImageAdapter.js";
-import { resolveGrokQualityModel } from "./imageModels.js";
-import { generateViaAgy } from "./agyImageAdapter.js";
-import { generateViaGeminiApi } from "./geminiApiImageAdapter.js";
-import { generateViaAtlasCloud } from "./atlasCloudImageAdapter.js";
-import { generateViaMinimax } from "./minimaxImageAdapter.js";
 import { isNonRetryableGenerationError, normalizeGenerationFailure, type UpstreamErr } from "./generationErrors.js";
 import { logEvent, logError } from "./logger.js";
 import { errInfo } from "./errInfo.js";
-import { requireRuntimeContext, type RuntimeContext } from "./runtimeContext.js";
-import { imageFormatFromMime, writeSse, dataUrlFromB64 } from "./routeHelpers.js";
+import { type RuntimeContext } from "./runtimeContext.js";
+import { writeSse, dataUrlFromB64 } from "./routeHelpers.js";
 import { validateNodeInputs } from "./nodeValidation.js";
 import { publish } from "./eventBus.js";
 import { publishJobEvent } from "./ssePublish.js";
-import { type NodeGenerateBody, asUpstream, wantsSse, writeNodeError, loadParentNodeB64, toGrokReferences, nodeErrorDetails, } from "./nodeHelpers.js";
+import { type NodeGenerateBody, asUpstream, wantsSse, writeNodeError, loadParentNodeB64, nodeErrorDetails, } from "./nodeHelpers.js";
 import { normalizeBodyRequestId, validateGenerationPrompt } from "./generationInputValidation.js";
-import { deriveReferenceLimit } from "./providers/derive.js";
 import { errorEnvelopeFields } from "./errors/envelope.js";
 export async function runNodeGeneration(req: Request, res: Response, ctx: RuntimeContext) {
     const body = (req.body ?? {}) as NodeGenerateBody;
@@ -88,9 +81,6 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
       const effectiveSize = providerOptions.size;
       const webSearchEnabled = providerOptions.webSearchEnabled;
       const activeProvider = providerOptions.provider;
-      const effectiveImageModel = (activeProvider === "grok" || activeProvider === "grok-api")
-        ? resolveGrokQualityModel(imageModel, quality)
-        : imageModel;
       if (contextMode === "ancestry") {
         finishStatus = "error";
         finishHttpStatus = 400;
@@ -134,44 +124,6 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
       const refsForRequest = contextMode === "parent-only" ? [] : (refCheck.refDetails || refCheck.refs);
       const parentImagePresent = !!parentB64;
       const inputImageCount = (parentImagePresent ? 1 : 0) + refsForRequest.length;
-      const providerReferenceLimit = deriveReferenceLimit(activeProvider, "edit");
-      if ((activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api") && inputImageCount > providerReferenceLimit!) {
-        finishStatus = "error";
-        finishHttpStatus = 400;
-        const code = activeProvider === "agy" ? "AGY_REF_TOO_MANY" : "GROK_REF_TOO_MANY";
-        return res.status(400).json({
-          error: {
-            code,
-            message: `${activeProvider === "agy" ? "Agy" : "Grok"} image editing supports up to ${providerReferenceLimit} reference images.`,
-          },
-          code,
-          parentNodeId,
-        });
-      }
-      if (activeProvider === "atlascloud" && inputImageCount > providerReferenceLimit!) {
-        finishStatus = "error";
-        finishHttpStatus = 400;
-        return res.status(400).json({
-          error: {
-            code: "ATLASCLOUD_REF_TOO_MANY",
-            message: `Atlas Cloud image editing supports up to ${providerReferenceLimit} reference images.`,
-          },
-          code: "ATLASCLOUD_REF_TOO_MANY",
-          parentNodeId,
-        });
-      }
-      if (activeProvider === "minimax" && inputImageCount > providerReferenceLimit!) {
-        finishStatus = "error";
-        finishHttpStatus = 400;
-        return res.status(400).json({
-          error: {
-            code: "MINIMAX_REF_TOO_MANY",
-            message: `MiniMax image editing supports up to ${providerReferenceLimit} subject reference.`,
-          },
-          code: "MINIMAX_REF_TOO_MANY",
-          parentNodeId,
-        });
-      }
       const started = startJob({
         requestId,
         kind: "node",
@@ -215,7 +167,7 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
         parentNodeId,
         clientNodeId,
         quality,
-        model: effectiveImageModel,
+        model: imageModel,
         size: effectiveSize,
         moderation,
         refs: refsForRequest.length,
@@ -244,8 +196,7 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
         publish(requestId, "phase", { requestId, phase: "streaming" });
       }
       let b64: string | undefined, usage: unknown, webSearchCalls = 0, revisedPrompt: string | null = null;
-      const grokDirectApiKey = activeProvider === "grok-api" ? ctx.xaiApiKey : undefined;
-      let resultFormat: "png" | "jpeg" | "webp" = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax" ? "jpeg" : format as "png" | "jpeg" | "webp";
+      let resultFormat: "png" | "jpeg" | "webp" = format as "png" | "jpeg" | "webp";
       const maxAttempts = inputImageCount > 0 ? 1 : 2;
       let lastErr: UpstreamErr | null = null;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -257,7 +208,7 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
             sessionId,
             parentNodeId,
             clientNodeId,
-            model: effectiveImageModel,
+            model: imageModel,
             moderation,
             quality,
             size: effectiveSize,
@@ -268,98 +219,47 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
             searchMode,
             webSearchEnabled,
           });
-          const r = activeProvider === "gemini-api"
-            ? await generateViaGeminiApi(parentB64 ? `Edit this image: ${generationPrompt}` : generationPrompt, requireRuntimeContext(ctx), {
-                model: effectiveImageModel,
-                size: effectiveSize,
+          const r = parentB64
+            ? await editViaResponses(activeProvider, generationPrompt, parentB64, quality, effectiveSize, moderation, normalizedPromptMode, ctx, requestId, {
+                model: imageModel,
+                references: refsForRequest,
+                searchMode,
+                reasoningEffort,
+                webSearchEnabled,
                 signal: cancelController.signal,
-                requestId,
-                references: parentB64
-                  ? [{ b64: parentB64, declaredMime: null, detectedMime: null }, ...((refCheck.refDetails || []) as any[])]
-                  : refCheck.refDetails,
               })
-            : activeProvider === "agy"
-            ? await generateViaAgy(parentB64 ? `Edit this image: ${generationPrompt}` : generationPrompt, {
-                ...(parentB64
-                  ? { references: [{ b64: parentB64, declaredMime: null, detectedMime: null }] }
-                  : {}),
-                signal: cancelController.signal,
-                requestId,
-              })
-            : activeProvider === "atlascloud"
-            ? await generateViaAtlasCloud(parentB64 ? `Edit this image: ${prompt}` : prompt, requireRuntimeContext(ctx), {
-                model: effectiveImageModel,
-                size: effectiveSize,
+            : await generateViaResponses(
+                activeProvider,
+                generationPrompt,
                 quality,
-                signal: cancelController.signal,
+                effectiveSize,
+                moderation,
+                refsForRequest,
                 requestId,
-                references: parentB64
-                  ? [{ b64: parentB64, declaredMime: null, detectedMime: null }, ...((refCheck.refDetails || []) as any[])]
-                  : refCheck.refDetails,
-              })
-            : activeProvider === "minimax"
-            ? await generateViaMinimax(parentB64 ? `Edit this image: ${prompt}` : prompt, requireRuntimeContext(ctx), {
-                model: effectiveImageModel,
-                size: effectiveSize,
-                signal: cancelController.signal,
-                requestId,
-                references: parentB64
-                  ? [{ b64: parentB64, declaredMime: null, detectedMime: null }, ...((refCheck.refDetails || []) as any[])]
-                  : refCheck.refDetails,
-              })
-            : activeProvider === "grok" || activeProvider === "grok-api"
-            ? await generateViaGrok(generationPrompt, ctx, {
-                model: effectiveImageModel,
-                size: effectiveSize,
-                requestId,
-                signal: cancelController.signal,
-                references: toGrokReferences(parentB64, refsForRequest),
-                directApiKey: grokDirectApiKey,
-              })
-            : parentB64
-              ? await editViaResponses(activeProvider, generationPrompt, parentB64, quality, effectiveSize, moderation, normalizedPromptMode, ctx, requestId, {
-                  model: effectiveImageModel,
-                  references: refsForRequest,
-                  searchMode,
+                normalizedPromptMode,
+                ctx,
+                {
+                  model: imageModel,
                   reasoningEffort,
                   webSearchEnabled,
                   signal: cancelController.signal,
-                })
-              : await generateViaResponses(
-                  activeProvider,
-                  generationPrompt,
-                  quality,
-                  effectiveSize,
-                  moderation,
-                  refsForRequest,
-                  requestId,
-                  normalizedPromptMode,
-                  ctx,
-                  {
-                    model: effectiveImageModel,
-                    reasoningEffort,
-                    webSearchEnabled,
-                    signal: cancelController.signal,
-                    partialImages: emitProgress ? 2 : 0,
-                    onPartialImage: emitProgress
-                      ? (partial) => {
-                          if (isJobCanceled(requestId)) return;
-                          const pd = { requestId, image: dataUrlFromB64(format, partial.b64 ?? ""), index: partial.index };
-                          if (streamResponse) writeSse(res, "partial", pd);
-                          publish(requestId, "partial", pd);
-                        }
-                      : null,
-                  },
-                );
+                  partialImages: emitProgress ? 2 : 0,
+                  onPartialImage: emitProgress
+                    ? (partial) => {
+                        if (isJobCanceled(requestId)) return;
+                        const pd = { requestId, image: dataUrlFromB64(format, partial.b64 ?? ""), index: partial.index };
+                        if (streamResponse) writeSse(res, "partial", pd);
+                        publish(requestId, "partial", pd);
+                      }
+                    : null,
+                },
+              );
           throwIfJobCanceled(requestId);
           if (r.b64) {
             b64 = r.b64;
             usage = r.usage;
             webSearchCalls = r.webSearchCalls || 0;
             revisedPrompt = r.revisedPrompt || null;
-            if (activeProvider === "grok" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax") {
-              resultFormat = imageFormatFromMime(("mime" in r ? r.mime : undefined) || detectImageMimeFromB64(r.b64) || "image/jpeg");
-            }
             break;
           }
           lastErr = { message: "Empty response (safety refusal)" };
@@ -424,7 +324,7 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
         revisedPrompt,
         promptMode: normalizedPromptMode,
         options: { quality, size: effectiveSize, format: resultFormat, moderation },
-        model: effectiveImageModel,
+        model: imageModel,
         reasoningEffort,
         createdAt: Date.now(),
         createdAtIso: new Date().toISOString(),
@@ -474,7 +374,7 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
         webSearchCalls,
         webSearchEnabled,
         provider: activeProvider,
-        model: effectiveImageModel,
+        model: imageModel,
         reasoningEffort,
         size: effectiveSize,
         format: resultFormat,
@@ -519,9 +419,6 @@ export async function runNodeGeneration(req: Request, res: Response, ctx: Runtim
       finishErrorCode = code;
       logError("node", "error", err.raw, { requestId, code, parentNodeId, sessionId, clientNodeId });
       writeNodeError(res, err.status || 500, code, err.message, parentNodeId, {
-        // Recover identity from the thrown object itself. Copying only
-        // pre-attached rawCode/errorClass left MiniMax 402 empty when the
-        // adapter throw skipped normalizeGenerationFailure.
         ...errorEnvelopeFields(err.raw),
         upstreamCode: ext.upstreamCode || null,
         upstreamType: ext.upstreamType || null,

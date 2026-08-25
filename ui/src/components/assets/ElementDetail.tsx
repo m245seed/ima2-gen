@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../i18n";
 import { Segmented } from "../controls/Segmented";
 import { ElementRefGrid, type ElementRefDraft } from "./ElementRefGrid";
-import { CharacterBindingsCard } from "./CharacterBindingsCard";
-import type { CharacterProviderBinding } from "../../lib/characterBinding";
 import "../../styles/element-detail.css";
 
 export type ElementKind = "character" | "product" | "style" | "scene";
@@ -15,7 +13,6 @@ export interface ElementDefinition {
   refs: string[];
   notes?: string;
   defaultStrength?: number;
-  characterBindings?: CharacterProviderBinding[];
 }
 
 export interface ElementDraft {
@@ -34,7 +31,6 @@ type Props = {
   onSave: (draft: ElementDraft) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onRunTestSheet: (id: string) => Promise<void>;
-  onSaveBindings?: (id: string, bindings: CharacterProviderBinding[]) => Promise<boolean>;
 };
 
 const KINDS: ElementKind[] = ["character", "product", "style", "scene"];
@@ -45,7 +41,7 @@ function toDraft(element: ElementDefinition | null): ElementDraft {
   return { id: element?.id, name: element?.name ?? "", kind: element?.kind ?? "character", refs: (element?.refs ?? []).filter((p) => typeof p === "string" && p.length > 0).map((path, index) => ({ id: `${element?.id ?? "new"}-${index}-${path}`, path, previewUrl: `/generated/${path.split("/").map(encodeURIComponent).join("/")}`, alt: "" })), notes: element?.notes ?? "", defaultStrength: element?.defaultStrength ?? 0.75 };
 }
 
-export function ElementDetail({ element, saving, testing, onSave, onDelete, onRunTestSheet, onSaveBindings }: Props) {
+export function ElementDetail({ element, saving, testing, onSave, onDelete, onRunTestSheet }: Props) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<ElementDraft>(() => toDraft(element));
   const [error, setError] = useState<string | null>(null);
@@ -68,13 +64,6 @@ export function ElementDetail({ element, saving, testing, onSave, onDelete, onRu
     <Segmented<ElementKind> title={t("element.kind")} items={kindItems} value={draft.kind} onChange={(kind) => update("kind", kind)} />
     <p className="element-detail__kind-help">{t(`element.help${kindKey(draft.kind)}`)}</p>
     <ElementRefGrid refs={draft.refs} onChange={(refs) => update("refs", refs)} maxRefs={6} />
-    {element && draft.kind === "character" && onSaveBindings ? (
-      <CharacterBindingsCard
-        bindings={element.characterBindings ?? []}
-        refs={element.refs}
-        onSave={(bindings) => onSaveBindings(element.id, bindings)}
-      />
-    ) : null}
     <section className="element-detail__section"><div className="element-detail__section-heading"><div><h3>{t("element.notes")}</h3><p>{t("element.notesHelp")}</p></div>{remaining <= 100 ? <span>{t("element.remaining", { n: remaining })}</span> : null}</div><textarea value={draft.notes} maxLength={800} rows={6} placeholder={t("element.notesPlaceholder")} onChange={(event) => update("notes", event.target.value)} />{notePreview ? <p className="element-detail__note-preview">{notePreview}</p> : null}</section>
     <section className="element-detail__section"><div className="element-detail__section-heading"><div><h3>{t("element.strength")}</h3><p>{t("element.strengthHelp")}</p></div><output>{draft.defaultStrength.toFixed(2)}</output></div><input className="element-detail__strength" type="range" min="0" max="1" step="0.05" value={draft.defaultStrength} onChange={(event) => update("defaultStrength", Number(event.target.value))} /><button type="button" className="element-detail__reset" onClick={() => update("defaultStrength", 0.75)}>{t("element.resetDefault")}</button></section>
     {error ? <p className="element-detail__error" role="alert">{error}</p> : null}

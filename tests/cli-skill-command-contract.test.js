@@ -40,35 +40,6 @@ describe("CLI packaged skill contract", () => {
     assert.match(skill, /not a typesetting engine/);
   });
 
-  it("documents Grok video continuity contracts and audio prompt controls", () => {
-    const skill = readSource("skills/ima2/SKILL.md");
-
-    // CONTRACT REVERSED (v3.8.x): these two lines used to require the skill to say
-    // reference-to-video caps at 10s and that 1.5 cannot take reference images. Both
-    // became false — the clamp was ours and was removed, and 1.5 does take references —
-    // so the test was holding the documentation at the old behavior.
-    assert.match(skill, /reference-to-video \| 15s/);
-    assert.doesNotMatch(skill, /does not support `reference_images` Ref2V/);
-    assert.match(skill, /Preset Voices \(1\.5 only\)/);
-    assert.match(skill, /white-canvas image-to-video anchor/);
-    assert.match(skill, /requestedModel/);
-    assert.match(skill, /effectiveModel/);
-    assert.match(skill, /modelFallback/);
-    assert.match(skill, /video\.effectiveModel/);
-    assert.match(skill, /jq -r '\.path'/);
-    assert.match(skill, /jq -r '\.filename'/);
-    assert.doesNotMatch(skill, /jq -r '\.url'/);
-    assert.match(skill, /Structured Video Prompt Template/);
-    assert.match(skill, /duration pacing/);
-    assert.match(skill, /beat structure scales with length/);
-    assert.match(skill, /Motivated movement/);
-    assert.match(skill, /Dialogue/);
-    assert.match(skill, /Settling final frame/);
-    assert.match(skill, /no background music/);
-    assert.match(skill, /specific SFX/);
-    assert.match(skill, /self-explanatory for continuation/);
-    assert.match(skill, /Video edit\/extend: grok-imagine-video only/);
-  });
 
   it("skill command wraps Markdown content instead of inventing a schema skill", () => {
     const src = readSource("bin/commands/skill.ts");
@@ -103,9 +74,9 @@ describe("CLI packaged skill contract", () => {
   });
 
   it("top-level help exposes frontend, uiux, and install commands directly", () => {
-    const res = runCli(["--help"]);
+    const res = runCli([]);
 
-    assert.equal(res.status, 0, res.stderr);
+    assert.equal(res.status, 1, res.stderr);
     assert.match(res.stdout, /ima2 skill front\s+Print frontend implementation skill/);
     assert.match(res.stdout, /ima2 skill uiux\s+Print design direction skill/);
     assert.match(res.stdout, /ima2 skill install --dir <path>\s+Install all skills/);

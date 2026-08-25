@@ -20,7 +20,6 @@ const AUTH_CODES: readonly ImaErrorCode[] = [
   "AUTH_CHATGPT_EXPIRED",
   "AUTH_API_KEY_INVALID",
   "APIKEY_DISABLED",
-  "AGY_QUOTA_EXHAUSTED",
 ];
 const RETRY_EXTRA_CODES: readonly ImaErrorCode[] = ["EMPTY_RESPONSE", "DB_ERROR", "UNKNOWN"];
 

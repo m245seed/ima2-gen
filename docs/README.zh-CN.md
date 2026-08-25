@@ -14,11 +14,11 @@
 >
 > **阅读其他语言版本**：[English](../README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · [正體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
 
-`ima2-gen` 是面向用户和编码智能体的本地优先视觉生成运行时与工作室，支持跨多个提供商的可复现图像和视频工作流。
+`ima2-gen` 是面向用户和编码智能体的本地优先视觉生成运行时与工作室，支持跨多个提供商的可复现图像工作流。
 
-全局安装后，可在 OpenAI OAuth/API、Grok OAuth/API、Antigravity CLI、Gemini API、AtlasCloud 和 MiniMax 组成的 8 个 core lane 中生成图像和视频。Runway 与 Higgsfield 属于独立的 MCP integration。
+全局安装后，即可通过 OpenAI OAuth 与 OpenAI API 密钥这两个提供商生成图像。
 
-![ima2-gen视频播放，图库侧边栏显示生成的图像和视频。](../assets/screenshots/classic-generate-light.png)
+![ima2-gen 图像生成界面，图库侧边栏显示生成的图像。](../assets/screenshots/classic-generate-light.png)
 
 ## 快速入门
 
@@ -39,18 +39,15 @@ docker run -d -p 3333:3333 -e IMA2_LAN_TOKEN=change-me -v ima2-data:/data ima2-g
 
 看[docs/DOCKER.md](DOCKER.md)了解 compose 的用法、所需的环境和限制。
 
-生成自CLI，检查实时车道目录并选择显式图像/视频默认值一次：
+生成自 CLI，检查实时车道目录并选择显式图像默认值一次：
 
 ```bash
 ima2 models
 ima2 defaults set image oauth/gpt-5.6-luna
-ima2 defaults set video grok/grok-imagine-video-1.5
 ima2 gen "a clean product photo of a red guitar pedal"
-ima2 video "a cat playing piano" --duration 5 --resolution 720p
-ima2 video "animate this scene" --ref photo.png --duration 10
 ```
 
-`ima2 gen`和生成模式`ima2 video`失败关闭`NO_DEFAULT_MODEL`直到一个CLI目标已配置，除非该调用通过`--model <lane>/<model>`或明确的`--provider <lane>`。这可以防止升级时默默地切换提供商或计费通道。
+`ima2 gen` 失败关闭 `NO_DEFAULT_MODEL` 直到一个 CLI 目标已配置，除非该调用通过 `--model <lane>/<model>` 或明确的 `--provider <lane>`。这可以防止升级时默默地切换提供商或计费通道。
 
 如果`3333`已经被占用了，`ima2-gen`绑定下一个可用端口并写入实际的URL到`~/.ima2/server.json`。使用`ima2 open`或URL在终端中打印而不是假设端口。
 
@@ -79,14 +76,11 @@ curl -fsSL https://lidge-jun.github.io/ima2-gen/install-linux.sh | bash
 
 ### 设置
 
-`ima2 setup`提供四种身份验证选择：
+`ima2 setup`提供两种身份验证选择：
 
-1. **GPT OAuth**— 登录方式ChatGPT帐户（免费，仅图像）
-2. **Grok OAuth**— 登录方式xAI/Grok帐户（图片+视频）
-3. **两个都** — GPT OAuth + Grok OAuth（全功能访问）
-4. **网页设置**— 配置网络中的所有内容UI
-
-视频生成需要Grok OAuth（选项 2 或 3）。跑步`ima2 grok login`如果您已经有，请单独GPT OAuth配置并想要添加视频支持；它默认为手动粘贴流程。
+1. **GPT OAuth**— 使用 ChatGPT 帐户登录（免费，仅图像）
+2. **API 密钥**— 使用 OpenAI API 密钥进行 Responses API 图像路径
+3. **网页设置**— 在网络 UI 中配置所有内容
 
 ### 更新中
 
@@ -103,11 +97,10 @@ Ctrl+C 现在执行干净关闭 — 关闭数据库、停止子进程并释放�
 - **经典模式**：生成、编辑、重用当前图像、粘贴引用并从历史记录继续。
 - **节点模式**：将好的图像分支到多个方向，而不丢失原始图像。
 - **多模式批次**：从一个提示启动多个经典输出，逐个观察插槽进度，然后从最佳结果继续。
-- **视频生成**：通过文本、单个图像或多个参考图像创建短视频Grok视频模型。SSE流媒体显示计划→提交→进度％→完成。视频帧复制按钮（第一个/中间/最后一个）可让您从生成的视频中提取和复制关键帧。
-- **故事板模式**：在编辑器中切换故事板模式，以保持连续帧之间的角色和场景连续性。适用于图像和视频生成 - 为视频制作组合图像关键帧，视频剪辑继承角色/环境锁定规则。
+- **故事板模式**：在编辑器中切换故事板模式，以保持连续帧之间的角色和场景连续性。
 - **画布模式**：缩放、平移、注释、擦除、清理背景、保持透明预览以及导出 Alpha 或遮罩版本。
 - **当地画廊**：将生成的资产保留在您的计算机上并具有会话感知历史记录。默认情况下，图库显示当前会话，所有图像切换显示完整历史记录；默认范围是跨会话的粘性。每个图像都会在结果元数据中记录其生成时间和推理工作，因此它们在重新加载后仍然存在。
-- **参考图片**：拖放、粘贴和附加最多 5 个参考文献（图像）或最多 7 个参考文献（视频）；大图像在上传之前会被压缩。
+- **参考图片**：拖放、粘贴和附加最多 5 个参考文献（图像）；大图像在上传之前会被压缩。
 - **提示库导入**：导入本地提示包，GitHub文件夹和策划GPT-图像提示提示进入内置提示库。
 - **手机壳**：在较小的屏幕上使用应用栏、撰写表和紧凑设置切换。
 - **可观察的职位**：使用安全日志和请求 ID 跟踪活动的和最近的作业。
@@ -115,13 +108,13 @@ Ctrl+C 现在执行干净关闭 — 关闭数据库、停止子进程并释放�
 ### 代理技巧
 
 ima2-gen为 AI 编码代理提供了三种打包技能。这些是 Markdown
-代理加载的指令文件以获得图像/视频的结构化工作流程
+代理加载的指令文件以获得图像的结构化工作流程
 生成、前端资产生产和设计方向发现。
 
 |技能|命令|它涵盖什么|
 |-------|---------|----------------|
-| **核** | `ima2 skill` | CLI参考、提示协议、提供商路由、韩文文本、视频工作流程|
-| **前端** | `ima2 skill front` |资产管道（并行生成、变体选择、提供商路由）、网络运动/视频、响应式、a11y、防倾斜、30 多个参考文件|
+| **核** | `ima2 skill` | CLI参考、提示协议、提供商路由、韩文文本|
+| **前端** | `ima2 skill front` |资产管道（并行生成、变体选择、提供商路由）、响应式、a11y、防倾斜、30 多个参考文件|
 | **UI/UX设计** | `ima2 skill uiux` |图像优先的设计方向发现，UX状态、设计主义、产品个性、DESIGN.md工作流程，18 个参考文件|
 
 ```bash
@@ -139,31 +132,22 @@ ima2 skill install --tmp            # install to temp dir (fallback)
 前端和UI/UX技能是生产级设计工程指南
 适应于ima2工作流程。它们涵盖版式、色彩系统、布局
 纪律, 韩语UX模式、动作编排和视觉验证，
-每个资产生成步骤都映射到`ima2 gen`, `ima2 video`， 和
+每个资产生成步骤都映射到`ima2 gen`和
 `ima2 multimode`命令。
 
 ### SSE多路复用
 
-网络UI使用单个`GET /api/events`所有生成进度的服务器发送事件连接。多模式、节点和视频请求作为异步 POST 提交（`202 { requestId }`）和进度事件通过共享事件总线进行多路复用。这消除了之前在并发生成期间导致图库挂起的浏览器 6 个连接限制。CLI不发送的客户`async: true`仍然收到每个请求SSE流以实现向后兼容性。
+网络UI使用单个`GET /api/events`所有生成进度的服务器发送事件连接。多模式和节点请求作为异步 POST 提交（`202 { requestId }`）和进度事件通过共享事件总线进行多路复用。这消除了之前在并发生成期间导致图库挂起的浏览器 6 个连接限制。CLI不发送的客户`async: true`仍然收到每个请求SSE流以实现向后兼容性。
 
 ## 提供者路径
 
-图像生成可以通过本地运行Codex/ChatGPT OAuth路径，配置的OpenAI API键，捆绑的Grok提供者，或Gemini提供者通过Antigravity CLI.
+图像生成可以通过本地运行的 ChatGPT OAuth 路径或配置的 OpenAI API 密钥进行。
 
-- `provider: "oauth"`使用本地的Codex OAuth代理人。
-- `provider: "api"`称为OpenAI回应API与托管的`image_generation`工具。
-- `provider: "grok"`开始捆绑`progrok`在`127.0.0.1:18645`, 强制运行xAI网络搜索加上规划者通行证（默认：`grok-4.5`，可在设置中配置或通过`--planner-model`），然后调用xAI图片API通过本地代理。`grok-4.3`仍然可以作为显式兼容性覆盖使用。
-- `provider: "grok-api"`称为xAI图片API直接与`XAI_API_KEY`（无捆绑progrok OAuth代理人）。
-- `provider: "agy"`产生Antigravity CLI (`agy -p`）通过Google生成图像Gemini's `default_api:generate_image`工具（型号：`nano-banana-2`）。输出固定为1024×1024JPEG，最多 3 个参考图像。没有网络搜索、质量或大小控制。
-- `provider: "gemini-api"`调用 Google 生成语言API直接地。支持两种型号：`nano-banana-2` (Gemini3.1 Flash 图像）和`nano-banana-pro` (Gemini3 专业图像）。身份验证是通过`GEMINI_API_KEY`环境变量、网络UI密钥管理，或Vertex AI服务帐户JSON (`VERTEX_SERVICE_ACCOUNT_JSON`）。当两者都APIkey 和 Vertex 凭证已配置，Vertex 优先。支持可变宽高比（1:1 至 21:9）和四个分辨率级别（512px、1K、2K、4K）；这些控制仅在直接上受到尊重API路径——Vertex AI端点忽略方面/大小，因为它不接受`response_format`场地。每个型号的成本不同：`nano-banana-2`（闪存）：512=0.001 美元、1K=0.003 美元、2K=0.004 美元、4K=0.006 美元；`nano-banana-pro`：1K=0.007 美元，2K=0.007 美元，4K=0.013 美元。没有网络搜索或掩码控制。
-- API-密钥生成支持经典生成、编辑、掩码引导编辑、多模式和节点生成。
-- Grok生成支持经典流、节点流和代理流。如果存在经典参考、节点父映像或代理当前映像，ima2切换最后的Grok打电话给xAI图像编辑，以便保留图像到图像的上下文。
+- `provider: "oauth"`使用本地的 Codex OAuth 代理。
+- `provider: "api"`调用 OpenAI Responses API 的托管 `image_generation` 工具。
+- API 密钥生成支持经典生成、编辑、遮罩引导编辑、多模式和节点生成。
 
-如果未指定提供商，应用程序将保留当前的GPT OAuth/默认行为。GPT OAuth和API-密钥生成默认为`gpt-5.6-luna`;这API-key路径也默认为`low`推理和`1024x1024`除非请求通过了经过验证的选项。Grok图像生成默认为`grok-imagine-image-quality`.
-
-Grok图像生成公开了模型选择器（`grok-imagine-image` / `grok-imagine-image-quality`）和尺寸选择器（长宽比 + 1k/2k 分辨率）。设置页面更喜欢Grok建立每周积分百分比并重置时间`GET /v1/billing?format=credits`;如果该来源不可用，则会退回到传统的每月计费窗口，并且`$used/$limit`. A **切换账户**按钮启动设备代码OAuth流动 （`POST /api/auth/switch`）无需离开应用程序即可重新进行身份验证。
-
-Grok视频生成默认为规范`grok-imagine-video-1.5`; `grok-imagine-video`仍然可用于仅限基本模型的 Ref2V、V2V 编辑和扩展路径，以及旧版本`grok-imagine-video-1.5-preview`字符串被接受作为别名。根据引用计数自动检测三种模式：文本到视频（0 引用）、图像到视频（1 引用）和引用到视频（2-7 引用，最长 10 秒持续时间）。 1080p 可用于`grok-imagine-video-1.5`仅提示文本到视频和单图像/帧图像到视频；仅提示 1.5 在上游请求之前使用内部白色画布 I2V 填充程序。视频控制包括持续时间（1-15秒）、分辨率（480p、720p、1080p（如果支持））和宽高比（1:1、16:9、9:16、4:3、3:4、3:2、2:3、自动）。
+如果未指定提供商，应用程序将保留当前的 GPT OAuth 默认行为。GPT OAuth 和 API 密钥生成默认为 `gpt-5.6-luna`；API 密钥路径也默认为 `low` 推理和 `1024x1024`，除非请求传递了经过验证的选项。
 
 ![设置工作区显示GPT OAuth活跃和API可用的密钥提供者。](../assets/screenshots/settings-oauth-generation.png)
 
@@ -253,13 +237,12 @@ Card News 仍处于开发阶段且处于实验阶段。默认情况下是隐藏�
 
 |命令|描述|
 |---|---|
-| `ima2 models [--kind image\|video] [--lane <lane>] [--json]` |列出实时车道、状态、型号 ID 和功能|
-| `ima2 defaults set image\|video <lane>/<model>` |坚持失败关闭CLI图像或视频生成目标|
-| `ima2 defaults reset image\|video` |删除一个持久化的CLI一代目标|
+| `ima2 models [--kind image] [--lane <lane>] [--json]` |列出实时车道、状态、型号 ID 和功能|
+| `ima2 defaults set image <lane>/<model>` |坚持失败关闭CLI图像生成目标|
+| `ima2 defaults reset image` |删除一个持久化的CLI生成目标|
 | `ima2 gen <prompt> [--model <lane>/<model>]` |生成自CLI;需要明确的目标或保存的图像默认值|
 | `ima2 edit <file> --prompt <text>` |编辑现有图像|
 | `ima2 multimode <prompt>` |多图像SSE一代|
-| `ima2 video <prompt> [--model <lane>/<model>]` |通过生成视频Grok或者MCP车道;需要明确的目标或保存的视频默认值|
 | `ima2 ls [--session <id>] [--favorites]` |列出最近的历史记录|
 | `ima2 show <name> [--metadata]` |显示生成的资产|
 | `ima2 prompt ls -q <search>` |搜索提示库|
@@ -274,8 +257,6 @@ ima2 models --kind image
 ima2 gen "poster" --model oauth/gpt-5.6-luna --reasoning-effort high
 ima2 edit input.png --prompt "make it rainy" --web-search
 ima2 multimode "two cats playing" -n 2
-ima2 video "a cat playing piano" --model grok/grok-imagine-video-1.5 --duration 5 --resolution 720p
-ima2 video "animate this" --model grok/grok-imagine-video-1.5 --ref photo.png --aspect-ratio 16:9
 ima2 inflight ls --terminal
 ima2 config set imageModels.reasoningEffort high
 ```
@@ -305,26 +286,10 @@ environment variables > ~/.ima2/config.json > built-in defaults
 | `IMA2_LOG_LEVEL` | `info` |正常服务默认为`info`;开发模式默认为`debug`;支持`debug`, `info`, `warn`, `error`， 或者`silent` |
 | `IMA2_INFLIGHT_TERMINAL_TTL_MS` | `300000` |调试视图的最近终端作业保留|
 | `OPENAI_API_KEY` | — | API的关键`provider: "api"`回应API图像路径和辅助API- 主要特点|
-| `XAI_API_KEY` | — | API关键是`provider: "grok-api"`直接的xAI图片API小路|
 | `IMA2_API_IMAGE_MODEL_DEFAULT` | `gpt-5.6-luna` |默认图像模型`provider: "api"` |
 | `IMA2_API_REASONING_EFFORT` | `low` |默认推理工作`provider: "api"` |
 | `IMA2_API_IMAGE_SIZE` | `1024x1024` |默认尺寸为`provider: "api"` |
 | `IMA2_API_ALLOW_WEB_SEARCH` | `true` |切换网络搜索`provider: "api"` |
-| `IMA2_GROK_PROXY_HOST` | `127.0.0.1` |捆绑主机progrok代理人|
-| `IMA2_GROK_PROXY_PORT` | `18645` |捆绑端口progrok代理人|
-| `IMA2_NO_GROK_PROXY` | — |放`1`禁用自动progrok启动|
-| `IMA2_GROK_PLANNER_MODEL` | `grok-4.5` | Grok搜索/规划器模型（也可通过设置进行配置UI或者`--planner-model` CLI旗帜）|
-| `IMA2_GROK_PLANNER_TIMEOUT_MS` | `60000` |超时时间为Grok搜索和规划呼叫|
-| `IMA2_GROK_IMAGE_MODEL_DEFAULT` | `grok-imagine-image-quality` |默认最终Grok图像模型|
-| `IMA2_GROK_VIDEO_MODEL_DEFAULT` | `grok-imagine-video-1.5` |默认Grok视频模型|
-| `IMA2_GROK_GENERATION_TIMEOUT_MS` | `120000` |决赛暂停Grok图片API称呼|
-| `IMA2_OAUTH_MASKED_EDIT_ENABLED` | `false` |针对屏蔽编辑请求的选择加入功能标志OAuth路径（#31，仅基础）|
-| `GEMINI_API_KEY` | — | API关键是`provider: "gemini-api"`直接生成语言API小路|
-| `VERTEX_SERVICE_ACCOUNT_JSON` | — |谷歌服务帐户JSON为了Vertex AI授权与`provider: "gemini-api"`;优先于`GEMINI_API_KEY`当两者都设置时|
-| `IMA2_AGY_BIN` | `agy`在路径上|显式路径Antigravity CLI二进制为`provider: "agy"` |
-| `IMA2_MAX_PARALLEL` | `24` |服务器范围的并行生成上限|
-
-### 记录模式
 
 `ima2 serve`故意保持终端输出安静：启动 URL、警告和错误保持可见，而 request/node/OAuth结构化日志默认隐藏。
 

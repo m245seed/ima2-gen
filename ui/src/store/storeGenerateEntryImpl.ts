@@ -10,7 +10,6 @@ export async function generateImpl(set: StoreSet, get: StoreGet): Promise<void> 
   const prompt = composePrompt(s.prompt, s.insertedPrompts);
   if (!prompt) return;
   if (missingElementsBlock(get)) return;
-  if (s.videoModelSelected) return get().runVideoGenerate();
   const useMultimode = s.uiMode === "classic" && s.multimode;
   const pending = getCustomSizeConfirmation(s, { kind: useMultimode ? "multimode" : "classic" });
   if (pending) {
@@ -41,10 +40,6 @@ export function cancelMultimodeImpl(set: StoreSet, get: StoreGet): void {
   });
 }
 
-/** Missing element selections block every generation entry (higgsfield 110
- * EM-09). Returns true when blocked (and toasts). Checked at generateImpl,
- * custom-size approval, and animate — the check must also run AFTER any
- * modal, since catalog state can change while it is open. */
 export function missingElementsBlock(get: StoreGet): boolean {
   if ((get().missingElementIds ?? []).length > 0) {
     get().showToast(t("toast.missingElements"), true);
@@ -99,7 +94,6 @@ export async function generateNodeImpl(
     get().showToast(t("toast.promptRequired"), true);
     return;
   }
-  if (get().videoModelSelected) return get().runVideoGenerate(clientId);
   const pending = getCustomSizeConfirmation(get(), { kind: "node", clientId });
   if (pending) {
     set({ customSizeConfirm: pending });
@@ -119,7 +113,6 @@ export async function generateNodeInPlaceImpl(
     get().showToast(t("toast.promptRequired"), true);
     return;
   }
-  if (get().videoModelSelected) return get().runVideoGenerate(clientId);
   const pending = getCustomSizeConfirmation(get(), { kind: "node-in-place", clientId });
   if (pending) {
     set({ customSizeConfirm: pending });
@@ -139,10 +132,6 @@ export async function generateNodeVariationImpl(
   if (!source.data.prompt.trim()) {
     get().showToast(t("toast.promptRequired"), true);
     return;
-  }
-  if (get().videoModelSelected) {
-    const targetClientId = get().addSiblingNode(clientId);
-    return get().runVideoGenerate(targetClientId);
   }
   if (!sizeOverride) {
     const pending = getCustomSizeConfirmation(get(), { kind: "node-variation", clientId });

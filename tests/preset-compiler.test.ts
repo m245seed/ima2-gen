@@ -14,8 +14,7 @@ const catalog: PresetDefinition[] = [
     category: "camera-motion",
     promptFragment: "default camera",
     perProvider: {
-      grok: { fragment: "camera: grok orbit", params: { strength: 1, camera: true } },
-      gemini: { fragment: "gemini camera" },
+      gpt: { fragment: "gpt camera: orbit", params: { strength: 1, camera: true } },
     },
     modes: ["video"],
   },
@@ -25,9 +24,7 @@ const catalog: PresetDefinition[] = [
     category: "style",
     promptFragment: "default style",
     perProvider: {
-      gpt: { params: { strength: 2, style: true } },
-      grok: { fragment: "grok style", params: { strength: 3, style: true } },
-      gemini: { fragment: "gemini style" },
+      gpt: { fragment: "gpt style", params: { strength: 2, style: true } },
     },
     modes: ["both"],
   },
@@ -37,8 +34,7 @@ const catalog: PresetDefinition[] = [
     category: "lighting",
     promptFragment: "default lighting",
     perProvider: {
-      grok: { fragment: "grok lighting" },
-      gemini: { fragment: "gemini lighting" },
+      gpt: { fragment: "gpt lighting" },
     },
     modes: ["both"],
   },
@@ -47,17 +43,17 @@ const catalog: PresetDefinition[] = [
 describe("compilePresets", () => {
   it("concatenates fragments", () => {
     const result = compilePresets({ catalog, presetIds: ["style", "lighting"], provider: "gpt", mode: "image" });
-    assert.equal(result.promptFragment, "default style default lighting");
+    assert.equal(result.promptFragment, "gpt style gpt lighting");
   });
 
   it("uses the provider fragment instead of the default", () => {
-    const result = compilePresets({ catalog, presetIds: ["style"], provider: "grok", mode: "image" });
-    assert.equal(result.promptFragment, "grok style");
+    const result = compilePresets({ catalog, presetIds: ["style"], provider: "gpt", mode: "image" });
+    assert.equal(result.promptFragment, "gpt style");
   });
 
   it("shallow-merges params with later presets taking precedence", () => {
-    const result = compilePresets({ catalog, presetIds: ["camera", "style"], provider: "grok", mode: "video" });
-    assert.deepEqual(result.params, { strength: 3, camera: true, style: true });
+    const result = compilePresets({ catalog, presetIds: ["camera", "style"], provider: "gpt", mode: "video" });
+    assert.deepEqual(result.params, { strength: 2, camera: true, style: true });
   });
 
   it("skips presets that do not support the requested mode", () => {
@@ -74,7 +70,7 @@ describe("compilePresets", () => {
 
   it("preserves selection order", () => {
     const result = compilePresets({ catalog, presetIds: ["lighting", "style"], provider: "gpt", mode: "image" });
-    assert.equal(result.promptFragment, "default lighting default style");
+    assert.equal(result.promptFragment, "gpt lighting gpt style");
     assert.deepEqual(result.appliedPresetIds, ["lighting", "style"]);
   });
 
@@ -83,8 +79,8 @@ describe("compilePresets", () => {
     assert.deepEqual(result, { promptFragment: "", params: {}, appliedPresetIds: [], skipped: [] });
   });
 
-  it("matches the three-preset provider snapshot", () => {
-    const providers: PresetProvider[] = ["gpt", "grok", "gemini"];
+  it("matches the gpt-only provider snapshot", () => {
+    const providers: PresetProvider[] = ["gpt"];
     const snapshot = providers.flatMap((provider) => catalog.map((preset) => {
       const result = compilePresets({
         catalog,
@@ -100,15 +96,9 @@ describe("compilePresets", () => {
     }));
 
     assert.deepEqual(snapshot, [
-      { provider: "gpt", presetId: "camera", fragment: "default camera" },
-      { provider: "gpt", presetId: "style", fragment: "default style" },
-      { provider: "gpt", presetId: "lighting", fragment: "default lighting" },
-      { provider: "grok", presetId: "camera", fragment: "camera: grok orbit" },
-      { provider: "grok", presetId: "style", fragment: "grok style" },
-      { provider: "grok", presetId: "lighting", fragment: "grok lighting" },
-      { provider: "gemini", presetId: "camera", fragment: "gemini camera" },
-      { provider: "gemini", presetId: "style", fragment: "gemini style" },
-      { provider: "gemini", presetId: "lighting", fragment: "gemini lighting" },
+      { provider: "gpt", presetId: "camera", fragment: "gpt camera: orbit" },
+      { provider: "gpt", presetId: "style", fragment: "gpt style" },
+      { provider: "gpt", presetId: "lighting", fragment: "gpt lighting" },
     ]);
   });
 

@@ -14,7 +14,6 @@ export function ProviderReadinessPopup() {
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
   const webSearchEnabled = useAppStore((s) => s.webSearchEnabled);
   const availability = useProviderAvailability();
-  const isGrok = provider === "grok";
   const imageModelOption = IMAGE_MODEL_OPTIONS.find((option) => option.value === imageModel);
   const modalRef = useModalFocus<HTMLDivElement>(open, close);
 
@@ -51,29 +50,20 @@ export function ProviderReadinessPopup() {
           <dl className="provider-readiness__facts">
             <div>
               <dt>{t("readiness.provider")}</dt>
-              <dd>{provider === "agy" ? "Gemini" : provider === "grok" ? "Grok OAuth" : provider === "oauth" ? "GPT OAuth" : "GPT API"}</dd>
+              <dd>{provider === "oauth" ? "GPT OAuth" : "GPT API"}</dd>
             </div>
             <div>
               <dt>{t("readiness.model")}</dt>
               <dd>{imageModelOption ? t(imageModelOption.fullLabelKey) : imageModel}</dd>
             </div>
-            {isGrok ? (
-              <div>
-                <dt>{t("readiness.grokApi")}</dt>
-                <dd>{t("readiness.grokApiBody")}</dd>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <dt>{t("readiness.reasoning")}</dt>
-                  <dd>{reasoningEffort}</dd>
-                </div>
-                <div>
-                  <dt>{t("readiness.webSearch")}</dt>
-                  <dd>{webSearchEnabled ? t("settings.webSearch.on") : t("settings.webSearch.off")}</dd>
-                </div>
-              </>
-            )}
+            <div>
+              <dt>{t("readiness.reasoning")}</dt>
+              <dd>{reasoningEffort}</dd>
+            </div>
+            <div>
+              <dt>{t("readiness.webSearch")}</dt>
+              <dd>{webSearchEnabled ? t("settings.webSearch.on") : t("settings.webSearch.off")}</dd>
+            </div>
           </dl>
         </div>
         <div className="modal__actions">

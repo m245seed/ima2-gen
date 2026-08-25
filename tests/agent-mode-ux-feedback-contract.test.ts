@@ -110,20 +110,20 @@ describe("Agent Mode UX feedback contract", () => {
       const body = JSON.parse(String(init?.body)) as { input: Array<{ role: string; content: string }> };
       assert.ok(body.input[0].content.includes("mode question"), "planner prompt must teach question mode");
       return new Response(JSON.stringify({
-        output_text: '{"mode":"question","prompts":[],"assistantText":"네, ima2.generate_video 도구로 영상 생성이 가능합니다.","reason":"capability question"}',
+        output_text: '{"mode":"question","prompts":[],"assistantText":"네, ima2.generate_image 도구로 이미지 생성이 가능합니다.","reason":"capability question"}',
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     }) as typeof fetch;
     const plan = await requestAgentPlanFromModel(
       { config: { agentPlanner: { enabled: true, timeoutMs: 5_000 }, log: { level: "silent" } }, oauthUrl: "http://127.0.0.1:9", packageVersion: "test" },
       {
         sessionId: "missing-session",
-        prompt: "영상 생성가능하니",
+        prompt: "이미지 생성가능하니",
         settings: { ...DEFAULT_AGENT_GENERATION_SETTINGS, provider: "oauth" },
       },
     );
     assert.ok(plan);
     assert.equal(plan.mode, "question");
-    assert.ok(plan.assistantText?.includes("영상 생성이 가능"));
+    assert.ok(plan.assistantText?.includes("이미지 생성이 가능"));
   });
 
   it("shows the planner chat prelude before media tools finish", async () => {

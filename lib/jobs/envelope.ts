@@ -61,11 +61,11 @@ export interface JobHandle {
 /**
  * Raw phase strings observed across the codebase, mapped to canonical phases.
  *
- * Collected by searching three ways, because a literal grep of setJobPhase
- * misses two thirds of them: `extracting-frame` and `persisting` arrive through
- * a stage variable (routes/videoExtended.ts:325,353), the Grok video phases
- * come from a type union (lib/grokVideoShared.ts:20), and `provider-queued`
- * travels through an onPhase callback (lib/mcp/executeMediaJob.ts:11).
+ * Current producers: `queued` is the inflight default; `streaming` is set by
+ * the generate/multimode/node/agent pipelines and the OAuth proxy streams;
+ * `partial` and `decoding` come from the OAuth stream parsers. A literal grep
+ * of setJobPhase misses `partial` (arrives through the stream parser, not a
+ * direct call in the pipeline module).
  *
  * A value absent here still works: it maps to `running` and keeps its original
  * text in `providerState`. The table exists so the common cases carry accurate
@@ -73,23 +73,14 @@ export interface JobHandle {
  */
 export const RAW_PHASE_MAP: Readonly<Record<string, JobPhase>> = Object.freeze({
   queued: "queued",
-  "provider-queued": "queued",
   validating: "validating",
   planning: "validating",
   preparing: "validating",
   streaming: "running",
   partial: "running",
-  uploading: "running",
-  "provider-running": "running",
-  "provider-poll": "running",
   polling: "running",
   progress: "running",
-  submitted: "running",
   decoding: "post_processing",
-  downloading: "post_processing",
-  "media-processing": "post_processing",
-  "extracting-frame": "post_processing",
-  persisting: "post_processing",
 });
 
 /** Phases whose canonical form already says everything the raw string did. */

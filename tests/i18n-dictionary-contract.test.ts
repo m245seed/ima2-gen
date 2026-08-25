@@ -47,7 +47,7 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
   ]],
   // CHAINING_ACTIONS labelKey literals in ui/src/lib/resultChaining.ts.
   ["ui/src/components/GalleryImageTile.tsx :: action.labelKey", [
-    "chain.animate", "chain.edit", "chain.useAsRef", "chain.rebake",
+    "chain.edit", "chain.useAsRef", "chain.rebake",
     "chain.saveToAssets", "chain.saveAsElement",
   ]],
   // NodeCommandPalette commandText/portTypeLabel computed keys (higgsfield 120).
@@ -70,16 +70,12 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
     "nodeStudio.compatibility.cardinality", "nodeStudio.compatibility.selfEdge",
     "nodeStudio.compatibility.duplicateEdge", "nodeStudio.compatibility.unknownPort",
   ]],
-  // IMAGE_MODEL_OPTIONS, UNSUPPORTED_IMAGE_MODELS, VIDEO_MODEL_OPTIONS in imageModels.ts,
+  // IMAGE_MODEL_OPTIONS, UNSUPPORTED_IMAGE_MODELS in imageModels.ts,
   // plus REASONING_EFFORT_OPTIONS in reasoning.ts.
   ["ui/src/components/ImageModelSelect.tsx :: option.fullLabelKey", [
     "settings.imageModel.gpt54Mini", "settings.imageModel.gpt54", "settings.imageModel.gpt55",
     "settings.imageModel.gpt56Sol", "settings.imageModel.gpt56Terra", "settings.imageModel.gpt56Luna",
-    "settings.imageModel.grokImagineQuality", "settings.imageModel.grokImagine",
-    "settings.imageModel.nanoBanana2", "settings.imageModel.nanoBanana2Api",
-    "settings.imageModel.nanoBananaPro", "settings.imageModel.gpt53CodexSpark",
-    "settings.imageModel.minimaxImage01", "settings.imageModel.minimaxImage01Live",
-    "settings.videoModel.grokImagine", "settings.videoModel.grokImagine15",
+    "settings.imageModel.gpt53CodexSpark",
     "settings.reasoning.none", "settings.reasoning.low", "settings.reasoning.medium",
     "settings.reasoning.high", "settings.reasoning.xhigh", "settings.reasoning.max",
   ]],
@@ -91,10 +87,6 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
   ["ui/src/components/ProviderReadinessPopup.tsx :: imageModelOption.fullLabelKey", [
     "settings.imageModel.gpt54Mini", "settings.imageModel.gpt54", "settings.imageModel.gpt55",
     "settings.imageModel.gpt56Sol", "settings.imageModel.gpt56Terra", "settings.imageModel.gpt56Luna",
-    "settings.imageModel.grokImagineQuality", "settings.imageModel.grokImagine",
-    "settings.imageModel.nanoBanana2", "settings.imageModel.nanoBanana2Api",
-    "settings.imageModel.nanoBananaPro",
-    "settings.imageModel.minimaxImage01", "settings.imageModel.minimaxImage01Live",
   ]],
   // REASONING_EFFORT_OPTIONS fullLabelKey literals in ui/src/lib/reasoning.ts.
   ["ui/src/components/ReasoningEffortSelect.tsx :: option.fullLabelKey", reasoningKeys()],
@@ -115,13 +107,10 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
     "agent.slashDesc_question", "agent.slashDesc_variants", "agent.slashDesc_generate",
     "agent.slashDesc_parallelism", "agent.slashDesc_help",
   ]],
-  // CHOICES labelKey literals in AssetGenModelPicker.tsx.
-  ["ui/src/components/assetgen/AssetGenModelPicker.tsx :: c.labelKey", [
-    "assetGen.modelGpt", "assetGen.modelGrok",
-  ]],
   // PRESETS labelKey literals in BackgroundPresetPicker.tsx.
-  ["ui/src/components/assetgen/BackgroundPresetPicker.tsx :: p.labelKey", [
+  ["ui/src/components/assetgen/BackgroundPresetPicker.tsx :: preset.labelKey", [
     "assetGen.bgChroma", "assetGen.bgWhite", "assetGen.bgBlack",
+    "assetGen.bgTransparent",
   ]],
   // emptyTitle's local conditional literals in AssetsWorkspace.tsx.
   ["ui/src/components/assets/AssetsWorkspace.tsx :: emptyTitle", [
@@ -164,10 +153,10 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
     "workspace.defaultLabel", "workspace.promptStudioLabel",
   ]],
   // toastKey literals in ui/src/lib/errorCodes.ts.
+  // toastKey literals in ui/src/lib/errorHandler.ts.
   ["ui/src/lib/errorHandler.ts :: spec.toastKey", [
     "toast.refTooLarge", "toast.refNotBase64", "toast.refEmpty",
     "toast.refLimitExceeded", "toast.generateFailed",
-    "toast.minimaxModelRequiresReference",
     "toast.errorClass.rateLimited", "toast.errorClass.providerTimeout",
     "toast.errorClass.networkFailure", "toast.errorClass.contentRejected",
     "toast.errorClass.capabilityUnsupported", "toast.errorClass.modelUnavailable",
@@ -176,7 +165,6 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
   ["ui/src/lib/agentQueueError.ts :: resolved.spec.toastKey", [
     "toast.refTooLarge", "toast.refNotBase64", "toast.refEmpty",
     "toast.refLimitExceeded", "toast.generateFailed",
-    "toast.minimaxModelRequiresReference",
     "toast.errorClass.rateLimited", "toast.errorClass.providerTimeout",
     "toast.errorClass.networkFailure", "toast.errorClass.contentRejected",
     "toast.errorClass.capabilityUnsupported", "toast.errorClass.modelUnavailable",
@@ -192,8 +180,7 @@ const ERROR_CARD_ROOTS = [
   "errorCard.imageToolFailed", "errorCard.imageToolNoResult", "errorCard.oauthImageCapabilityUnavailable",
   "errorCard.responsesStreamError", "errorCard.upstream5xx", "errorCard.authChatgptExpired",
   "errorCard.authApiKeyInvalid", "errorCard.networkFailed", "errorCard.oauthUnavailable",
-  "errorCard.invalidRequest", "errorCard.apikeyDisabled", "errorCard.agyGenerationFailed",
-  "errorCard.agyTimeout", "errorCard.agyProcessError", "errorCard.agyQuotaExhausted",
+  "errorCard.invalidRequest", "errorCard.apikeyDisabled",
   "errorCard.authClass", "errorCard.billingRequired",
 ] as const;
 
@@ -205,7 +192,7 @@ const DYNAMIC_T_TEMPLATES = new Map<string, readonly string[]>([
   ["ui/src/components/Toast.tsx :: `${cardKey}.body`",
     ERROR_CARD_ROOTS.map((root) => `${root}.body`)],
   ["ui/src/components/Toast.tsx :: `${row.cardKey ?? \"errorCard.unknown\"}.cta`",
-    ["errorCard.moderationRefused.cta", "errorCard.emptyResponse.cta", "errorCard.streamParseFailed.cta", "errorCard.imageToolNotCalled.cta", "errorCard.webSearchOnlyResponse.cta", "errorCard.imageToolFailed.cta", "errorCard.imageToolNoResult.cta", "errorCard.oauthImageCapabilityUnavailable.cta", "errorCard.responsesStreamError.cta", "errorCard.upstream5xx.cta", "errorCard.authChatgptExpired.cta", "errorCard.authApiKeyInvalid.cta", "errorCard.networkFailed.cta", "errorCard.oauthUnavailable.cta", "errorCard.invalidRequest.cta", "errorCard.apikeyDisabled.cta", "errorCard.agyGenerationFailed.cta", "errorCard.agyTimeout.cta", "errorCard.agyProcessError.cta", "errorCard.agyQuotaExhausted.cta", "errorCard.authClass.cta"]],
+    ["errorCard.moderationRefused.cta", "errorCard.emptyResponse.cta", "errorCard.streamParseFailed.cta", "errorCard.imageToolNotCalled.cta", "errorCard.webSearchOnlyResponse.cta", "errorCard.imageToolFailed.cta", "errorCard.imageToolNoResult.cta", "errorCard.oauthImageCapabilityUnavailable.cta", "errorCard.responsesStreamError.cta", "errorCard.upstream5xx.cta", "errorCard.authChatgptExpired.cta", "errorCard.authApiKeyInvalid.cta", "errorCard.networkFailed.cta", "errorCard.oauthUnavailable.cta", "errorCard.invalidRequest.cta", "errorCard.apikeyDisabled.cta", "errorCard.authClass.cta"]],
   ["ui/src/lib/agentQueueError.ts :: `${resolved.spec.cardKey}.title`",
     ERROR_CARD_ROOTS.map((root) => `${root}.title`)],
 ]);
@@ -217,20 +204,15 @@ const KNOWN_MISSING = new Set<string>([
   "cardNews.roles.core",
   "cardNews.roles.tip1",
   "cardNews.roles.tip2",
-  // CHAINING_ACTIONS exposes saveAsElement without a matching dictionary leaf.
-  "chain.saveAsElement",
   // CardNewsWorkspace.tsx references these mobile banner literals directly.
   "mobile.cardNewsBanner",
   "mobile.dismiss",
-  // ImageNode.tsx passes an ineffective fallback variable to this missing literal key.
-  "node.animateTitle",
+  // InFlightList.tsx uses these kind labels directly.
+  "inflight.classic",
+  "inflight.multimode",
+  "inflight.node",
   // ReferenceTray.tsx references this provider-limit copy directly.
   "prompt.refOverProviderLimit",
-  // ResultActions.tsx uses ineffective nullish fallbacks after these missing t() calls.
-  "result.extend",
-  "result.extendTitle",
-  // resultChaining.ts uses this missing fork-failure toast literal.
-  "toast.forkFailed",
 ]);
 
 function reasoningKeys(): readonly string[] {

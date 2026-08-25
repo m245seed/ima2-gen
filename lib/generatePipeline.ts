@@ -11,12 +11,6 @@ import { appendGenerationRequestLog } from "./generationRequestLog.js";
 import { normalizeOAuthParams } from "./oauthNormalize.js";
 import { resolveProviderOptions } from "./providerOptions.js";
 import { generateViaResponses } from "./responsesImageAdapter.js";
-import { generateViaGrok, planGrokImage } from "./grokImageAdapter.js";
-import { resolveGrokQualityModel } from "./imageModels.js";
-import { generateViaAgy } from "./agyImageAdapter.js";
-import { generateViaGeminiApi } from "./geminiApiImageAdapter.js";
-import { generateViaAtlasCloud } from "./atlasCloudImageAdapter.js";
-import { generateViaMinimax } from "./minimaxImageAdapter.js";
 import { isNonRetryableGenerationError, normalizeGenerationFailure, type UpstreamErr } from "./generationErrors.js";
 import { startJob, finishJob, registerJobAbortController, isJobCanceled, isStartJobFailure, setJobPhase, INFLIGHT_RETRY_AFTER_SECONDS, } from "./inflight.js";
 import { isGenerationCanceledError, makeGenerationCanceledError, throwIfJobCanceled, } from "./generationCancel.js";
@@ -25,9 +19,9 @@ import { embedImageMetadataBestEffort } from "./imageMetadataStore.js";
 import { invalidateHistoryIndex } from "./historyIndex.js";
 import { normalizeComposerInsertedPrompts, normalizeComposerPrompt, } from "./composerSnapshot.js";
 import { errInfo } from "./errInfo.js";
-import { requireRuntimeContext, type RuntimeContext } from "./runtimeContext.js";
+import { type RuntimeContext } from "./runtimeContext.js";
 import { STORYBOARD_PREFIX } from "./storyboardPrefix.js";
-import { parseBackgroundPreset, backgroundPromptSuffix, backgroundPlannerConstraint } from "./backgroundPresets.js";
+import { parseBackgroundPreset, backgroundPromptSuffix } from "./backgroundPresets.js";
 import { resolveImageBackgroundParams, validateTransparentFormat, validateTransparentProvider, verifyBufferAlpha, makeTransparentResultError } from "./imageBackgroundParam.js";
 import { decodeRawForAlpha } from "./alphaDecode.js";
 import { validateModeration, imageFormatFromMime, upstreamErrorFields } from "./routeHelpers.js";
@@ -36,7 +30,6 @@ import { publishJobEvent } from "./ssePublish.js";
 import { normalizeBodyRequestId, validateBoundedCount, validateGenerationPrompt } from "./generationInputValidation.js";
 import { getElementById } from "./assetsStore.js";
 import { compileElements, ELEMENT_CAPACITY_DEFAULTS, type ElementDefinition, type ExistingReferenceInput } from "./elementCompiler.js";
-import { deriveReferenceLimit } from "./providers/derive.js";
 import {
   claimIdempotencyKey,
   completeIdempotencyKey,
@@ -165,8 +158,6 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       if (formatConflict) {
         return fail(400, { error: formatConflict.error, code: formatConflict.code });
       }
-      // Atlas Cloud talks to the gpt-image-2 API directly and accepts the
-      // forced value; the OAuth proxy does not (see lib/imageBackgroundParam.ts).
       const composerPrompt = normalizeComposerPrompt(req.body?.composerPrompt);
       const composerInsertedPrompts = normalizeComposerInsertedPrompts(
         req.body?.composerInsertedPrompts,
@@ -187,19 +178,10 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       const effectiveSize = providerOptions.size;
       const webSearchEnabled = providerOptions.webSearchEnabled;
       const activeProvider = providerOptions.provider;
-      // Resolved AFTER provider resolution on purpose: the raw request `provider`
-      // defaults to "auto", so only `activeProvider` names the lane that will
-      // actually run. Atlas Cloud talks to the gpt-image-2 API directly and
-      // accepts a forced transparent background; the OAuth proxy rejects it
-      // (see lib/imageBackgroundParam.ts).
       const backgroundParams = resolveImageBackgroundParams({
         preset: backgroundPreset,
-        supportsForcedTransparent: activeProvider === "atlascloud",
         requestedFormat: typeof format === "string" ? format : undefined,
       });
-      // Grok/Gemini/Agy/MiniMax have no background parameter and their branches
-      // force JPEG, so a transparent request there would return an opaque image
-      // recorded as a cutout. Refuse instead of billing for a wrong result.
       const providerConflict = validateTransparentProvider(backgroundPreset, activeProvider);
       if (providerConflict) {
         return fail(400, { error: providerConflict.error, code: providerConflict.code });
@@ -233,9 +215,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
               });
             }
           }
-          const providerKey = (activeProvider === "grok" || activeProvider === "grok-api") ? "grok"
-            : activeProvider === "gemini-api" ? "gemini"
-            : activeProvider === "agy" ? "gpt" : "gpt";
+          const providerKey = "gpt";
           const modeKey = "image" as const;
           const capacity = ELEMENT_CAPACITY_DEFAULTS[providerKey]?.[modeKey] ?? { maxTotalRefs: 6, maxRefsPerElement: 6 };
           const compiled = compileElements({
@@ -283,37 +263,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
         return fail(400, { error: refCheckResult.error, code: refCheckResult.code });
       }
       const refCheck = refCheckResult as Extract<typeof refCheckResult, { refs: string[] }>;
-      const incomingProviderUrl = typeof req.body?.providerUrl === "string" && req.body.providerUrl.startsWith("http")
-        ? req.body.providerUrl
-        : null;
-      const grokRefs = incomingProviderUrl
-        ? [{ b64: "", url: incomingProviderUrl, declaredMime: "image/png", detectedMime: "image/png" }, ...refCheck.refDetails]
-        : refCheck.refDetails;
-      const providerRefCount = activeProvider === "grok" || activeProvider === "grok-api"
-        ? grokRefs.length
-        : refCheck.refs.length;
-      const providerReferenceLimit = deriveReferenceLimit(activeProvider, "edit");
-      if ((activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api") && providerRefCount > providerReferenceLimit!) {
-        return fail(400, {
-          error: `${activeProvider === "agy" ? "Agy" : "Grok"} image editing supports up to ${providerReferenceLimit} reference images`,
-          code: activeProvider === "agy" ? "AGY_REF_TOO_MANY" : "GROK_REF_TOO_MANY",
-          requestId,
-        });
-      }
-      if (activeProvider === "atlascloud" && providerRefCount > providerReferenceLimit!) {
-        return fail(400, {
-          error: `Atlas Cloud image editing supports up to ${providerReferenceLimit} reference images`,
-          code: "ATLASCLOUD_REF_TOO_MANY",
-          requestId,
-        });
-      }
-      if (activeProvider === "minimax" && providerRefCount > providerReferenceLimit!) {
-        return fail(400, {
-          error: `MiniMax image editing supports up to ${providerReferenceLimit} subject reference`,
-          code: "MINIMAX_REF_TOO_MANY",
-          requestId,
-        });
-      }
+      const providerRefCount = refCheck.refs.length;
       const started = startJob({
         requestId,
         kind: "classic",
@@ -379,90 +329,15 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       });
       const startTime = Date.now();
       const mimeMap: Record<string, string> = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
-      const providerForcesJpeg = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax";
       // An alpha-bearing result must never be persisted through a lossy opaque
       // format: embedImageMetadata re-encodes with sharp.toFormat(), so a JPEG
       // here silently flattens the transparency we just asked for.
       const effectiveFormat = backgroundParams
         ? (backgroundParams.outputFormat ?? "png")
-        : (providerForcesJpeg ? "jpeg" : String(format));
+        : String(format);
       const mime = mimeMap[effectiveFormat] || "image/png";
       await mkdir(ctx.config.storage.generatedDir, { recursive: true });
-      const grokDirectApiKey = activeProvider === "grok-api" ? ctx.xaiApiKey : undefined;
-      const sharedGrokPlan = activeProvider === "grok" || activeProvider === "grok-api"
-        ? await planGrokImage(generationPrompt, ctx, {
-          model: resolveGrokQualityModel(imageModel, quality),
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          referenceCount: grokRefs.length,
-          references: grokRefs,
-          directApiKey: grokDirectApiKey,
-          backgroundConstraint: backgroundPreset ? backgroundPlannerConstraint(backgroundPreset) : undefined,
-          webSearchEnabled,
-        })
-        : null;
       const generateOne = async () => {
-        if (activeProvider === "gemini-api") {
-          const r = await generateViaGeminiApi(generationPrompt, requireRuntimeContext(ctx), {
-            model: imageModel,
-            size: effectiveSize,
-            signal: cancelController.signal,
-            requestId,
-            references: refCheck.refDetails,
-          });
-          throwIfJobCanceled(requestId);
-          return r;
-        }
-        if (activeProvider === "agy") {
-          const r = await generateViaAgy(generationPrompt, {
-            references: refCheck.refDetails,
-            signal: cancelController.signal,
-            requestId,
-          });
-          throwIfJobCanceled(requestId);
-          return r;
-        }
-        if (activeProvider === "atlascloud") {
-          const r = await generateViaAtlasCloud(generationPrompt, requireRuntimeContext(ctx), {
-            model: imageModel,
-            size: effectiveSize,
-            quality,
-            signal: cancelController.signal,
-            requestId,
-            references: refCheck.refDetails,
-            ...(backgroundParams ? { background: backgroundParams.background } : {}),
-            ...(backgroundParams?.outputFormat ? { outputFormat: backgroundParams.outputFormat } : {}),
-          });
-          throwIfJobCanceled(requestId);
-          return r;
-        }
-        if (activeProvider === "minimax") {
-          const r = await generateViaMinimax(generationPrompt, requireRuntimeContext(ctx), {
-            model: imageModel,
-            size: effectiveSize,
-            signal: cancelController.signal,
-            requestId,
-            references: refCheck.refDetails,
-          });
-          throwIfJobCanceled(requestId);
-          return r;
-        }
-        if (activeProvider === "grok" || activeProvider === "grok-api") {
-          const grokModel = resolveGrokQualityModel(imageModel, quality);
-          const r = await generateViaGrok(generationPrompt, ctx, {
-            model: grokModel,
-            size: effectiveSize,
-            signal: cancelController.signal,
-            requestId,
-            plannedPrompt: sharedGrokPlan?.prompt,
-            webSearchCalls: sharedGrokPlan?.webSearchCalls,
-            references: grokRefs,
-            directApiKey: grokDirectApiKey,
-          });
-          throwIfJobCanceled(requestId);
-          return r;
-        }
         const MAX_RETRIES = 1;
         let lastErr: unknown;
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -525,7 +400,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       const images: Array<{
         image: string;
         filename: string;
-        revisedPrompt: any;
+        revisedPrompt: string | null;
         providerUrl?: string | undefined;
         createdAt: number;
       }> = [];
@@ -535,26 +410,16 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       for (const r of results) {
         if (r.status === "fulfilled" && r.value.b64) {
           throwIfJobCanceled(requestId);
-          const valueWithMime = r.value as typeof r.value & { mime?: string };
           // When alpha was requested, trust the BYTES, never a provider-supplied
-          // Content-Type. Atlas reads its mime from the download response header
-          // (lib/atlasCloudImageAdapter.ts), and a transparent PNG mislabeled
-          // "image/jpeg" would otherwise be re-encoded to JPEG by
-          // embedImageMetadata's sharp.toFormat() and lose its alpha channel.
-          const providerReportsMime = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax";
-          // Lazily decoded: only alpha requests always need the byte check, and
-          // the provider-mime path keeps its original short-circuit order.
+          // Content-Type. A transparent PNG mislabeled as JPEG would otherwise
+          // be re-encoded to JPEG by embedImageMetadata and lose its alpha.
           const detectMime = () => detectImageMimeFromB64(r.value.b64);
           const resultMime = backgroundParams
             ? (detectMime() || mime)
-            : providerReportsMime
-              ? (valueWithMime.mime || detectMime() || mime)
-              : mime;
+            : mime;
           const resultFormat = backgroundParams
             ? imageFormatFromMime(resultMime)
-            : providerReportsMime
-              ? imageFormatFromMime(resultMime)
-              : effectiveFormat;
+            : effectiveFormat;
           const retryValue = r.value as typeof r.value & {
             retryKind?: string | undefined;
             initialEventCount?: number | undefined;
@@ -577,7 +442,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
           }
           const createdAt = Date.now();
           const baseName = buildFilename({
-            model: (activeProvider === "grok" || activeProvider === "grok-api") ? resolveGrokQualityModel(imageModel, quality) : imageModel,
+            model: imageModel ?? "gpt-5.6-luna",
             size: effectiveSize,
             createdAt,
             prompt,
@@ -603,7 +468,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
             size: effectiveSize,
             format: resultFormat,
             moderation,
-            model: activeProvider === "grok" ? resolveGrokQualityModel(imageModel, quality) : imageModel,
+            model: imageModel,
             reasoningEffort,
             provider: activeProvider,
             createdAt,
@@ -619,11 +484,13 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
             ...(elementRefReadFailures.length > 0 ? { refReadFailures: elementRefReadFailures } : {}),
           };
           const rawBuffer = Buffer.from(r.value.b64, "base64");
-          const embedded: any = await embedImageMetadataBestEffort(rawBuffer, resultFormat, meta, {
+          const embedded = await embedImageMetadataBestEffort(rawBuffer, resultFormat, meta, {
             version: ctx.packageVersion,
           });
           if (!embedded.embedded) {
-            logEvent("generate", "metadata_embed_skipped", { requestId, filename: baseName, code: embedded.code, warning: embedded.warning, });
+            const embedWarn = "warning" in embedded ? embedded.warning : null;
+            const embedCode = "code" in embedded ? embedded.code : null;
+            logEvent("generate", "metadata_embed_skipped", { requestId, filename: baseName, code: embedCode, warning: embedWarn, });
           }
           const filename = await writeFileUnique(ctx.config.storage.generatedDir, baseName, embedded.buffer);
           const filePath = join(ctx.config.storage.generatedDir, filename);
@@ -648,9 +515,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
             }
           }
           if (typeof r.value.webSearchCalls === "number") {
-            totalWebSearchCalls = activeProvider === "grok" || activeProvider === "grok-api"
-              ? Math.max(totalWebSearchCalls, r.value.webSearchCalls)
-              : totalWebSearchCalls + r.value.webSearchCalls;
+            totalWebSearchCalls += r.value.webSearchCalls;
           }
         } else if (r.status === "rejected") {
           logError("generate", "parallel_failed", r.reason, { requestId });

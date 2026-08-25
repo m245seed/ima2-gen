@@ -45,27 +45,18 @@ test("terminal phases are exactly the four that end a job", () => {
 });
 
 test("every raw phase in the codebase maps to an accurate canonical phase", () => {
-  // The three post_processing values are the ones a naive mapping gets wrong:
-  // they are work done after the provider replied, not the provider running.
+  // `decoding` is post-processing work (b64 received, writing to disk), not
+  // the provider running — a naive mapping would get it wrong.
   const expected: Record<string, string> = {
     queued: "queued",
-    "provider-queued": "queued",
     validating: "validating",
     planning: "validating",
     preparing: "validating",
     streaming: "running",
     partial: "running",
-    uploading: "running",
-    "provider-running": "running",
-    "provider-poll": "running",
     polling: "running",
     progress: "running",
-    submitted: "running",
     decoding: "post_processing",
-    downloading: "post_processing",
-    "media-processing": "post_processing",
-    "extracting-frame": "post_processing",
-    persisting: "post_processing",
   };
   for (const [raw, canonical] of Object.entries(expected)) {
     assert.equal(toCanonicalPhase(raw), canonical, `${raw} should map to ${canonical}`);
@@ -101,9 +92,8 @@ test("the event name decides terminal state, not the inflight row", () => {
 });
 
 test("a self-reported phase outranks a stale inflight row", () => {
-  // routes/mcpMedia.ts publishes submitted right after startJob without
-  // calling setJobPhase, so inflight still says queued. The publisher knows
-  // better than the row does.
+  // A publisher may emit a phase string without calling setJobPhase first, so
+  // inflight still says queued. The publisher knows better than the row does.
   const envelope = buildEnvelope({
     jobId: "j2", sequence: 1, event: "progress",
     data: { phase: "submitted" }, inflightPhase: "queued",
@@ -113,9 +103,9 @@ test("a self-reported phase outranks a stale inflight row", () => {
 });
 
 test("inflight is the fallback when the event says nothing", () => {
-  const envelope = buildEnvelope({ jobId: "j3", sequence: 1, event: "image", data: {}, inflightPhase: "downloading" });
-  assert.equal(envelope.phase, "post_processing");
-  assert.equal(envelope.providerState, "downloading");
+  const envelope = buildEnvelope({ jobId: "j3", sequence: 1, event: "image", data: {}, inflightPhase: "polling" });
+  assert.equal(envelope.phase, "running");
+  assert.equal(envelope.providerState, "polling");
 });
 
 test("progress is carried through from either field name", () => {

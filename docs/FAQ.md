@@ -103,19 +103,9 @@ ima2 serve
 
 If this happens on a company network, a firewall, VPN, proxy, or captive portal may also be blocking the OAuth flow.
 
-### How do I use the Gemini providers?
+### How do I re-authenticate Codex without restarting?
 
-Two Gemini providers are available:
-
-- **`agy`** — uses the Antigravity CLI (`agy -p`) with no API key needed. Requires the `agy` binary to be installed and logged in. Model is `nano-banana-2`, output is fixed at 1024×1024.
-
-- **`gemini-api`** — calls the Google Generative Language API directly. Add a `GEMINI_API_KEY` env var, or configure a key via Settings > API Keys. For Vertex AI, add a service account JSON via Settings or the `VERTEX_SERVICE_ACCOUNT_JSON` env var. When both an API key and Vertex credentials are present, Vertex takes priority. Use the auth-mode dropdown in Settings to switch between `apikey` and `vertex`; the choice is saved and restored automatically.
-
-The `gemini-api` provider supports two models: `nano-banana-2` (Gemini 3.1 Flash Image) and `nano-banana-pro` (Gemini 3 Pro Image). The web UI shows aspect-ratio and resolution controls (512px–4K) for `gemini-api`; these are honored only on the direct Gemini API path and are ignored by Vertex AI.
-
-### How do I re-authenticate Grok or Codex without restarting?
-
-Use the **Switch Account** button in Settings > QuotaCard for the provider. This starts a device-code OAuth flow: a new browser tab opens the verification URL, you complete the login, and the server automatically picks up the new credentials. For current Grok Build xAI auth, the quota bar shows the server-calculated weekly usage percentage and reset time. Legacy auth falls back to the older monthly `$used / $limit` billing view when available.
+Use the **Switch Account** button in Settings > QuotaCard for the provider. This starts a device-code OAuth flow: a new browser tab opens the verification URL, you complete the login, and the server automatically picks up the new credentials.
 
 ## Models and quota
 

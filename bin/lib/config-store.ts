@@ -40,14 +40,11 @@ export function loadFileCfg(): Record<string, unknown> {
   }
 }
 
-export function loadCliDefaults(): { image?: string; video?: string } {
+export function loadCliDefaults(): { image?: string } {
   const defaults = getNestedKey(loadFileCfg(), "defaults");
   if (!defaults || typeof defaults !== "object" || Array.isArray(defaults)) return {};
   const value = defaults as Record<string, unknown>;
-  return {
-    ...(typeof value.image === "string" ? { image: value.image } : {}),
-    ...(typeof value.video === "string" ? { video: value.video } : {}),
-  };
+  return typeof value.image === "string" ? { image: value.image } : {};
 }
 
 export function saveFileCfg(cfg: Record<string, unknown>): void {

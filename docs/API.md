@@ -10,21 +10,13 @@ http://localhost:3333
 
 ## Provider Policy
 
-Image generation supports OAuth, API-key, Grok, and Gemini (`agy` and `gemini-api`) providers.
+Image generation supports OAuth and API-key providers.
 
 - `provider: "oauth"` uses the local Codex OAuth proxy.
 - `provider: "api"` uses the OpenAI Responses API with the hosted `image_generation` tool.
-- `provider: "grok"` uses the bundled progrok xAI proxy. Classic, Node, and Agent generation run mandatory xAI Web Search through `/v1/responses`, then run a `grok-4.3` planner call with a forced local `generate_image` function, then ima2 executes xAI `/v1/images/generations`. `grok-4.6` and `grok-4.5` remain selectable overrides. If reference images, a Node parent image, or an Agent current image are attached, the final step switches to xAI `/v1/images/edits` so image-to-image context is preserved.
-- `provider: "agy"` spawns the Antigravity CLI (`agy -p`) to generate images via Google Gemini's `default_api:generate_image` tool. Model is `nano-banana-2`. Output is fixed at 1024×1024 JPEG. Max 3 reference images (i2i). No web search, quality, size, or mask controls. Multimode returns a single image. Video is unsupported (`AGY_VIDEO_UNSUPPORTED`).
-- `provider: "grok-api"` uses a direct xAI API key instead of the bundled progrok OAuth proxy. Same pipeline as `grok` (Web Search → planner → `/v1/images/generations`), same aspect ratio and resolution options. Requires an xAI API key configured via the web UI key management or `XAI_API_KEY` env var. Also supports video generation.
-- `provider: "gemini-api"` calls the Google Generative Language API directly (or Vertex AI with a service account JSON). Supports models `nano-banana-2` (Gemini 3.1 Flash Image) and `nano-banana-pro` (Gemini 3 Pro Image). Supports variable aspect ratios (1:1 through 21:9) and four resolution tiers (512px, 1K, 2K, 4K) on both auth paths — the direct API path sends `generation_config.response_format.image` (snake_case) while the Vertex AI endpoint (`aiplatform.googleapis.com`) sends `generationConfig.imageConfig` (camelCase). With `size: "auto"` the image config is omitted entirely and the model decides ratio/size. Auth: `GEMINI_API_KEY` env var, web UI key management (`/api/keys/gemini`), or a Vertex AI service account JSON (`VERTEX_SERVICE_ACCOUNT_JSON` or `/api/keys/vertex`). When both Vertex credentials and an API key are configured, Vertex takes priority. The chosen auth mode (`apikey` or `vertex`) persists to `~/.ima2/config.json` as `geminiAuthMode` and is restored on server startup. Per-model cost: `nano-banana-2` (Flash): 512=$0.001, 1K=$0.003, 2K=$0.004, 4K=$0.006; `nano-banana-pro`: 1K=$0.007, 2K=$0.007, 4K=$0.013. No web search or mask controls.
 - API-key generation covers classic generate, edit, mask-guided edit, multimode, and node generation.
 - If `provider: "api"` is requested without an API key, routes fail before upstream with `401` and `API_KEY_REQUIRED`.
-- Grok generation maps `size` to xAI `aspect_ratio` and `resolution`; it does not send an OpenAI-style `size` field upstream. Grok edit uses xAI `/v1/images/edits`; Grok mask edit remains unsupported and returns `GROK_MASK_UNSUPPORTED`.
 - Mask edits are mask/selection guided edits, not pixel-perfect inpaint guarantees.
-
-Grok video generation uses `POST /api/video/generate` (SSE). See the Video
-Generation section below for the full endpoint specification.
 
 ## Health And Status
 
@@ -34,18 +26,17 @@ Generation section below for the full endpoint specification.
 | `POST` | `/api/admin/stop` | Clean shutdown (local admin only): requires the boot-generated `X-Ima2-Admin-Nonce` from `~/.ima2/server.json`; any request with an `Origin` header is refused (browser drive-by protection). Responds `202` then self-signals SIGTERM |
 | `GET` | `/api/providers` | Provider availability and runtime ports |
 | `GET` | `/api/oauth/status` | OAuth proxy status and visible models |
-| `GET` | `/api/grok/status` | Bundled progrok status and visible xAI image models |
 | `GET` | `/api/billing` | Billing/status probe, including API key source when configured |
-| `GET` | `/api/quota` | Provider quota: returns `{ codex, grok }`. Eligible Grok Build xAI OIDC/external auth returns a `weekly` percentage/reset window from `GET /v1/billing?format=credits`. If unavailable, the legacy endpoint may return a `monthly` window plus `billing: { usedUsd, limitUsd }`. |
+| `GET` | `/api/quota` | Provider quota: returns `{ codex }`. |
 
 ## Account Switching
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/api/auth/switch` | Start a device-code OAuth flow. Body: `{ "provider": "grok" \| "codex" }`. Returns `{ sessionId, userCode, verificationUrl }`. |
+| `POST` | `/api/auth/switch` | Start a device-code OAuth flow. Body: `{ "provider": "codex" }`. Returns `{ sessionId, userCode, verificationUrl }`. |
 | `GET` | `/api/auth/switch/:sessionId` | Poll switch-account session status. Returns `{ status }` where status is `pending`, `complete`, `error`, or `expired`. |
 
-The Switch Account flow opens a browser verification URL. Once the user completes the device-code step, the server saves the new credentials (Grok: `~/.progrok/auth.json`; Codex: via `codex login --device-auth`) and the session transitions to `complete`. This endpoint is surfaced as a **Switch Account** button in the Settings QuotaCard for Grok and Codex providers.
+The Switch Account flow opens a browser verification URL. Once the user completes the device-code step, the server saves the new credentials (Codex: via `codex login --device-auth`) and the session transitions to `complete`. This endpoint is surfaced as a **Switch Account** button in the Settings QuotaCard for the Codex provider.
 
 ## Storage
 
@@ -131,14 +122,11 @@ Single persistent Server-Sent Events channel that carries progress for all async
 
 | Event | Emitted by | Description |
 |---|---|---|
-| `phase` | node, multimode, video | Lifecycle phase change |
+| `phase` | node, multimode | Lifecycle phase change |
 | `partial` | node, multimode | Progressive preview image (base64 data URL) |
 | `image` | multimode | Final saved `GenerateItem` for one sequence image |
-| `done` | node, multimode, video | Terminal success payload (route-specific shape) |
+| `done` | node, multimode | Terminal success payload (route-specific shape) |
 | `error` | all generation routes | Terminal failure |
-| `submitted` | video | Job submitted to xAI |
-| `progress` | video | Progress fraction 0.0–1.0 |
-| `planning` | video | Video planner running |
 
 Example SSE frame:
 
@@ -150,7 +138,7 @@ data: {"requestId":"req_abc","jobId":"req_abc","phase":"streaming"}
 
 ### Async generation mode
 
-`POST /api/node/generate`, `POST /api/generate/multimode`, and `POST /api/video/generate` support an async POST mode for clients that already hold `GET /api/events`:
+`POST /api/node/generate` and `POST /api/generate/multimode` support an async POST mode for clients that already hold `GET /api/events`:
 
 ```json
 {
@@ -212,63 +200,15 @@ Supported quality values: `low`, `medium`, `high`.
 Supported moderation values: `auto`, `low`.
 
 When `storyboard` is `true`, the server prepends storyboard keyframe instructions so image
-generations maintain character and scene continuity for multi-shot video production.
+generations maintain character and scene continuity across sequential frames.
 
 Current app default: `gpt-5.6-luna`. `gpt-5.5` and the other supported GPT image models remain available when callers explicitly select them.
-
-When `provider` is `"grok"`, supported models are `grok-imagine-image` and
-`grok-imagine-image-quality`. The server uses `grok-4.5` as the search/planner
-model by default (`IMA2_GROK_PLANNER_MODEL`) and times the mandatory search and
-planner steps separately from the image call (`IMA2_GROK_PLANNER_TIMEOUT_MS`).
-For `n > 1`, search and planning run once and the planned prompt is reused for
-the image requests. Successful Grok classic generations report one mandatory
-web-search call in metadata.
-
-If `references` are present on a Grok classic request, ima2 still performs the
-mandatory search and `grok-4.5` planning phases. The planner receives the
-reference images as multimodal `image_url` inputs, and its forced
-`generate_image.prompt` argument is instructed to be English-only except for
-exact visible text requested by the user. The final image call then uses xAI
-`/v1/images/edits` with the same reference images instead of
-`/v1/images/generations`. This keeps image-to-image/reference context alive
-through the three-phase pipeline. xAI currently documents up to three source
-images for image editing, so Grok classic requests with more than three
-references return `GROK_REF_TOO_MANY`.
-
-Grok size mapping:
-
-| Requested size | xAI `aspect_ratio` | xAI `resolution` |
-|---|---|---|
-| `1024x1024` | `1:1` | `1k` |
-| `1536x1024` | `3:2` | `1k` |
-| `1024x1536` | `2:3` | `1k` |
-| `1360x1024` | `4:3` | `1k` |
-| `1024x1360` | `3:4` | `1k` |
-| `1824x1024` | `16:9` | `1k` |
-| `1024x1824` | `9:16` | `1k` |
-| `2048x2048` | `1:1` | `2k` |
-| `2048x1152` | `16:9` | `2k` |
-| `1152x2048` | `9:16` | `2k` |
-| `3840x2160` | `16:9` | `2k` |
-| `2160x3840` | `9:16` | `2k` |
-| `auto` | `auto` | omitted |
-
-Custom sizes are reduced to the closest xAI-supported aspect ratio and use
-`2k` when the requested longest edge or pixel budget is closer to a 2K image.
 
 ### `POST /api/edit`
 
 Image edit / image-to-image generation.
 
 The request includes a prompt and image payload. `provider: "api"` sends the prompt and image through the shared Responses image adapter. Optional masks are forwarded as mask guidance, not a pixel-perfect edit guarantee.
-
-With `provider: "grok"`, edit requests are sent to xAI `/v1/images/edits`
-through the bundled progrok proxy. Masked Grok edits are rejected before
-upstream with `GROK_MASK_UNSUPPORTED`.
-
-Grok multimode currently sends each image request directly to xAI Images API
-with the mapped `aspect_ratio`/`resolution`; the mandatory search + planner
-pipeline is limited to classic `/api/generate`.
 
 ### `POST /api/node/generate`
 
@@ -284,23 +224,19 @@ Body fields:
   "size": "1024x1024",
   "format": "png",
   "moderation": "low",
-  "model": "grok-imagine-image",
+  "model": "gpt-5.6-luna",
   "references": [],
   "externalSrc": "optional-history-url",
   "sessionId": "session-id",
   "clientNodeId": "client-node-id",
   "requestId": "request-id",
-  "provider": "grok"
+  "provider": "oauth"
 }
 ```
 
 When `parentNodeId` is present, the server loads the stored parent node image and uses the edit path. Node-local references are allowed on both root and child/edit nodes; for child/edit nodes the parent image is sent first, then references, then the text prompt.
 
-With `provider: "grok"`, Node Mode uses the same xAI search + `grok-4.5` planner + Images API pipeline as classic generation. A parent node image, `externalSrc`, or extra references are passed to the planner and then to xAI `/v1/images/edits`; otherwise the final call uses `/v1/images/generations`. Grok Node requests are capped at three total input images, counting the parent/current image plus references, and return `GROK_REF_TOO_MANY` before upstream when that limit is exceeded. `quality: "high"` promotes the final image model to `grok-imagine-image-quality`.
-
 The route can stream Server-Sent Events when the client sends `Accept: text/event-stream`. Possible events include `phase`, `partial`, `done`, and `error`. Alternatively, send `{ "async": true, "requestId": "req_xxx" }` in the body to receive `202 { requestId }` immediately and follow progress on `GET /api/events` (see Events section).
-
-Grok Node SSE responses do not include Responses API `partial` image events because the xAI Images API call is synchronous JSON. They still emit `phase` and `done`/`error` events so the Node UI can use the same in-flight lifecycle.
 
 ### `POST /api/generate/multimode` (SSE)
 
@@ -352,211 +288,6 @@ Server-side validation may return these reference codes:
 | `REF_EMPTY` | A reference item was empty |
 | `REF_TOO_LARGE` | A reference exceeded the configured base64 size |
 | `REF_NOT_BASE64` | A reference was not valid base64 |
-| `GROK_REF_TOO_MANY` | Grok classic generation received more than three reference images |
-| `GROK_MASK_UNSUPPORTED` | Grok edit was requested with a mask; xAI mask edit is not wired in this release |
-
-## Video Generation
-
-### `POST /api/video/generate` (SSE)
-
-Generate a video via the Grok video provider. Returns Server-Sent Events on the POST connection, or accepts async mode (`{ "async": true, "requestId": "req_xxx" }`) for `202 { requestId }` with progress on `GET /api/events` (see Events section).
-
-```json
-{
-  "prompt": "a cat playing piano",
-  "provider": "grok",
-  "model": "grok-imagine-video",
-  "duration": 5,
-  "resolution": "480p",
-  "aspectRatio": "auto",
-  "sourceImage": "<base64>",
-  "referenceImages": ["<base64>", "<base64>"],
-  "referenceFilenames": ["existing-file.png"],
-  "continueFromVideo": "1780226256355_50252101.mp4",
-  "continuityLineage": { "lineageId": "optional-client-hint", "entries": [] },
-  "sessionId": "optional",
-  "requestId": "optional-client-id"
-}
-```
-
-**Models**: `grok-imagine-video-1.5` (default), `grok-imagine-video`. The legacy `grok-imagine-video-1.5-preview` string is accepted as a compatibility alias and normalized before the upstream request.
-
-**Mode** is auto-detected from reference inputs:
-
-| Inputs | Mode | Duration cap |
-|---|---|---|
-| No images | text-to-video | 1–15s |
-| 1 image (`sourceImage` or `sourceFilename`) | image-to-video | 1–15s |
-| 2–7 images (`referenceImages` / `referenceFilenames`) | reference-to-video | 1–10s |
-
-1080p is accepted for `grok-imagine-video-1.5` prompt-only text-to-video and image-to-video with one image/frame source, including `continueFromVideo` after the server extracts the parent video's last frame. Prompt-only 1.5 text-to-video uses the internal white-canvas image-to-video shim before the upstream request. 1.5 does not add Ref2V, V2V edit, or extension support.
-
-**Parameters**:
-
-| Field | Type | Default | Notes |
-|---|---|---|---|
-| `prompt` | string | — | Required |
-| `provider` | string | `"grok"` | `"grok"` or `"grok-api"` |
-| `model` | string | `grok-imagine-video-1.5` | Video model |
-| `duration` | integer | `5` | 1–15 seconds (clamped to 10 for reference-to-video) |
-| `resolution` | string | `"480p"` | `480p`, `720p`, or `1080p` (`1080p` uses 1.5 T2V canvas shim or I2V) |
-| `aspectRatio` | string | `"auto"` | 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, auto |
-| `sourceImage` | string | — | Base64 image for image-to-video |
-| `sourceFilename` | string | — | Existing generated file for image-to-video |
-| `referenceImages` | string[] | — | Base64 images for reference-to-video |
-| `referenceFilenames` | string[] | — | Existing generated files for reference-to-video |
-| `continueFromVideo` | string | — | Generated `.mp4` parent; server extracts its last frame and rebuilds lineage from sidecar |
-| `continuityLineage` | object | — | Optional client hint; used only when `continueFromVideo` is absent |
-| `plannerModel` | string | `grok-4.3` | Grok video planner model override; `grok-4.6` and `grok-4.5` are selectable (also via settings UI or `IMA2_GROK_PLANNER_MODEL`) |
-| `storyboard` | boolean | `false` | Enable storyboard mode — maintains character/scene continuity across sequential clips |
-
-Blank prompts return `PROMPT_REQUIRED` with a `guidance` string. The active
-prompt should describe visual flow, motion flow, sound/music/no-music,
-dialogue/no-dialogue, ending frame, and duration pacing. The video planner uses
-the selected duration as the full clip runtime and expands short requests into a
-production-level sequence with opening composition, connected motion/emotion
-change, and a stable ending frame suitable for continuation. For multi-character
-scenes, the planner identifies speakers by visual appearance (clothing, physique,
-position, props) rather than names, and attributes each dialogue line accordingly.
-
-When `continueFromVideo` is present, the server treats the generated `.mp4`
-sidecar as authoritative. Client `continuityLineage` cannot override it. The
-saved child sidecar includes `videoContinuity`, a branch-local max-4 stack using
-`keep-start-plus-latest-3` retention.
-
-`videoContinuity` shape:
-
-```json
-{
-  "lineageId": "lineage:parent",
-  "parentFilename": "parent.mp4",
-  "sourceFrame": "last",
-  "maxEntries": 4,
-  "retention": "keep-start-plus-latest-3",
-  "entries": [
-    {
-      "id": "clip:parent.mp4",
-      "ordinal": 1,
-      "role": "start",
-      "filename": "parent.mp4",
-      "userPrompt": "original user prompt",
-      "revisedPrompt": "planner prompt actually sent to Grok video",
-      "createdAt": 1780300000000
-    }
-  ]
-}
-```
-
-Entry `role` is `start`, `ancestor`, `parent`, or `current`. The first clip is
-kept as the start anchor; later generations keep only the latest three entries.
-`lineageId` uses the generated video basename without the `.mp4` extension.
-This metadata is stored in the generated `.mp4.json` sidecar and returned in
-history rows and video `done` events; `/generated/*.json` remains private.
-
-Grok prompt surfaces used by video APIs:
-
-| Surface | Model | Responsibility |
-|---|---|---|
-| Video planner | `grok-4.5` (override via `plannerModel`) | Converts user prompt, search context, refs, and optional continuity lineage into the final English video prompt. It must structure core subject, action/motion, camera/composition, environment/style, dialogue/audio, ending-frame handoff, and constraints. Multi-character dialogue uses appearance-based speaker identification. |
-| Video generation | xAI video model | Receives the planner prompt plus `sourceImage` or `referenceImages` when present. |
-| Video analysis | `grok-4.5` | Reads first/last frame images from `/api/video/analyze` and returns recreation/continuation guidance. |
-
-**SSE events**:
-
-| Event | Data | Description |
-|---|---|---|
-| `planning` | `{ requestId }` | Preparing video generation |
-| `submitted` | `{ requestId, xaiVideoRequestId, requestedModel, effectiveModel, modelFallback }` | Submitted to xAI |
-| `progress` | `{ requestId, progress, stalled }` | Progress 0.0–1.0 |
-| `done` | `{ requestId, filename, url, mediaType, revisedPrompt, elapsed, usage, requestedModel, effectiveModel, modelFallback, video, videoContinuity }` | Video ready |
-| `error` | `{ error, code, status, requestId, guidance? }` | Generation failed |
-
-**Video error codes**:
-
-| Code | Meaning |
-|---|---|
-| `VIDEO_PROVIDER_UNSUPPORTED` | Provider is not `"grok"` |
-| `PROMPT_REQUIRED` | Empty or missing prompt |
-| `INVALID_GROK_VIDEO_MODEL` | Model not in valid set |
-| `INVALID_VIDEO_RESOLUTION` | Resolution is not 480p/720p/1080p, or 1080p was requested outside `grok-imagine-video-1.5` prompt-only T2V / I2V |
-| `INVALID_VIDEO_ASPECT_RATIO` | Aspect ratio not in valid set |
-| `INVALID_VIDEO_DURATION` | Duration not 1–15 integer |
-| `GROK_VIDEO_REF_TOO_MANY` | More than 7 reference images |
-| `GROK_VIDEO_FAILED` | Upstream xAI video generation failed |
-| `GROK_VIDEO_FRAME_FAILED` | Server could not extract the parent video's last frame |
-
-### `POST /api/video/edit`
-
-Edit an existing video via Grok V2V. This is a blocking JSON endpoint that starts the xAI edit job, polls it, downloads the final MP4, and saves it as a generated video artifact.
-
-```json
-{
-  "prompt": "make it sunset",
-  "videoUrl": "https://vidgen.x.ai/.../clip.mp4",
-  "model": "grok-imagine-video"
-}
-```
-
-`videoUrl` may be an HTTPS video URL, xAI `file_id`, `data:video/*` URL, or generated `.mp4` filename. Generated-file inputs are restricted to real `.mp4` files under the generated directory.
-
-### `POST /api/video/extend`
-
-Extend a video from its last frame (last-frame→I2V orchestration). This is an async job endpoint: it returns HTTP 202 immediately and streams lifecycle events (`queued → extracting-frame → planning → submitted/progress → persisting → done` or `error`) over `GET /api/events`. The server extracts the parent video's last frame, injects it as the image-to-video source, and records durable lineage on the child artifact.
-
-```json
-{
-  "sourceVideoId": "1780226256355_50252101.mp4",
-  "requestId": "vext_optional",
-  "prompt": "camera pulls back (optional — inherits parent prompt when empty)",
-  "provider": "grok",
-  "model": "grok-imagine-video",
-  "duration": 6
-}
-```
-
-Immediate response:
-
-```json
-{ "ok": true, "requestId": "vext_...", "sourceVideoId": "1780226256355_50252101.mp4", "workflow": "last-frame-i2v" }
-```
-
-The terminal `done` payload carries `video.operation: "extend"`, `video.sourceFrame: "last"`, and `videoLineage` (`id`, `parentId`, `rootId`, `seriesId`, `sequenceIndex`). Duplicate `requestId` returns 409. Frame-extraction failures map to `VIDEO_FRAME_EXTRACT_UNAVAILABLE` (503), `VIDEO_FRAME_EXTRACT_TIMEOUT` (504, retryable), or `VIDEO_FRAME_EXTRACT_FAILED` (500).
-
-### `POST /api/video/extend/native`
-
-Legacy provider-native extension (blocking JSON). Starts the xAI extension job, polls it, downloads the combined output MP4, and saves it as a generated video artifact. Prefer `/api/video/extend` for new integrations.
-
-```json
-{
-  "prompt": "camera pulls back",
-  "videoUrl": "1780226256355_50252101.mp4",
-  "duration": 6,
-  "model": "grok-imagine-video"
-}
-```
-
-`duration` must be an integer from 2 to 10 seconds. Edit and native extension support `grok-imagine-video` only; `grok-imagine-video-1.5` and its preview alias are not accepted for these endpoints.
-
-### `GET /api/video/frame`
-
-Extract a PNG frame from a generated `.mp4` file.
-
-| Query | Notes |
-|---|---|
-| `file` | Required generated `.mp4` filename or generated-dir absolute path |
-| `position` | `last` (default) or non-negative seconds |
-
-### `POST /api/video/analyze`
-
-Analyze first and last frames from a generated `.mp4` using the configured planner model (`grok-4.5` by default). This does not upload the video as temporal video; it extracts two PNG frames and asks the vision model to infer likely motion.
-
-```json
-{
-  "videoUrl": "1780226256355_50252101.mp4"
-}
-```
-
-Remote URLs and `data:` inputs are intentionally rejected to avoid server-side URL fetching through `ffmpeg`.
 
 ## Generation Request Log
 
@@ -621,7 +352,7 @@ Version mismatch returns `GRAPH_VERSION_CONFLICT` and the current version. This 
 
 ## Node Templates
 
-Node graph templates (higgsfield 120). Seed templates ship with the app and are read-only; user templates are created from the canvas.
+Node graph templates. Seed templates ship with the app and are read-only; user templates are created from the canvas.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -727,26 +458,6 @@ Registered only when `config.features.cardNews` is true (`routes/cardNews.ts`). 
 | `GRAPH_VERSION_CONFLICT` | Stale graph version |
 | `GRAPH_TOO_LARGE` | Graph exceeds node/edge limits |
 | `NODE_NOT_FOUND` | Node metadata was not found |
-| `INVALID_GROK_IMAGE_MODEL` | A Grok request used a model outside `grok-imagine-image` or `grok-imagine-image-quality` |
-| `GROK_RATE_LIMITED` | xAI returned a rate-limit response through progrok |
-| `GROK_AUTH_FAILED` | progrok could not authenticate the xAI request |
-| `GROK_SEARCH_TIMEOUT` / `GROK_PLANNER_TIMEOUT` / `GROK_IMAGE_TIMEOUT` | The Grok search, planner, or image API step exceeded its timeout budget |
-| `AGY_GENERATION_FAILED` | Gemini (agy) image generation failed |
-| `AGY_TIMEOUT` | Agy CLI process exceeded its 360-second timeout |
-| `AGY_PROCESS_ERROR` | Agy CLI binary failed to start or crashed |
-| `AGY_QUOTA_EXHAUSTED` | Gemini API quota exhausted (rate limit) |
-| `AGY_PARSE_FAILED` | Could not parse artifact path from agy output |
-| `AGY_ARTIFACT_NOT_FOUND` | Agy reported an artifact path that does not exist |
-| `AGY_PATH_REJECTED` | Agy artifact path was outside allowed directories |
-| `AGY_VIDEO_UNSUPPORTED` | Video generation is not supported by the Gemini (agy) provider |
-| `AGY_MASK_UNSUPPORTED` | Mask-based editing is not supported by the Gemini (agy) provider |
-| `AGY_REF_TOO_MANY` | Too many reference images for agy (max 3) |
-| `GEMINI_API_KEY_MISSING` | Gemini API key or Vertex AI credentials not configured |
-| `GEMINI_API_RATE_LIMITED` | Gemini API rate limited (429) |
-| `GEMINI_API_BAD_REQUEST` | Gemini API bad request (400/403) |
-| `GEMINI_API_SAFETY_BLOCKED` | Gemini API generation blocked by safety filter |
-| `GEMINI_API_NO_IMAGE` | Gemini API returned no image in response |
-| `VIDEO_PROVIDER_UNSUPPORTED` | Video generation requires provider `"grok"` or `"grok-api"` |
 | `SSE_CAPACITY` | More than 512 concurrent `GET /api/events` listeners |
 | `REQUEST_ID_IN_USE` | Async POST used a `requestId` that already has an active job |
 | `TOO_MANY_JOBS` | More than the configured concurrent active generation job limit (`Retry-After: 5`; default `24`) |
@@ -757,14 +468,11 @@ API key management endpoints for configuring provider credentials at runtime thr
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/keys/status` | GET | Returns configured/valid/maskedKey status for all providers (openai, xai, gemini, vertex) plus `geminiAuthMode` (`"apikey"` or `"vertex"`) |
-| `/api/keys/:provider` | PUT | Save an API key. Body: `{ "apiKey": "..." }`. Validates key format and upstream before saving to config.json. Provider: `openai`, `xai`, or `gemini`. |
+| `/api/keys/status` | GET | Returns configured/valid/maskedKey status for all providers (openai) |
+| `/api/keys/:provider` | PUT | Save an API key. Body: `{ "apiKey": "..." }`. Validates key format and upstream before saving to config.json. Provider: `openai`. |
 | `/api/keys/:provider` | DELETE | Remove a config-sourced API key. Env-sourced keys cannot be removed (`ENV_KEY_IMMUTABLE`). |
-| `/api/keys/vertex` | PUT | Save a Vertex AI service account JSON. Body: `{ "serviceAccountJson": "..." }`. Validates JSON structure (`type: "service_account"`, `project_id` required). |
-| `/api/keys/vertex` | DELETE | Remove a config-sourced Vertex AI service account. |
-| `/api/keys/gemini-auth-mode` | PUT | Persist the Gemini auth mode chosen in the settings dropdown. Body: `{ "mode": "apikey" \| "vertex" }`. Saved to `config.json` and hot-updated. |
 
-Keys saved via PUT are stored in `config.json` and hot-updated in the runtime context (no server restart required). Keys loaded from environment variables (`OPENAI_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY`, `VERTEX_SERVICE_ACCOUNT_JSON`) take precedence and are immutable through the API.
+Keys saved via PUT are stored in `config.json` and hot-updated in the runtime context (no server restart required). Keys loaded from environment variables (`OPENAI_API_KEY`) take precedence and are immutable through the API.
 
 ## Thumbnail Backfill
 
@@ -805,12 +513,6 @@ Most server routes under `/api/*` have a CLI wrapper. The exception is **Agent M
 | `POST /api/generate` | `ima2 gen` |
 | `POST /api/edit` | `ima2 edit` |
 | `POST /api/generate/multimode` (SSE) | `ima2 multimode` |
-| `POST /api/video/generate` (SSE) | `ima2 video` |
-| `POST /api/video/generate` with `continueFromVideo` | `ima2 video continue` |
-| `POST /api/video/edit` | `ima2 video edit` |
-| `POST /api/video/extend` | `ima2 video extend` |
-| `GET /api/video/frame` | `ima2 video frame` |
-| `POST /api/video/analyze` | `ima2 video analyze` |
 | `POST /api/node/generate` (SSE) / `GET /api/node/:id` | `ima2 node generate` / `ima2 node show` |
 | `GET /api/history` | `ima2 ls` |
 | `DELETE /api/history/:name` / `…/permanent` | `ima2 history rm [--permanent]` |
@@ -831,23 +533,20 @@ Most server routes under `/api/*` have a CLI wrapper. The exception is **Agent M
 | `GET /api/inflight` / `DELETE /api/inflight/:id` | `ima2 inflight ls` (alias `ps`) / `ima2 inflight rm` (alias `cancel`) |
 | `GET /api/events` (SSE multiplex) | Web UI only (persistent `EventSource`; no CLI wrapper) |
 | `GET /api/storage/status` / `POST /api/storage/open-generated-dir` | `ima2 storage status` / `ima2 storage open` |
-| `GET /api/billing` / `GET /api/providers` / `GET /api/oauth/status` / `GET /api/grok/status` | `ima2 billing` / `ima2 providers` / `ima2 oauth status` / `ima2 grok status` |
-| `GET /api/quota` | Web UI only (Grok quota bar in Settings) |
+| `GET /api/billing` / `GET /api/providers` / `GET /api/oauth/status` | `ima2 billing` / `ima2 providers` / `ima2 oauth status` |
+| `GET /api/quota` | Web UI only (quota bar in Settings) |
 | `POST /api/auth/switch` / `GET /api/auth/switch/:sessionId` | Web UI only (Settings > QuotaCard > Switch Account) |
 | `GET /api/health` | `ima2 ping` |
 | `GET /api/capabilities` | `ima2 capabilities` |
-| `GET /api/config/grok-planner` | — (Grok planner model query) |
-| `PATCH /api/config/grok-planner` | — (Grok planner model update) |
-| `GET /api/agy/status` | — (Antigravity CLI install status) |
 | `POST /api/history/backfill-thumbnails` | `ima2 backfill-thumbs` |
-| `GET /api/keys/status`, `PUT/DELETE /api/keys/:provider`, `PUT/DELETE /api/keys/vertex` | Web UI only (Settings > API Keys) |
+| `GET /api/keys/status`, `PUT/DELETE /api/keys/:provider` | Web UI only (Settings > API Keys) |
 | `GET/POST/PATCH/DELETE /api/agent/*` (sessions, turns, queue) | — (Agent Mode; web UI only, no CLI) |
 | `POST /api/prompt-builder/chat` | `ima2 prompt build` |
 
 Notes:
 - `ima2 history favorite` and `ima2 annotate …` send `X-Ima2-Browser-Id: cli-<sha1prefix>` derived from the config dir, so CLI activity does not collide with browser sessions.
 - `ima2 session graph save` performs a GET-then-PUT with `If-Match: "<version>"` to guard against `GRAPH_VERSION_CONFLICT`.
-- `ima2 history import` and `ima2 canvas-versions save/update` send raw bytes with `Content-Type: image/<png|jpeg|webp>`; the SSE endpoints (`multimode`, `node generate`, `video`) use `Accept: text/event-stream`. The web UI instead uses `GET /api/events` plus `async: true` on POST routes.
+- `ima2 history import` and `ima2 canvas-versions save/update` send raw bytes with `Content-Type: image/<png|jpeg|webp>`; the SSE endpoints (`multimode`, `node generate`) use `Accept: text/event-stream`. The web UI instead uses `GET /api/events` plus `async: true` on POST routes.
 - `ima2 cardnews …` checks `runtimeConfig.features.cardNews` before calling the gated endpoints; when disabled the CLI exits 2 with a clear message instead of producing a 404.
 
 ## CLI Discovery
@@ -921,123 +620,13 @@ Generate an idle anchor candidate. Async: returns `202 { requestId }`, progress 
 
 Generate sprite rows for approved recipes. Body: `{ states?, async, requestId }`. Async: `202 { requestId }`.
 
-## MCP Provider Connections
-
-Remote subscription MCP providers (Runway, Higgsfield) connect through a compiled
-registry — arbitrary endpoints are rejected. All responses are secret-free: tokens
-live only in versioned `${configDir}/mcp/<provider>.json` records (0600), bound to
-the provider endpoint and live callback origin.
-
-After the server has selected and published its actual port, it automatically restores
-each enabled provider with a completed same-binding token bundle. This path does not
-open a browser. Missing, corrupt, pending-only, disabled, or binding-mismatched records
-do not send a Bearer request and are not silently deleted. A mismatch is reported as
-`auth_required`; start Connect again to authorize the new endpoint/origin. OAuth state
-and PKCE are memory-only, so a browser flow interrupted by restart must be restarted.
-
-### `GET /api/mcp/providers`
-
-List registry providers with per-provider connection status.
-
-### `POST /api/mcp/temp-references`
-
-Stage local reference sources (data URLs) as a temporary gallery batch so MCP
-generation can upload them by filename. Returns `{ ok, batchId, files[] }`.
-
-### `DELETE /api/mcp/temp-references/:batchId`
-
-Delete a staged temp-reference batch after the MCP job finishes.
-
 ### `GET /api/models`
 
 Canonical lane catalog for CLI/agent routing. Returns
-`{ ok, lanes: { [lane]: { status, reason?, defaults: { image?, video? }, models: { image[], video[] } } } }`
-for the six core lanes (`oauth|api|grok|grok-api|agy|gemini-api`) plus MCP lanes
-(`runway|higgsfield`). Status is one of `ready|locked|disconnected|key-missing`
-with precedence `locked > key-missing|disconnected > ready`. MCP static snapshot
-models are always listed; dynamic (`models_explore`) models appear only while
-connected. Consumed by `ima2 models`, `ima2 defaults set image|video`, and the
-CLI model resolver.
-
-### `GET /api/mcp/providers/:id/status`
-
-Connection status: `disconnected | connecting | auth_required | connected | offline | error`.
-The optional `detail` is a stable secret-free diagnostic code. `connected` means the
-current generation/transport is usable; `offline` means a terminal transport failure
-was observed and at most one reconnect is scheduled; `error` is an unrecovered failure.
-
-### `POST /api/mcp/providers/:id/connect`
-
-Start or resume a connection. Returns `202 { status: { state: "auth_required", authorizationUrl } }`
-when the user must approve OAuth in a browser; `202` while connecting; `200` once
-connected. Terminal responses preserve state: `409 disconnected`, `503 offline`, or
-`502 error`. `ok` is true only for `connected`.
-
-### `GET /api/mcp/oauth/callback`
-
-OAuth redirect target (`?state=&code=`). Exempt from the LAN token guard; protected by
-the single-use OAuth `state` + PKCE. Invalid state → `400` with no token exchange.
-Completion HTML is returned only after the manager reaches `connected`; otherwise the
-callback returns the state's mapped 202/409/503/502 response and a failure page.
-
-### `POST /api/mcp/providers/:id/refresh`
-
-Close and re-establish the session reusing stored tokens (refresh-token path). It uses
-the same state-to-HTTP mapping as Connect and cannot overwrite a newer disconnect or
-connection generation.
-
-### `DELETE /api/mcp/providers/:id/connection`
-
-Clear local tokens and close the session. The response note explicitly says this is
-local-only; it does not revoke the provider-side grant. The tombstone prevents older
-connect, callback, restore, or refresh work from recreating the credential.
-
-Transport recovery never replays a host `callTool` request. In particular, mutating or
-billed media operations are not automatically retried by the connection manager.
-
-### `POST /api/mcp/generate`
-
-Generate media through a connected MCP provider. Body:
-`{ provider: "runway", kind: "image"|"video", prompt, model?, ratio?, startFrameUrl?, requestId? }`.
-Async: returns `202 { requestId }`; progress (`submitted`, `provider-queued`,
-`provider-running`, `downloading`) and terminal `done`/`error` arrive on `/api/events`.
-The route is the single persistence owner: results are committed to the generated
-library (file + strict sidecar + thumbnail) before `done` is emitted. Catalog-only
-providers (e.g. Higgsfield on a free plan) return `409 MCP_EXECUTION_LOCKED`.
-`startFrameFilename` accepts an existing generated-library image: it is uploaded to
-the provider and used as the image-to-video start frame, recording
-`parent: { filename, mediaType, role: "start-frame" }` lineage in the sidecar.
-
-### `POST /api/mcp/media-action`
-
-Run a media workflow action. Body: `{ action: "stitch"|"upscale-video"|"upscale-image"|"edit-video"|"extend"|"reframe", files: [generated filenames], prompt?, provider? }`.
-The workflow router decides per-tool: `native` (provider tool present live with a
-matching schema), `fallback` (`stitch` → local ffmpeg concat; `extend` → last-frame
-I2V), or `unavailable` (`409 MEDIA_ACTION_UNAVAILABLE`, e.g. reframe while the
-provider is catalog-only). Async: `202 { requestId, mode, plan }`; results commit
-through the same single persistence owner with `parent`/`inputs` lineage.
-
-### `POST /api/mcp/tasks/:taskId/recover`
-
-### `POST /api/mcp/multishot`
-
-Generate a multishot (multi-scene) video through Runway MCP. Body:
-`{ prompt?: string, shots?: string[] (3-5), duration?: 5|10|15, resolution?: "720p"|"1080p", aspectRatio?, sound?: boolean, firstSceneFilename?, requestId? }`.
-`prompt` maps to auto mode (storyPrompt); `shots[]` maps to custom mode.
-One of `prompt` or `shots` is required (`400 INVALID_MULTISHOT` otherwise).
-Async: `202 { requestId, provider }`; lifecycle events on `/api/events`.
-Results commit with `workflow: "video.multishot"` and `mcpParameters`.
-
-Re-download a remote-succeeded MCP task into the generated library. Body:
-`{ provider?: "runway", kind?: "video"|"image" }`. Use after a generation's
-download/commit step failed transiently — provider assets stay fetchable for
-~24-48h. Re-polls `get_task`, requires `SUCCEEDED` with an output URL
-(`error` SSE event with `MCP_TASK_NOT_SUCCEEDED` otherwise), then runs the same
-download (with retry + IPv4 fallback) → single-persistence commit path as a
-normal generation. Async: `202 { requestId, taskId }`; `done` carries
-`recovered: true`.
-Catalog-only providers (e.g. Higgsfield on a free plan) return
-`409 MCP_EXECUTION_LOCKED`, same as `/api/mcp/generate`.
+`{ ok, lanes: { [lane]: { status, reason?, defaults: { image? }, models: { image[] } } } }`
+for the two core lanes (`oauth|api`). Status is one of `ready|locked|key-missing`
+with precedence `locked > key-missing > ready`. Consumed by `ima2 models`,
+`ima2 defaults set image`, and the CLI model resolver.
 
 ## Contract Discovery
 

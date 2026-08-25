@@ -1,32 +1,20 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { config } from "../../config.js";
 import { errInfo } from "../../lib/errInfo.js";
 import { parseArgs, type ParsedArgs } from "../lib/args.js";
-import { wasFlagPassed } from "../lib/argsExplicit.js";
 import { resolveServer, request, normalizeGenerate } from "../lib/client.js";
 import { fileToDataUri, dataUriToFile, defaultOutName, readStdin } from "../lib/files.js";
 import { loadCliDefaults } from "../lib/config-store.js";
-import { runMcpJob } from "../lib/mcpJob.js";
-import { characterElementIdForMcp } from "../lib/characterResolve.js";
-import { resolveTarget, type ModelCatalog, type ModelEntry, type ResolveResult } from "../lib/modelResolver.js";
+import { resolveTarget, type ModelCatalog, type ResolveResult } from "../lib/modelResolver.js";
 import { out, die, dieWithError, color, err, fail, json } from "../lib/output.js";
 import { createCliRequestId, recoverGeneratedOutputs, formatRecoveryHint } from "../lib/recover-output.js";
 import { deriveProviderIds } from "../../lib/providers/derive.js";
-import { listProviders } from "../../lib/mcp/providerRegistry.js";
 import { BACKGROUND_PRESETS } from "../../lib/backgroundPresets.js";
 
 const VALID_MODES = new Set(["auto", "direct"]);
 const VALID_MODERATION = new Set(["auto", "low"]);
 const MAX_GENERATION_COUNT = Math.max(1, Math.trunc(Number(config.limits.maxGeneratedImages) || 24));
 const MAX_REFERENCE_COUNT = Math.max(1, Math.trunc(Number(config.limits.maxRefCount) || 5));
-const MCP_IMAGE_TIMEOUT_MS = 5 * 60_000 + 120_000 + 30_000;
-const MCP_LANES = new Set(["runway", "higgsfield"]);
-const PROVIDER_VALUES = [
-  ...deriveProviderIds(),
-  ...listProviders([]).map((provider) => provider.id),
-];
-
+const PROVIDER_VALUES = deriveProviderIds();
 const SPEC = {
   flags: {
     quality: { short: "q", type: "string", default: "low" },
@@ -39,7 +27,6 @@ const SPEC = {
     stdin: { type: "boolean" }, timeout: { type: "string", default: "180" }, server: { type: "string" },
     model: { type: "string" }, provider: { type: "string" }, mode: { type: "string", default: "auto" },
     moderation: { type: "string", default: "low" }, bg: { type: "string" }, session: { type: "string" },
-    character: { type: "string" },
     "reasoning-effort": { type: "string" }, "web-search": { type: "boolean" },
     "no-web-search": { type: "boolean" }, help: { short: "h", type: "boolean" },
   },
@@ -48,53 +35,48 @@ const SPEC = {
 const HELP = `
   ima2 gen <prompt...> [options]
 
-  Generate image(s) via a configured core or MCP lane.
+  Generate image(s) via a configured OAuth or API lane.
   Set a default with 'ima2 defaults set image <lane>/<model>' or inspect lanes with 'ima2 models'.
 
   Batch/async note:
-    Use -n <N> for multiple core-lane candidates. Independent CLI commands can
-    run concurrently; monitor requestIds with 'ima2 ps --json' and cancel with
-    'ima2 cancel <requestId>'. MCP lanes support -n 1 only.
+    Use -n <N> for multiple candidates. Independent CLI commands can run
+    concurrently; monitor requestIds with 'ima2 ps --json' and cancel with
+    'ima2 cancel <requestId>'.
 
   Options:
-    -q, --quality <low|medium|high>         Core lanes only. Default: low
-    -s, --size <WxH | auto>                 Core lanes only. Default: 1024x1024
-    -n, --count <1..${MAX_GENERATION_COUNT}>                     MCP lanes: 1 only
-        --ref <file|generated-file[:tag]>   Local file on core; generated filename on MCP
-        --character <element-id|name>       MCP lanes only: character binding element
+    -q, --quality <low|medium|high>         Default: low
+    -s, --size <WxH | auto>                 Default: 1024x1024
+    -n, --count <1..${MAX_GENERATION_COUNT}> Default: 1
+        --ref <file>                        Local reference image (repeatable)
     -o, --out <file>                        Single-image output path
     -d, --out-dir <dir>                     Output directory
         --json                              Print one JSON result to stdout
-        --no-save                           Core lanes only
-        --stdin                              Read prompt from stdin (core lanes only)
+        --no-save                           Print base64 image data
+        --stdin                              Read prompt from stdin
         --timeout <sec>                     Default: 180
         --server <url>                      Override server URL
         --model <model|lane/model>          Bare IDs must be unique across lanes
                                             Core aliases: luna, sol, terra, spark
         --provider <${PROVIDER_VALUES.join("|")}>
                                             'auto' was removed; choose a lane explicitly
-        --mode <auto|direct>                Core lanes only. Default: auto
-        --moderation <auto|low>             Core lanes only. Default: low
+        --mode <auto|direct>                Default: auto
+        --moderation <auto|low>             Default: low
         --bg <chroma-green|white|black|transparent>
-                                            Core lanes only. 'transparent' asks GPT Image 2
-                                            for a real alpha channel (saved as PNG)
-        --session <id>                      Core lanes only
+                                            'transparent' asks GPT Image 2 for alpha
+        --session <id>                      Apply session style sheet
         --reasoning-effort <none|low|medium|high|xhigh|max>
-                                            Core lanes only
-        --web-search / --no-web-search      Core lanes only
+        --web-search / --no-web-search      Override web-search toggle
 
   Examples:
     ima2 defaults set image oauth/gpt-5.6-luna
     ima2 gen "a shiba in space"
     ima2 gen "poster" --model oauth/luna --mode direct
     ima2 gen "fox logo mark" --bg transparent -o logo.png
-    ima2 gen "campaign still" --model runway/gen-4 --ref 1780000000000_abcd.png
 `;
 
 type ResolvedTarget = Extract<ResolveResult, { ok: true }>;
 type ImageContext = {
   server: { base: string };
-  catalog: ModelCatalog;
   target: ResolvedTarget;
   prompt: string;
   refs: string[];
@@ -119,7 +101,7 @@ async function fetchCatalog(serverFlag: unknown, jsonMode: boolean) {
 }
 
 function resolveImageTarget(args: ParsedArgs, catalog: ModelCatalog): ResolvedTarget {
-  const result = resolveTarget("image", {
+  const result = resolveTarget({
     ...(args.model ? { model: String(args.model) } : {}),
     ...(args.provider ? { provider: String(args.provider) } : {}),
   }, catalog, loadCliDefaults());
@@ -129,108 +111,6 @@ function resolveImageTarget(args: ParsedArgs, catalog: ModelCatalog): ResolvedTa
   return result;
 }
 
-function inputRoles(entry: ModelEntry | undefined): string[] {
-  const capabilities = entry?.capabilities;
-  if (!capabilities || typeof capabilities !== "object" || Array.isArray(capabilities)) return [];
-  const roles = (capabilities as Record<string, unknown>).inputRoles;
-  return Array.isArray(roles) ? roles.filter((role): role is string => typeof role === "string") : [];
-}
-
-function generatedFilename(value: string): boolean {
-  return /^\d{10,}_[A-Za-z0-9_-]+\.(?:png|jpe?g|webp)$/i.test(value);
-}
-
-function rejectUnsupportedMcpFlags(argv: string[], args: ParsedArgs): void {
-  const forbidden: Array<[string, string[]]> = [
-    ["--quality", ["--quality", "-q"]], ["--size", ["--size", "-s"]],
-    ["--no-save", ["--no-save"]], ["--force", ["--force"]], ["--stdin", ["--stdin"]],
-    ["--mode", ["--mode"]], ["--moderation", ["--moderation"]], ["--bg", ["--bg"]],
-    ["--session", ["--session"]], ["--reasoning-effort", ["--reasoning-effort"]],
-    ["--web-search", ["--web-search"]], ["--no-web-search", ["--no-web-search"]],
-  ];
-  const match = forbidden.find(([, flags]) => wasFlagPassed(argv, ...flags));
-  if (match) fail({ json: Boolean(args.json), code: "FLAG_NOT_SUPPORTED", message: `${match[0]} is not supported for MCP image lanes`, extra: { flag: match[0] } });
-  const count = Number(args.count);
-  if (!Number.isInteger(count) || count !== 1) fail({ json: Boolean(args.json), code: "FLAG_NOT_SUPPORTED", message: "MCP image lanes support --count 1 only", extra: { flag: "--count" } });
-}
-
-type McpImageReference = { filename: string; tag?: string | undefined };
-
-function parseMcpReference(value: string, jsonMode: boolean): McpImageReference {
-  const separator = value.lastIndexOf(":");
-  const filename = separator > 0 ? value.slice(0, separator) : value;
-  const tag = separator > 0 ? value.slice(separator + 1) : undefined;
-  if (!generatedFilename(filename)) {
-    fail({ json: jsonMode, code: "MCP_REF_MUST_BE_GENERATED", message: `MCP references must be generated filenames: ${filename}` });
-  }
-  if (tag !== undefined && !/^[\p{L}\p{N}_-]{1,32}$/u.test(tag)) {
-    fail({ json: jsonMode, code: "MCP_REF_TAG_INVALID", message: `MCP reference tag is invalid: ${tag || "(empty)"}` });
-  }
-  return { filename, ...(tag ? { tag } : {}) };
-}
-
-function supportingModels(catalog: ModelCatalog, role: string): string[] {
-  const supported: string[] = [];
-  for (const [lane, info] of Object.entries(catalog.lanes)) {
-    if (!MCP_LANES.has(lane)) continue;
-    for (const entry of info.models.image) {
-      if (inputRoles(entry).includes(role)) supported.push(`${lane}/${entry.id}`);
-    }
-  }
-  return supported;
-}
-
-function validateMcpRefs(refs: string[], context: ImageContext, roles: string[], jsonMode: boolean): McpImageReference[] {
-  const parsed = refs.map((ref) => parseMcpReference(ref, jsonMode));
-  if (refs.length > 0 && !roles.includes("image_references")) {
-    const supportedModels = supportingModels(context.catalog, "image_references");
-    const support = supportedModels.length ? supportedModels.join(", ") : "none listed";
-    fail({
-      json: jsonMode, code: "INPUT_ROLE_UNSUPPORTED",
-      message: `${context.target.lane}/${context.target.model} does not support --ref; supporting MCP models: ${support}`,
-      extra: { flag: "--ref", role: "image_references", supportedModels },
-    });
-  }
-  if (refs.length === 0 && roles.includes("start_image") && !roles.includes("text")) {
-    fail({ json: jsonMode, code: "MISSING_START_FRAME", message: "selected model requires a generated start image" });
-  }
-  return parsed;
-}
-
-async function downloadMcpResult(serverBase: string, url: string, target: string): Promise<void> {
-  const response = await fetch(`${serverBase}${url}`);
-  if (!response.ok) die(1, `failed to download image: HTTP ${response.status}`);
-  await mkdir(dirname(target), { recursive: true });
-  await writeFile(target, Buffer.from(await response.arrayBuffer()));
-}
-
-async function runMcpImage(argv: string[], args: ParsedArgs, context: ImageContext): Promise<void> {
-  rejectUnsupportedMcpFlags(argv, args);
-  const refs = (Array.isArray(args.ref) ? args.ref : []) as string[];
-  const entry = context.catalog.lanes[context.target.lane]?.models.image.find((item) => item.id === context.target.model);
-  const references = validateMcpRefs(refs, context, inputRoles(entry), Boolean(args.json));
-  const requestId = createCliRequestId("req_cli_gen");
-  const characterElementId = args.character
-    ? await characterElementIdForMcp({
-        serverBase: context.server.base, idOrName: String(args.character),
-        lane: context.target.lane, inputRoles: inputRoles(entry), json: Boolean(args.json),
-      })
-    : null;
-  const body = { provider: context.target.lane, kind: "image", prompt: context.prompt, model: context.target.model,
-    requestId, parameters: {}, ...(references.length ? { references } : {}),
-    ...(characterElementId ? { characterElementId } : {}) };
-  try {
-    const result = await runMcpJob({ serverBase: context.server.base, kind: "image", body, requestId,
-      timeoutMs: MCP_IMAGE_TIMEOUT_MS, json: Boolean(args.json), onProgress: (phase: unknown) => err(`[${String(phase)}]`) });
-    const target = args.out ? String(args.out) : args["out-dir"] ? join(String(args["out-dir"]), result.filename) : undefined;
-    if (target) await downloadMcpResult(context.server.base, result.url, target);
-    if (args.json) json({ ok: true, requestId, filename: result.filename, url: result.url, ...(target ? { path: target } : {}) });
-    else out(color.green("✓ ") + (target ?? `${context.server.base}${result.url}`));
-  } catch (error) {
-    const typed = error as Error & { code?: string | undefined };
-    fail({ json: Boolean(args.json), code: typed.code ?? "MCP_GENERATION_FAILED", message: typed.message, exitCode: 1 });
-  }
-}
 
 function validateCoreFlags(args: ParsedArgs): void {
   if (!VALID_MODES.has(String(args.mode))) die(2, "--mode must be one of: auto, direct");
@@ -306,7 +186,6 @@ async function runCoreImage(args: ParsedArgs, context: ImageContext): Promise<vo
     images: paths.map((path, index) => ({ path, filename: norm.images[index]?.filename })) });
   else { for (const path of paths) out(color.green("✓ ") + path); if (norm.elapsed) out(color.dim(`elapsed ${norm.elapsed}s`)); }
 }
-
 export default async function genCmd(argv: string[]): Promise<void> {
   const args = parseArgs(argv, SPEC);
   if (args.help) { out(HELP); return; }
@@ -316,14 +195,8 @@ export default async function genCmd(argv: string[]): Promise<void> {
   if (refs.length > MAX_REFERENCE_COUNT) die(2, `max ${MAX_REFERENCE_COUNT} --ref attachments`);
   const { server, catalog } = await fetchCatalog(args.server, Boolean(args.json));
   const target = resolveImageTarget(args, catalog);
-  if (args.character && target.transport !== "mcp") {
-    fail({ json: Boolean(args.json), code: "CAPABILITY_MISMATCH",
-      message: "--character is only supported on MCP lanes (runway/higgsfield); core lanes use element mentions",
-      exitCode: 2 });
-  }
-  let context = { server, catalog, target, prompt, refs, explicitOut: args.out ? String(args.out) : null,
+  let context = { server, target, prompt, refs, explicitOut: args.out ? String(args.out) : null,
     outDir: args["out-dir"] ? String(args["out-dir"]) : null };
-  if (target.transport === "mcp") return runMcpImage(argv, args, context);
   if (args.stdin) { const piped = await readStdin(); if (piped) prompt = prompt ? `${prompt} ${piped}` : piped; }
   if (!prompt) die(2, "prompt is required (positional or via --stdin)");
   context = { ...context, prompt };

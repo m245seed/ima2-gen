@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 export type ElementKind = "character" | "product" | "style" | "scene";
-export type ElementProvider = "gpt" | "gemini" | "grok";
+export type ElementProvider = "gpt";
 export type ElementMode = "image" | "edit" | "video";
 
 export interface ElementDefinition {
@@ -56,8 +56,6 @@ export interface CompileElementsOutput {
 
 export const ELEMENT_CAPACITY_DEFAULTS: Record<ElementProvider, Record<ElementMode, ElementCapacity>> = {
   gpt: { image: { maxTotalRefs: 6, maxRefsPerElement: 6 }, edit: { maxTotalRefs: 6, maxRefsPerElement: 6 }, video: { maxTotalRefs: 1, maxRefsPerElement: 6 } },
-  gemini: { image: { maxTotalRefs: 6, maxRefsPerElement: 6 }, edit: { maxTotalRefs: 6, maxRefsPerElement: 6 }, video: { maxTotalRefs: 3, maxRefsPerElement: 6 } },
-  grok: { image: { maxTotalRefs: 4, maxRefsPerElement: 4 }, edit: { maxTotalRefs: 4, maxRefsPerElement: 4 }, video: { maxTotalRefs: 1, maxRefsPerElement: 4 } },
 };
 
 const SOURCE_PRIORITY = { continuity: 0, node: 1, composer: 2, element: 3 } as const;

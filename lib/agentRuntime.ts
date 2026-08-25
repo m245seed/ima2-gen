@@ -1,7 +1,6 @@
 import { ulid } from "ulid";
 import { config } from "../config.js";
 import { generateAgentImageWithRetry } from "./agentImageVideoGen.js";
-import { runAgentVideoGeneration } from "./agentImageVideoGen.js";
 import {
   appendAgentTurn,
   buildImageContextManifest,
@@ -16,7 +15,6 @@ import {
   type AgentSourceImagePolicy,
   type AgentToolCallSummary,
   type AgentToolName,
-  type AgentVideoParams,
 } from "./agentTypes.js";
 import { getAgentGenerationErrors } from "./agentQueueStore.js";
 import { AGENT_TOOL_MANIFEST } from "./agentToolManifest.js";
@@ -35,7 +33,6 @@ export type AgentRunOptions = {
   webSearchEnabled?: boolean | undefined;
   parallelism?: number | undefined;
   signal?: AbortSignal | null | undefined;
-  videoParams?: AgentVideoParams | null | undefined;
   sourceImagePolicy?: AgentSourceImagePolicy | null | undefined;
   onProgressStage?: (stage: "requesting" | "polling" | "downloading") => void | undefined;
 };
@@ -92,10 +89,10 @@ export async function runAgentGenerationPlan(
 ) {
   const session = getAgentSession(sessionId);
   if (!session) throw notFound(sessionId);
-  const webSearchEnabled = options.provider === "agy" ? false : options.provider === "grok" ? true : options.webSearchEnabled ?? session.webSearchEnabled;
+  const webSearchEnabled = options.webSearchEnabled ?? session.webSearchEnabled;
   const enabledTools: AgentToolName[] = webSearchEnabled
     ? [...AGENT_ALLOWED_TOOLS]
-    : ["ima2.get_image_context", "ima2.generate_image", "ima2.generate_video", "ima2.get_generation_errors"];
+    : ["ima2.get_image_context", "ima2.generate_image", "ima2.get_generation_errors"];
   assertAgentAllowedTools(enabledTools);
   if (behavior.appendUserTurn !== false) {
     appendAgentTurn({ sessionId, role: "user", text: prompt, status: "complete" });
@@ -115,18 +112,6 @@ export async function runAgentGenerationPlan(
     return runAgentErrorLookup(sessionId, plan);
   }
   const preludeSent = appendPlannerPreludeTurn(sessionId, plan);
-  if (plan.mode === "video") {
-    return runAgentVideoGeneration(ctx, sessionId, plan.prompts[0] ?? prompt, {
-      ...options,
-      videoParams: plan.videoParams ?? options.videoParams ?? null,
-      // The image path has always forwarded this (see below); the video path did not,
-      // so a planner that chose "none" was overruled by whatever image came last.
-      sourceImagePolicy: plan.sourceImagePolicy ?? "auto",
-      assistantText: preludeSent ? null : plan.assistantText,
-      requestId: options.requestId ?? `agent_video_${ulid()}`,
-      skipUserTurn: true,
-    });
-  }
   const manifest = buildImageContextManifest(sessionId);
   const contextStartedAt = Date.now();
   appendAgentTurn({
@@ -341,7 +326,7 @@ export function isRuntimeRestartableError(error: unknown) {
 
 function recordSearchFindings(sessionId: string, prompt: string, count: number, provider: string) {
   if (!count) return [];
-  const providerLabel = provider === "grok" ? "Grok" : provider === "agy" ? "Gemini" : "Responses";
+  const providerLabel = provider === "api" ? "OpenAI API" : "OpenAI OAuth";
   return [
     recordAgentWebFinding({
       sessionId,

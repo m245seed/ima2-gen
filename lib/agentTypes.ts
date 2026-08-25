@@ -4,7 +4,6 @@ export const AGENT_ALLOWED_TOOLS = [
   "ima2.get_image_context",
   "ima2.web_search",
   "ima2.generate_image",
-  "ima2.generate_video",
   "ima2.get_generation_errors",
 ] as const;
 
@@ -15,7 +14,7 @@ export type AgentToolCallStatus = "queued" | "running" | "complete" | "error";
 export type AgentQueueStatus = "queued" | "running" | "succeeded" | "failed" | "canceled";
 export type AgentSessionRunStatus = "idle" | "queued" | "running" | "error";
 export type AgentGenerationStrategy = "auto" | "manual";
-export type AgentGenerationPlanMode = "single" | "fanout" | "question" | "video" | "errors";
+export type AgentGenerationPlanMode = "single" | "fanout" | "question" | "errors";
 export type AgentGenerationPlanSource = "auto-default" | "auto-request" | "manual-settings" | "slash-command" | "question-command" | "llm-planner";
 export type AgentSourceImagePolicy = "auto" | "none" | "current";
 export type AgentSlashCommandName = "question" | "help" | "variants" | "generate" | "parallelism";
@@ -78,17 +77,6 @@ export interface AgentQueueItem {
   plan: AgentGenerationPlan;
 }
 
-export interface AgentVideoParams {
-  duration?: number | undefined;
-  resolution?: "480p" | "720p" | "1080p" | undefined;
-  aspectRatio?: string | undefined;
-  /**
-   * Whether an attached image should become the first frame ("image-to-video") or
-   * only guide the result ("reference-to-video"). Chat has no reference tray, so the
-   * planner is where that intent gets expressed.
-   */
-  mode?: "text-to-video" | "image-to-video" | "reference-to-video" | undefined;
-}
 
 export interface AgentGenerationPlan {
   mode: AgentGenerationPlanMode;
@@ -100,7 +88,6 @@ export interface AgentGenerationPlan {
   reason: string;
   command?: AgentSlashCommandName | null | undefined;
   assistantText?: string | null | undefined;
-  videoParams?: AgentVideoParams | null | undefined;
   sourceImagePolicy?: AgentSourceImagePolicy | null | undefined;
 }
 

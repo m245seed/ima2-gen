@@ -13,7 +13,6 @@ import type {
   SettingsSection,
   SizePreset,
   UIMode,
-  VideoResolutionUI,
   VideoContinuityLineage,
   HistoryStripLayout,
 } from "../types";
@@ -26,8 +25,6 @@ import type { CustomSizeAdjustmentReason } from "../lib/size";
 import type { ReasoningEffort } from "../lib/reasoning";
 import type { GalleryShortcutAction } from "../lib/galleryShortcuts";
 import type { WorkspaceProfile } from "../lib/workspaceProfile";
-import type { McpInputRole, McpPresetValue } from "../lib/mcpProviders";
-import type { McpReferenceSelection } from "../lib/mcpSelection";
 import type { Locale } from "../i18n";
 import type { SpriteRecipeDraft, SpriteRecipeRecord, SpriteRecipeSummary } from "../types/spriteRecipe";
 import type { ReferenceTraySlice, TrayItem } from "../lib/referenceTray";
@@ -51,18 +48,6 @@ export type AssetItem = {
 export type AssetFolder = { id: string; name: string; parentId: string | null; createdAt: number; updatedAt: number };
 export type AssetsFilters = { kind: string | null; folderId: string | null; tag: string | null; q: string };
 
-export type VideoDefaults = {
-  model: string | false;
-  duration: number;
-  resolution: string;
-  aspectRatio: string;
-  /**
-   * What a lone tray reference means. One image is ambiguous — as a first frame it
-   * gets animated, as a reference it guides a new scene — and only the user knows
-   * which they meant.
-   */
-  singleRefMode: "image-to-video" | "reference-to-video";
-};
 
 export type PersistedInFlight = {
   id: string;
@@ -74,7 +59,7 @@ export type PersistedInFlight = {
   sessionId?: string | null;
   parentNodeId?: string | null;
   clientNodeId?: string | null;
-  kind?: "classic" | "node" | "multimode" | "video" | "mcp-image" | "mcp-video" | `mcp-action-${string}`;
+  kind?: "classic" | "node" | "multimode";
 };
 
 export type ServerInFlightJob = {
@@ -115,7 +100,6 @@ export type GraphSaveReason =
   | "queued"
   | "edge-disconnect"
   | "node-complete"
-  | "video-node-complete";
 export type GraphSaveResult = "saved" | "skipped" | "conflict" | "failed";
 
 export type ImageNodeStatus =
@@ -207,11 +191,6 @@ export type MultimodeSequenceState = {
 
 export type GenerationDefaults = Partial<{
   provider: Provider;
-  mcpProvider: string | null;
-  mcpModel: string | null;
-  mcpMediaKind: "image" | "video";
-  mcpRatio: string | null;
-  mcpParameters: Record<string, McpPresetValue>;
   quality: Quality;
   sizePreset: SizePreset;
   customW: number;
@@ -281,13 +260,6 @@ export type AppState = PresetState & ReferenceTraySlice & {
   assetGenPrompt: string;
   assetGenBackground: import("../types").AssetGenBackgroundPreset;
   assetGenProvider: Provider;
-  assetGenKind: "image" | "video";
-  assetGenVideoDuration: number;
-  assetGenVideoResolution: "480p" | "720p";
-  assetGenVideoAspect: "1:1" | "16:9" | "9:16";
-  setAssetGenVideoDuration: (v: number) => void;
-  setAssetGenVideoResolution: (v: "480p" | "720p") => void;
-  setAssetGenVideoAspect: (v: "1:1" | "16:9" | "9:16") => void;
   assetGenItems: GenerateItem[];
   assetGenSaveFailures: string[];
   assetGenLastError: string | null;
@@ -304,7 +276,6 @@ export type AppState = PresetState & ReferenceTraySlice & {
   setAssetGenPrompt: (v: string) => void;
   setAssetGenBackground: (v: import("../types").AssetGenBackgroundPreset) => void;
   setAssetGenProvider: (v: Provider) => void;
-  setAssetGenKind: (v: "image" | "video") => void;
   generateAssetGen: () => Promise<void>;
   loadAssets: (reset?: boolean) => Promise<void>;
   loadMoreAssets: () => Promise<void>;
@@ -321,8 +292,6 @@ export type AppState = PresetState & ReferenceTraySlice & {
   sizePreset: SizePreset;
   customW: number;
   customH: number;
-  grokAspectRatio: string;
-  grokResolution: "1k" | "2k";
   format: Format;
   moderation: Moderation;
   imageModel: ImageModel;
@@ -482,41 +451,12 @@ export type AppState = PresetState & ReferenceTraySlice & {
   flushGraphSave: (reason?: GraphSaveReason) => Promise<void>;
 
   setProvider: (p: Provider) => void;
-  /** Hydrated lazily by the sidebar MCP selector until the store bootstrap owns this lane. */
-  mcpProvider?: string | null;
-  mcpModel?: string | null;
-  mcpMediaKind?: "image" | "video";
-  mcpRatio?: string | null;
-  mcpParameters?: Record<string, McpPresetValue>;
-  mcpInputRoles?: McpInputRole[];
-  mcpReferenceSelection?: McpReferenceSelection;
-  mcpCharacterElementId?: string | null;
   setQuality: (q: Quality) => void;
   setSizePreset: (s: SizePreset) => void;
   setCustomSize: (w: number, h: number) => void;
-  setGrokAspectRatio: (ar: string) => void;
-  setGrokResolution: (r: "1k" | "2k") => void;
   setFormat: (f: Format) => void;
   setModeration: (m: Moderation) => void;
   setImageModel: (m: ImageModel) => void;
-  videoModelSelected: string | false;
-  videoDuration: number;
-  videoResolution: VideoResolutionUI;
-  videoSingleRefMode: "image-to-video" | "reference-to-video";
-  videoAspectRatio: string;
-  videoTopic: string;
-  videoContinuityLineage: VideoContinuityLineage | null;
-  videoProgress: number | null;
-  selectVideoModel: (model?: string) => void;
-  setVideoDuration: (n: number) => void;
-  setVideoResolution: (r: VideoResolutionUI) => void;
-  setVideoAspectRatio: (a: string) => void;
-  setVideoSingleRefMode: (m: "image-to-video" | "reference-to-video") => void;
-  setVideoTopic: (topic: string) => void;
-  setVideoContinuityLineage: (lineage: VideoContinuityLineage | null) => void;
-  activeVideoRefCount: () => number;
-  runVideoGenerate: (nodeId?: string) => Promise<void>;
-  animateImage: (filename: string, prompt?: string) => Promise<boolean>;
   setReasoningEffort: (e: ReasoningEffort) => void;
   setWebSearchEnabled: (enabled: boolean) => void;
   setCount: (c: Count) => void;

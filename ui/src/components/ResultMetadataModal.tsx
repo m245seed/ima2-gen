@@ -19,12 +19,6 @@ type Section = {
 const PROVIDER_LABELS: Record<string, string> = {
   oauth: "GPT OAuth / Codex login",
   api: "GPT API key",
-  grok: "Grok OAuth / progrok",
-  "grok-api": "Grok API key",
-  agy: "Antigravity Gemini CLI",
-  "gemini-api": "Gemini API / Vertex",
-  atlascloud: "Atlas Cloud API",
-  minimax: "MiniMax API",
 };
 
 function present(value: unknown): value is string | number | boolean {
@@ -135,7 +129,6 @@ export function ResultMetadataModal({
 }) {
   const { t, locale } = useI18n();
   const rawJson = useMemo(() => JSON.stringify(item, null, 2), [item]);
-  const latestContinuity = item.videoContinuity?.entries?.[item.videoContinuity.entries.length - 1] ?? null;
   const provider = providerLabel(item.provider);
   const summaryFacts = [
     [provider, item.model].filter(Boolean).join(" · "),
@@ -176,9 +169,6 @@ export function ResultMetadataModal({
   addField(usageFields, t("metadata.fields.outputTokens"), usageNumber(item.usage, "output_tokens"), { compact: true });
   addPositiveField(usageFields, t("metadata.fields.reasoningTokens"), usageDetailNumber(item.usage, "output_tokens_details", "reasoning_tokens"), { compact: true });
   addPositiveField(usageFields, t("metadata.fields.webSearchCalls"), item.webSearchCalls, { compact: true });
-  if (item.usage?.grok_cost_usd_ticks != null) {
-    addField(usageFields, t("metadata.fields.grokCostTicks"), item.usage.grok_cost_usd_ticks, { compact: true });
-  }
   if (usageFields.length) sections.push({ title: t("metadata.sections.usage"), fields: usageFields, compact: true });
 
   const lineageFields: Field[] = [];
@@ -196,29 +186,6 @@ export function ResultMetadataModal({
   addField(lineageFields, t("metadata.fields.cardId"), item.cardId);
   if (lineageFields.length) sections.push({ title: t("metadata.sections.lineage"), fields: lineageFields });
 
-  const videoFields: Field[] = [];
-  addField(videoFields, t("metadata.fields.videoDuration"), item.video?.duration ? `${item.video.duration}s` : null);
-  addField(videoFields, t("metadata.fields.videoResolution"), item.video?.resolution);
-  addField(videoFields, t("metadata.fields.videoAspectRatio"), item.video?.aspectRatio);
-  addField(videoFields, t("metadata.fields.videoRequestedModel"), item.video?.requestedModel);
-  addField(videoFields, t("metadata.fields.videoEffectiveModel"), item.video?.effectiveModel);
-  addField(videoFields, t("metadata.fields.videoModelFallback"), item.video?.modelFallback);
-  addField(videoFields, t("metadata.fields.xaiVideoRequestId"), item.video?.xaiVideoRequestId, {
-    copyValue: stringify(item.video?.xaiVideoRequestId) ?? undefined,
-  });
-  addField(videoFields, t("metadata.fields.sourceImageFilename"), item.video?.sourceImageFilename);
-  if (videoFields.length) sections.push({ title: t("metadata.sections.video"), fields: videoFields });
-
-  const continuityFields: Field[] = [];
-  addField(continuityFields, t("metadata.fields.lineageId"), item.videoContinuity?.lineageId);
-  addField(continuityFields, t("metadata.fields.parentFilename"), item.videoContinuity?.parentFilename);
-  addField(continuityFields, t("metadata.fields.sourceFrame"), item.videoContinuity?.sourceFrame);
-  addField(continuityFields, t("metadata.fields.continuityEntries"), item.videoContinuity?.entries?.length);
-  addField(continuityFields, t("metadata.fields.latestContinuityPrompt"), latestContinuity?.revisedPrompt, {
-    copyValue: latestContinuity?.revisedPrompt,
-    pre: true,
-  });
-  if (continuityFields.length) sections.push({ title: t("metadata.sections.videoContinuity"), fields: continuityFields });
 
   const promptFields: Field[] = [];
   const seenPrompts = new Set<string>();

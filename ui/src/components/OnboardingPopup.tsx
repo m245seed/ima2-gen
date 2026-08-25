@@ -2,19 +2,17 @@ import { useState } from "react";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/useAppStore";
 import { useOAuthStatus } from "../hooks/useOAuthStatus";
-import { useGrokStatus } from "../hooks/useGrokStatus";
 import { useKeyStatus } from "../hooks/useKeyStatus";
 import { useModalFocus } from "../hooks/useModalFocus";
 
 const DISMISS_KEY = "ima2.onboardingDismissed";
 
-// First-run welcome popup. Shows only when GPT(oauth), Grok, AND Gemini are
-// ALL unauthenticated, and only until the user dismisses it once (localStorage).
+// First-run welcome popup. Shows only when OAuth and API credentials are
+// both unavailable, and only until the user dismisses it once.
 export function OnboardingPopup() {
   const { t } = useI18n();
   const openSettings = useAppStore((s) => s.openSettings);
   const oauth = useOAuthStatus();
-  const grok = useGrokStatus();
   const { data: keyStatus } = useKeyStatus();
 
   const [dismissed, setDismissed] = useState<boolean>(() => {
@@ -26,13 +24,10 @@ export function OnboardingPopup() {
   });
 
   // Only decide once every status has loaded — avoid a flash while null/loading.
-  const loaded = oauth !== null && grok !== null && keyStatus != null;
+  const loaded = oauth !== null && keyStatus != null;
   const oauthUnauth = oauth?.status === "auth_required" || oauth?.status === "offline";
-  const grokUnauth = grok?.status === "offline" || grok?.status === "error";
-  const geminiUnauth = keyStatus
-    ? !keyStatus.gemini?.configured && !keyStatus.vertex?.configured
-    : false;
-  const allUnauthenticated = loaded && oauthUnauth && grokUnauth && geminiUnauth;
+  const apiUnauth = !keyStatus?.openai?.configured;
+  const allUnauthenticated = loaded && oauthUnauth && apiUnauth;
   const open = !dismissed && allUnauthenticated;
 
   const dismiss = () => {

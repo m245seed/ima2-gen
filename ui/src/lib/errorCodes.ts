@@ -8,7 +8,6 @@ export type ImaErrorCode =
   | "REF_NOT_BASE64"
   | "REF_EMPTY"
   | "REF_TOO_MANY"
-  | "MINIMAX_MODEL_REQUIRES_REFERENCE"
   | "MODERATION_REFUSED"
   | "SAFETY_REFUSAL"
   | "EMPTY_RESPONSE"
@@ -27,12 +26,6 @@ export type ImaErrorCode =
   | "INVALID_REQUEST"
   | "INVALID_MODERATION"
   | "APIKEY_DISABLED"
-  | "AGY_GENERATION_FAILED"
-  | "AGY_TIMEOUT"
-  | "AGY_PROCESS_ERROR"
-  | "AGY_QUOTA_EXHAUSTED"
-  | "AGY_PARSE_FAILED"
-  | "AGY_ARTIFACT_NOT_FOUND"
   | "DB_ERROR"
   | "UNKNOWN";
 
@@ -56,7 +49,6 @@ export const errorCodes: Record<ImaErrorCode, ErrorSpec> = {
   REF_NOT_BASE64: { surface: "toast", toastKey: "toast.refNotBase64" },
   REF_EMPTY: { surface: "toast", toastKey: "toast.refEmpty" },
   REF_TOO_MANY: { surface: "toast", toastKey: "toast.refLimitExceeded" },
-  MINIMAX_MODEL_REQUIRES_REFERENCE: { surface: "toast", toastKey: "toast.minimaxModelRequiresReference" },
   MODERATION_REFUSED: { surface: "card", cardKey: "errorCard.moderationRefused", cta: "dismiss" },
   SAFETY_REFUSAL: { surface: "card", cardKey: "errorCard.moderationRefused", cta: "dismiss" },
   EMPTY_RESPONSE: { surface: "card", cardKey: "errorCard.emptyResponse", cta: "dismiss" },
@@ -75,12 +67,6 @@ export const errorCodes: Record<ImaErrorCode, ErrorSpec> = {
   INVALID_REQUEST: { surface: "card", cardKey: "errorCard.invalidRequest", cta: "dismiss" },
   INVALID_MODERATION: { surface: "toast", toastKey: "toast.generateFailed" },
   APIKEY_DISABLED: { surface: "card", cardKey: "errorCard.apikeyDisabled", cta: "dismiss" },
-  AGY_GENERATION_FAILED: { surface: "card", cardKey: "errorCard.agyGenerationFailed", cta: "retry" },
-  AGY_TIMEOUT: { surface: "card", cardKey: "errorCard.agyTimeout", cta: "retry" },
-  AGY_PROCESS_ERROR: { surface: "card", cardKey: "errorCard.agyProcessError", cta: "retry" },
-  AGY_QUOTA_EXHAUSTED: { surface: "card", cardKey: "errorCard.agyQuotaExhausted", cta: "dismiss" },
-  AGY_PARSE_FAILED: { surface: "card", cardKey: "errorCard.agyProcessError", cta: "retry" },
-  AGY_ARTIFACT_NOT_FOUND: { surface: "card", cardKey: "errorCard.agyProcessError", cta: "retry" },
   DB_ERROR: { surface: "toast", toastKey: "toast.generateFailed" },
   UNKNOWN: { surface: "toast", toastKey: "toast.generateFailed" },
 };
@@ -143,14 +129,6 @@ export function classifyError(message: string): ImaErrorCode {
   ) {
     return "INVALID_REQUEST";
   }
-  if (s.includes("resource exhausted") || s.includes("exhausted your capacity") || s.includes("quota will reset")) {
-    return "AGY_QUOTA_EXHAUSTED";
-  }
-  if (s.includes("agy generation timed out")) return "AGY_TIMEOUT";
-  if (s.includes("agy generation failed")) return "AGY_GENERATION_FAILED";
-  if (s.includes("agy process error") || s.includes("agy exited")) return "AGY_PROCESS_ERROR";
-  if (s.includes("agy artifact not found")) return "AGY_ARTIFACT_NOT_FOUND";
-  if (s.includes("could not parse artifact path from agy")) return "AGY_PARSE_FAILED";
   if (s.includes("an error occurred while processing") || /\b5\d\d\b/.test(s)) {
     return "UPSTREAM_5XX";
   }

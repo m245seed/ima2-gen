@@ -8,9 +8,9 @@
 >
 > **他の言語で読む**: [English](../README.md) · [한국어](README.ko.md) · [正體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
 
-`ima2-gen` は、人とコーディングエージェント向けのローカルファーストなビジュアル生成ランタイム兼スタジオです。複数プロバイダーで再現可能な画像・動画ワークフローを扱います。
+`ima2-gen` は、人とコーディングエージェント向けのローカルファーストなビジュアル生成ランタイム兼スタジオです。複数プロバイダーで再現可能な画像ワークフローを扱います。
 
-グローバルインストール後、OpenAI OAuth/API、Grok OAuth/API、Antigravity CLI、Gemini API、AtlasCloud、MiniMax の 8 つの core lane で画像と動画を生成できます。Runway と Higgsfield は別枠の MCP integration です。
+グローバルインストール後、OpenAI OAuth と OpenAI API key の 2 つのプロバイダーで画像を生成できます。
 
 ![プロンプト入力、生成画像、モデル表示、結果メタデータが見える ima2-gen classic 画面](../assets/screenshots/classic-generate-light.png)
 
@@ -23,13 +23,6 @@ ima2 serve
 ```
 
 その後、`http://localhost:3333` を開きます。
-
-CLI で動画生成:
-
-```bash
-ima2 video "猫がピアノを弾く" --duration 5 --resolution 720p
-ima2 video "このシーンをアニメ化" --ref photo.png --duration 10
-```
 
 `3333` がすでに使われている場合、次に空いているポートで起動し、実際の URL は `~/.ima2/server.json` に書き込まれます。ポートを決め打ちせず、terminal に表示された URL または `ima2 open` を使ってください。
 
@@ -58,14 +51,11 @@ curl -fsSL https://lidge-jun.github.io/ima2-gen/install-linux.sh | bash
 
 ### セットアップ
 
-`ima2 setup` では認証方式を4つ選べます:
+`ima2 setup` では認証方式を3つ選べます:
 
-1. **GPT OAuth** — ChatGPT アカウントでログイン（無料、画像のみ）
-2. **Grok OAuth** — xAI/Grok アカウントでログイン（画像 + 動画）
-3. **Both** — GPT + Grok 両方（全機能）
-4. **Web setup** — Web UI で設定
-
-動画生成には Grok OAuth（2 または 3）が必要です。GPT OAuth だけ設定済みで動画を追加する場合は `ima2 grok login` を別途実行してください。
+1. **GPT OAuth** — ChatGPT アカウントでログイン（無料）
+2. **API key** — OpenAI API キーで画像生成
+3. **Web setup** — Web UI で設定
 
 ### アップデート
 
@@ -83,17 +73,16 @@ Ctrl+C は DB クローズ、子プロセス停止、ファイルロック解放
 - **Node mode**: 良い画像を起点に、複数の方向へ分岐して試せます。
 - **Multimode batches**: 1つのプロンプトから複数候補を同時に走らせ、slot ごとの進行を見ながら最も良い結果から作業を継続できます。
 - **Canvas Mode**: zoom/pan、annotation、eraser、background cleanup、transparent checkerboard preview、alpha/matte export をサポートします。
-- **Video generation**: テキスト、画像、複数参照から短い動画を生成。SSE で planning→submitted→progress→done。First/Mid/Last フレームコピー対応。
-- **Storyboard mode**: コンポーザーの storyboard トグルで連続フレームのキャラクター・シーン連続性を維持（画像・動画両対応）。
+- **Storyboard mode**: コンポーザーの storyboard トグルで連続フレームのキャラクター・シーン連続性を維持。
 - **Local gallery**: 生成物をローカル保存。デフォルトは現在セッション、All Images トグルで全履歴。生成時間と reasoning effort をメタデータに記録。
-- **Reference images**: ドラッグ/ペースト/ファイル選択。画像最大5、動画最大7。大きい画像は自動圧縮。
+- **Reference images**: ドラッグ/ペースト/ファイル選択。画像最大5。大きい画像は自動圧縮。
 - **Prompt library imports**: local prompt pack、GitHub folder、curated GPT-image hint を built-in prompt library に取り込めます。
 - **Mobile shell**: 小さい画面では app bar、compose sheet、compact settings toggle で操作できます。
 - **Observable jobs**: 進行中の生成と最近の生成を request ID で追跡できます。
 
 ### SSE マルチプレキシング
 
-Web UI は単一の `GET /api/events` Server-Sent Events 接続で全生成の進行を受信します。Multimode、node、video リクエストは非同期 POST（`202 { requestId }`）で送信され、共有イベントバス経由で進行イベントがマルチプレクスされます。これにより、同時生成時のブラウザ 6 接続制限によるギャラリー hang が解消されます。`async: true` を送らない CLI クライアントは、後方互換のため従来どおりリクエストごとの SSE ストリームを受け取れます。
+Web UI は単一の `GET /api/events` Server-Sent Events 接続で全生成の進行を受信します。Multimode、node リクエストは非同期 POST（`202 { requestId }`）で送信され、共有イベントバス経由で進行イベントがマルチプレクスされます。これにより、同時生成時のブラウザ 6 接続制限によるギャラリー hang が解消されます。`async: true` を送らない CLI クライアントは、後方互換のため従来どおりリクエストごとの SSE ストリームを受け取れます。
 
 ## 画像生成は OAuth と API key をサポートします
 
@@ -101,15 +90,7 @@ Web UI は単一の `GET /api/events` Server-Sent Events 接続で全生成の�
 
 API key が env/config に存在する場合、生成エンドポイントで `provider: "api"` を指定すると Responses API の `image_generation` tool を使用できます。
 
-- `provider: "grok-api"` — `XAI_API_KEY` で xAI Images API を直接呼び出し
-- `provider: "agy"` — ローカル Antigravity CLI (`IMA2_AGY_BIN`)
-- `provider: "gemini-api"` — `GEMINI_API_KEY` または Vertex (`VERTEX_SERVICE_ACCOUNT_JSON`、Vertex 優先)
-
 Settings に **API key provider available** と表示される場合、API key が検出され、生成・編集・multimode・node request に使用できるという意味です。
-
-Grok 動画の既定値は正式名 `grok-imagine-video-1.5` です。`grok-imagine-video` は Ref2V、V2V edit、extension の互換パスで引き続き使用し、従来の `grok-imagine-video-1.5-preview` も互換 alias として受け付けます。参照数に応じて T2V(0)、I2V(1)、Ref2V(2-7、最大10秒)が自動選択され、1080p は `grok-imagine-video-1.5` の prompt-only T2V と単一画像/フレーム I2V で有効です。duration(1-15s)、resolution(480p/720p/対応時 1080p)、aspect ratio を設定できます。
-
-設定画面の QuotaCard に Grok billing `$used/$limit` バーと **Switch Account** ボタン（`POST /api/auth/switch`）が表示されます。
 
 ![OAuth active と API key provider available の状態を示す settings 画面](../assets/screenshots/settings-oauth-generation.png)
 
@@ -196,7 +177,6 @@ Settings ワークスペースでは、アカウント、モデル、テーマ�
 | `ima2 gen <prompt>` | CLI から画像生成 |
 | `ima2 edit <file> --prompt <text>` | 既存画像を編集 |
 | `ima2 multimode <prompt>` | マルチイメージ SSE 生成 |
-| `ima2 video <prompt>` | Grok 動画生成（SSE 進捗） |
 | `ima2 ls [--session <id>] [--favorites]` | ローカル履歴を表示 |
 | `ima2 show <name> [--metadata]` | 生成ファイルを開く |
 | `ima2 prompt ls -q <検索>` | プロンプトライブラリ検索 |
@@ -230,10 +210,6 @@ environment variables > ~/.ima2/config.json > built-in defaults
 | `IMA2_LOG_LEVEL` | `info` | 通常の `serve` は `info`、dev mode は `debug`。`debug`, `info`, `warn`, `error`, `silent` をサポート |
 | `IMA2_INFLIGHT_TERMINAL_TTL_MS` | `300000` | デバッグ用の recent job retention |
 | `OPENAI_API_KEY` | — | `provider: "api"` の Responses 画像パスと補助機能用 |
-| `XAI_API_KEY` | — | `provider: "grok-api"` 直接 xAI Images API |
-| `GEMINI_API_KEY` | — | `provider: "gemini-api"` Generative Language API |
-| `VERTEX_SERVICE_ACCOUNT_JSON` | — | Vertex AI サービスアカウント JSON（API キーより優先） |
-| `IMA2_AGY_BIN` | PATH の `agy` | `provider: "agy"` バイナリパス |
 
 ### Logging modes
 

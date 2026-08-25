@@ -176,7 +176,7 @@ function isPoolRetryableStatus(status: number): boolean {
   return status === 429 || status === 503 || status === 502 || status === 401 || status === 403;
 }
 
-type ReferenceRef = string | { b64?: string | undefined; detectedMime?: string | null; declaredMime?: string | null };
+export type ReferenceRef = string | { b64?: string | undefined; detectedMime?: string | null; declaredMime?: string | null };
 
 function normalizeRef(ref: ReferenceRef) {
   const b64 = typeof ref === "string" ? ref : ref?.b64;

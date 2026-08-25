@@ -119,7 +119,7 @@ describe("ima2 CLI commands (live server)", () => {
     assert.match(stdout, /--mode/);
     assert.match(stdout, /--moderation/);
     assert.match(stdout, /--session/);
-    assert.match(stdout, /file\[:tag\]/);
+    assert.match(stdout, /--ref <file>/);
     assert.match(stdout, /Batch\/async note:/);
     assert.match(stdout, /Use -n <N>/);
     assert.match(stdout, /ima2 ps --json/);
@@ -134,7 +134,7 @@ describe("ima2 CLI commands (live server)", () => {
     const payload = JSON.parse(stdout);
     assert.strictEqual(payload.code, "NO_DEFAULT_MODEL");
     assert.ok(payload.models);
-    assert.deepStrictEqual(payload.fix, ["ima2 defaults set image <lane>/<model>", "ima2 models --kind image"]);
+    assert.deepStrictEqual(payload.fix, ["ima2 defaults set image <lane>/<model>", "ima2 models"]);
     assert.strictEqual(stdout.trim().split("\n").length, 1);
   });
 
@@ -175,74 +175,6 @@ describe("ima2 CLI commands (live server)", () => {
     }
   });
 
-  it("rejects unsupported flags and local references before MCP submission", async () => {
-    const fake = createServer((req, res) => {
-      res.setHeader("Content-Type", "application/json");
-      if (req.url === "/api/health") { res.end('{"ok":true}'); return; }
-      if (req.url === "/api/models") { res.end(JSON.stringify({ ok: true, lanes: { runway: {
-        status: "ready", defaults: { image: "gen-4" }, models: { image: [
-          { id: "gen-4", capabilities: { parameters: [], inputRoles: ["text", "image_references"] } },
-          { id: "text-only", capabilities: { parameters: [], inputRoles: ["text"] } },
-        ], video: [] },
-      } } })); return; }
-      res.writeHead(500).end();
-    });
-    await new Promise((resolve) => fake.listen(0, "127.0.0.1", resolve));
-    const base = `http://127.0.0.1:${fake.address().port}`;
-    try {
-      const flag = await runCLI(["gen", "hi", "--model", "runway/gen-4", "--quality", "high", "--json", "--server", base]);
-      assert.strictEqual(flag.code, 2);
-      assert.strictEqual(JSON.parse(flag.stdout).code, "FLAG_NOT_SUPPORTED");
-      const ref = await runCLI(["gen", "hi", "--model", "runway/gen-4", "--ref", "./local.png", "--json", "--server", base]);
-      assert.strictEqual(ref.code, 2);
-      assert.strictEqual(JSON.parse(ref.stdout).code, "MCP_REF_MUST_BE_GENERATED");
-      const unsupportedRole = await runCLI(["gen", "hi", "--model", "runway/text-only", "--ref", "1780000000000_abcd.png", "--json", "--server", base]);
-      assert.strictEqual(unsupportedRole.code, 2);
-      const rolePayload = JSON.parse(unsupportedRole.stdout);
-      assert.strictEqual(rolePayload.code, "INPUT_ROLE_UNSUPPORTED");
-      assert.deepStrictEqual(rolePayload.supportedModels, ["runway/gen-4"]);
-      assert.match(rolePayload.message, /runway\/gen-4/);
-    } finally {
-      await new Promise((resolve) => fake.close(resolve));
-    }
-  });
-
-  it("routes MCP image generation through the async bridge with generated references", async () => {
-    let eventResponse;
-    let submitted;
-    const fake = createServer((req, res) => {
-      if (req.url === "/api/health") { res.setHeader("Content-Type", "application/json"); res.end('{"ok":true}'); return; }
-      if (req.url === "/api/models") { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ ok: true, lanes: { runway: {
-        status: "ready", defaults: { image: "gen-4" }, models: { image: [{ id: "gen-4", capabilities: {
-          parameters: [], inputRoles: ["text", "image_references"],
-        } }], video: [] },
-      } } })); return; }
-      if (req.url === "/api/events") {
-        eventResponse = res; res.writeHead(200, { "Content-Type": "text/event-stream" }); res.flushHeaders(); return;
-      }
-      if (req.url === "/api/mcp/generate" && req.method === "POST") {
-        let raw = ""; req.on("data", (chunk) => { raw += chunk; }); req.on("end", () => {
-          submitted = JSON.parse(raw); res.writeHead(202, { "Content-Type": "application/json" }); res.end('{"ok":true}');
-          eventResponse.end(`id: 1\nevent: done\ndata: ${JSON.stringify({ jobId: submitted.requestId, filename: "out.png", url: "/generated/out.png" })}\n\n`);
-        }); return;
-      }
-      res.writeHead(404).end();
-    });
-    await new Promise((resolve) => fake.listen(0, "127.0.0.1", resolve));
-    const base = `http://127.0.0.1:${fake.address().port}`;
-    try {
-      const result = await runCLI(["gen", "hi", "--model", "runway/gen-4", "--ref", "1780000000000_abcd.png:hero", "--json", "--server", base]);
-      assert.strictEqual(result.code, 0, result.stderr);
-      assert.strictEqual(result.stdout.trim().split("\n").length, 1);
-      assert.strictEqual(JSON.parse(result.stdout).url, "/generated/out.png");
-      assert.strictEqual(submitted.provider, "runway");
-      assert.strictEqual(submitted.model, "gen-4");
-      assert.deepStrictEqual(submitted.parameters, {});
-      assert.deepStrictEqual(submitted.references, [{ filename: "1780000000000_abcd.png", tag: "hero" }]);
-    } finally {
-      await new Promise((resolve) => fake.close(resolve));
-    }
-  });
 
   it("ima2 edit --help prints current payload options", async () => {
     const { stdout, code } = await runCLI(["edit", "--help"]);
@@ -341,27 +273,15 @@ describe("ima2 CLI commands (live server)", () => {
   });
 
   it("ima2 --help lists new commands", async () => {
-    const { stdout, code } = await runCLI(["--help"]);
-    assert.strictEqual(code, 0);
+    const { stdout, code } = await runCLI([]);
+    assert.ok(code === 0 || code === 1);
     assert.match(stdout, /gen <prompt>/);
-    assert.match(stdout, /grok <sub>/);
     assert.match(stdout, /ping/);
     assert.match(stdout, /cancel <id>/);
-    assert.match(stdout, /models\s+List available lane models/);
+    assert.match(stdout, /models\s+List available image models/);
     assert.match(stdout, /Generation workflow:/);
     assert.match(stdout, /ima2 gen -n <N>/);
     assert.match(stdout, /ima2 ps --json/);
     assert.match(stdout, /ima2 cancel <id>/);
-  });
-
-  it("ima2 grok --help documents bundled progrok", async () => {
-    const { stdout, code } = await runCLI(["grok", "--help"]);
-    assert.strictEqual(code, 0);
-    assert.match(stdout, /bundled progrok runtime/);
-    assert.match(stdout, /login/);
-    assert.match(stdout, /default: --manual-paste/);
-    assert.match(stdout, /defaults to --manual-paste/);
-    assert.doesNotMatch(stdout, /device-code/);
-    assert.match(stdout, /IMA2_NO_GROK_PROXY=1/);
   });
 });

@@ -1,6 +1,6 @@
 # CLI Reference
 
-Most server routes under `/api/*` have a CLI wrapper; Agent Mode (`/api/agent/*`) is web-UI-only and has no `ima2` subcommand. The prompt builder HTTP route (`POST /api/prompt-builder/chat`) is available through `ima2 prompt build`. The CLI is a thin shell over the local server, so most commands require a running `ima2 serve` (the few exceptions — `serve`, `setup`, `doctor`, `status`, `open`, `reset`, `config`, `grok`, `skill`, `capabilities`, `backfill-thumbs`, and local `defaults` inspection — work without a live server).
+Most server routes under `/api/*` have a CLI wrapper; Agent Mode (`/api/agent/*`) is web-UI-only and has no `ima2` subcommand. The prompt builder HTTP route (`POST /api/prompt-builder/chat`) is available through `ima2 prompt build`. The CLI is a thin shell over the local server, so most commands require a running `ima2 serve` (the few exceptions — `serve`, `setup`, `doctor`, `status`, `open`, `reset`, `config`, `skill`, `capabilities`, `backfill-thumbs`, and local `defaults` inspection — work without a live server).
 
 For a quick start, see the [main README](../README.md). For endpoint mapping, see [API.md](API.md).
 
@@ -14,7 +14,6 @@ For a quick start, see the [main README](../README.md). For endpoint mapping, se
 | `ima2 doctor` | Diagnose Node, package, config, and auth |
 | `ima2 doctor image-probe [--json]` | Run live sanitized Responses image probes for `EMPTY_RESPONSE` support |
 | `ima2 open` | Open the web UI in a browser |
-| `ima2 grok login/status/models/proxy` | Manage the bundled progrok runtime used by the Grok provider |
 | `ima2 reset` | Remove saved config |
 | `ima2 backfill-thumbs` | Generate missing gallery thumbnails for images and videos (offline, no running server needed) |
 
@@ -65,56 +64,28 @@ Agents should start from the packaged skill and capability commands instead of g
 | `ima2 gen <prompt>` | Generate from the CLI |
 | `ima2 edit <file> --prompt <text>` | Edit an existing image |
 | `ima2 multimode <prompt>` | Multi-image SSE generation (streams `phase` / `partial` / `image` events) |
-| `ima2 video <prompt>` | Video generation via Grok (SSE streaming with progress) |
 | `ima2 node generate` | Node-mode generate (SSE; supports `--no-stream`) |
 | `ima2 node show <nodeId>` | Read node metadata |
 
-Since 3.0.0, `ima2 gen` and generate-mode `ima2 video` are **fail-closed**: they resolve their
-target through the lane catalog (`GET /api/models`) and exit 2 with `NO_DEFAULT_MODEL` when no
-`--model <lane>/<model>`, `--provider <lane>`, or persisted `ima2 defaults set image|video`
-target applies. Their `--provider` accepts explicit lanes only
-(`oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax|runway|higgsfield`); `--provider auto` exits 2 with
-`PROVIDER_AUTO_REMOVED`. Inspect lanes and models with `ima2 models [--kind image|video] [--lane <lane>] [--json]`.
+Since 3.0.0, `ima2 gen` is **fail-closed**: it resolves its
+target through the lane catalog (`GET /api/models`) and exits 2 with `NO_DEFAULT_MODEL` when no
+`--model <lane>/<model>`, `--provider <lane>`, or persisted `ima2 defaults set image`
+target applies. Its `--provider` accepts explicit lanes only
+(`oauth|api`); `--provider auto` exits 2 with
+`PROVIDER_AUTO_REMOVED`. Inspect lanes and models with `ima2 models [--kind image] [--lane <lane>] [--json]`.
 
-`edit`, `multimode`, and `node generate` keep the legacy surface for now: `--provider <auto|oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax>`, `--reasoning-effort {none\|low\|medium\|high\|xhigh\|max}`, `--web-search` / `--no-web-search`, `--model`, `--mode`, `--moderation`, `--ref <file>` (repeatable, up to 5 where supported), `-q low|medium|high`, `-n <count>`, `-o <file>`.
+`edit`, `multimode`, and `node generate` keep the legacy surface for now: `--provider <auto|oauth|api>`, `--reasoning-effort {none\|low\|medium\|high\|xhigh\|max}`, `--web-search` / `--no-web-search`, `--model`, `--mode`, `--moderation`, `--ref <file>` (repeatable, up to 5 where supported), `-q low|medium|high`, `-n <count>`, `-o <file>`.
 
 Provider override semantics:
 
 - `api` forces the API-key Responses path and requires a configured API key.
 - `oauth` forces the local OAuth proxy path.
-- `grok` uses the bundled progrok xAI proxy (`127.0.0.1:18645`). Classic generation first runs mandatory xAI Web Search through Responses API, then asks `grok-4.5` to call ima2's local `generate_image` tool, then ima2 executes xAI `/v1/images/generations`. `grok-4.3` remains available as an explicit compatibility override. If `--ref` images are attached, the final step uses xAI `/v1/images/edits` instead so image-to-image/reference context is preserved. Models: `grok-imagine-image`, `grok-imagine-image-quality`. Size is mapped to xAI `aspect_ratio` and `resolution`; the UI web-search toggle is OpenAI-provider-only because Grok search is always on in this path.
-- `agy` spawns the Antigravity CLI to generate via Google Gemini (`nano-banana-2`). Fixed 1024×1024 JPEG output, max 3 refs. No web search, quality, size, or mask controls. If `agy` is not on the server process PATH, ima2 also checks common user-local installs such as `~/.local/bin/agy`; set `IMA2_AGY_BIN=/absolute/path/to/agy` to force a specific binary.
-- `gemini-api` calls the Google Generative Language API directly. Models: `nano-banana-2` (Gemini 3.1 Flash Image) and `nano-banana-pro` (Gemini 3 Pro Image). Use `--model nano-banana-2` or `--model nano-banana-pro` to select. Supports `--size` for aspect ratio and resolution (512px–4K) on the direct API path; Vertex AI ignores aspect/size. Requires `GEMINI_API_KEY` or a Vertex AI service account (`VERTEX_SERVICE_ACCOUNT_JSON`). Switching from `agy` or `gemini-api` provider auto-selects the corresponding Gemini model; switching away resets to the GPT default.
-- `atlascloud` calls Atlas Cloud's Media API directly. Models: `openai/gpt-image-2/text-to-image` for text-to-image and `openai/gpt-image-2/edit` when references are attached. Requires `ATLASCLOUD_API_KEY`; web search, reasoning, mask, and video controls are ignored.
-- `minimax` calls the MiniMax image-generation API directly at `POST /v1/image_generation`. Models: `image-01` for text-to-image and `image-01-live` when a reference image is attached (mapped to the `subject_reference` field). Region selects the global (`https://api.minimax.io/v1`, default) or China (`https://api.minimaxi.com/v1`, `IMA2_MINIMAX_REGION=cn_zh`) base URL. `--size` maps to the closest supported `aspect_ratio`; responses are returned as URLs or base64. Requires `MINIMAX_API_KEY`; web search, reasoning, mask, and video controls are ignored, and image-to-image supports at most one subject reference.
-- `runway` / `higgsfield` (gen/video only) route through the MCP async pipeline (`POST /api/mcp/generate` + SSE wait). Runway requires an MCP connection; Higgsfield stays catalog-only (`locked`) until a paid plan. MCP lanes accept `-n 1` only, gallery filenames for `--ref`, and reject core-only flags with `FLAG_NOT_SUPPORTED`.
-- `auto` preserves route default behavior and currently resolves to GPT OAuth unless server routing changes (edit/multimode/node only; removed from gen/video in 3.0.0).
-
-`ima2 serve` starts the bundled Grok proxy automatically. No separate `progrok`
-install is required. Use `ima2 grok login` once to authorize xAI OAuth. Login
-defaults to `--manual-paste` so PowerShell, Terminal, and remote shells all use
-the same copy/paste flow. Set `IMA2_NO_GROK_PROXY=1` only if you want to manage
-the proxy yourself.
-
-Grok size mapping follows xAI's image API, not OpenAI's `size` field. ima2
-keeps the requested size in local metadata, but sends `aspect_ratio` such as
-`1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, or `2:3`, plus `resolution:
-"1k"` or `"2k"` where applicable. The 3840 presets map to `resolution: "2k"`
-because xAI currently exposes `1k` and `2k` resolution controls.
-
-For Grok classic generation with `--ref`, ima2 sends up to three references into
-the `grok-4.5` planner as image inputs, asks the planner for an English final
-image prompt, then sends the same references to xAI image editing. More than
-three Grok references are rejected with `GROK_REF_TOO_MANY`, matching xAI's
-documented multi-image editing limit.
+- `auto` preserves route default behavior and currently resolves to GPT OAuth unless server routing changes (edit/multimode/node only; removed from gen in 3.0.0).
 
 ```bash
 ima2 models --kind image
 ima2 defaults set image oauth/gpt-5.6-luna
 ima2 gen "a poster of a samurai cat" --model api/gpt-5.4 --reasoning-effort high
-ima2 grok login
-ima2 gen "a cinematic neon city" --model grok/grok-imagine-image-quality
-ima2 gen "campaign still" --model runway/gen-4 --ref 1780000000000_abcd.png
 ima2 edit input.png --prompt "make it rainy" --provider oauth --web-search
 ima2 multimode "two cats playing" --max-images 2 --ref cat.png --mode direct
 ima2 node generate --node n_abc --prompt "add neon lights" --no-stream
@@ -136,104 +107,7 @@ mockup`.
 For dense or critical text, keep the text large and explicit. Exact placement,
 small text, and pixel-perfect typography can still need iteration or post-editing.
 
-Multimode-specific flags include `--max-images <1..24>` by default (configurable through `IMA2_MAX_GENERATED_IMAGES`), `--ref <file>` (repeatable, max 5), `--mode <auto|direct>`, `--provider <auto|oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax>`, and `--show-partial`. `ima2 edit --mask` remains intentionally deferred to #31 because current mask plumbing is guided edit rather than guaranteed true masked/inpaint semantics.
-
-## Video
-
-| Command | Description |
-|---|---|
-| `ima2 video <prompt>` | Generate a video via Grok (SSE streaming with progress) |
-| `ima2 video edit <prompt> --video <value>` | Edit an existing video (V2V); saves the result as a generated video artifact |
-| `ima2 video extend <prompt> --video <value> [--duration 6]` | Extend an existing video from its last frame |
-| `ima2 video continue <prompt> --video <generated-file>` | Generate a new clip from a generated video's last frame with branch-local `revisedPrompt` lineage |
-| `ima2 video frame <generated-file> [--last] [-o frame.png]` | Extract a PNG frame from a generated `.mp4` |
-| `ima2 video analyze <generated-file>` | Analyze first/last frames with the configured planner model (Grok 4.5 by default) |
-
-Video generate flags:
-
-| Flag | Meaning |
-|---|---|
-| `--duration <1..15>` | Duration in seconds (default: 5) |
-| `--resolution <480p\|720p\|1080p>` | Video resolution (default: 480p). 1080p requires `--model grok-imagine-video-1.5`; prompt-only 1.5 uses the internal white-canvas I2V shim |
-| `--aspect-ratio <ratio\|auto>` | 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, auto (default: auto) |
-| `--model <name>` | `grok-imagine-video` or `grok-imagine-video-1.5`; `grok-imagine-video-1.5-preview` is accepted as a compatibility alias |
-| `--planner-model <name>` | Grok planner override (default: `grok-4.5`; `grok-4.3` remains compatible; also in settings UI and `IMA2_GROK_PLANNER_MODEL`) |
-| `--storyboard` | Enable storyboard mode — maintains character/scene continuity across sequential clips |
-| `--ref <file>` | Attach source/reference image (repeatable, max 7) |
-| `-o, --out <file>` | Output file path |
-| `-d, --out-dir <dir>` | Output directory |
-| `--timeout <sec>` | Timeout in seconds (default: 5400) |
-| `--session <id>` | Session ID |
-
-Blank video prompts are rejected. Prompts should include visual flow, camera or
-subject motion, sound/no-music intent, dialogue/no-dialogue intent, ending
-frame, and duration pacing. The selected seconds should feel naturally filled:
-opening composition, connected motion/emotion change, then a stable ending
-frame. Example: `from the last frame, she turns toward camera, rain grows
-louder, no background music, says "기다려", use the full duration for the turn
-and rain build, end on a still close-up after the line finishes`.
-
-Video edit/extend flags:
-
-| Flag | Meaning |
-|---|---|
-| `--video <value>` | Source video HTTPS URL, xAI `file_id`, data URL, or generated filename |
-| `--duration <2..10>` | Extension duration only (default: 6) |
-| `-o, --out <file>` | Download the edited or extended video to a file |
-| `--json` | Print JSON result |
-| `--timeout <sec>` | Timeout in seconds (default: 5400) |
-
-Video continue flags:
-
-| Flag | Meaning |
-|---|---|
-| `--video <generated-file>` | Parent generated `.mp4`; server extracts its last frame |
-| `--duration <1..15>` | New clip duration (default: 5) |
-| `--resolution <480p\|720p\|1080p>` | New clip resolution (default: 720p). 1080p requires `--model grok-imagine-video-1.5` |
-| `--aspect-ratio <ratio\|auto>` | New clip aspect ratio |
-| `--model <name>` | Optional video generation model |
-
-Video continue also accepts `--planner-model` and `--storyboard`.
-
-Video mode is auto-detected from `--ref` count:
-
-| Refs | Mode |
-|---|---|
-| 0 | text-to-video |
-| 1 | image-to-video |
-| 2–7 | reference-to-video (max 10s duration) |
-
-`grok-imagine-video-1.5` supports 1080p for prompt-only text-to-video and single image/frame image-to-video. Prompt-only 1.5 text-to-video is submitted through the internal white-canvas image-to-video shim because upstream 1.5 rejects raw T2V. The old `grok-imagine-video-1.5-preview` name is accepted as an alias and normalized before the upstream request. 1.5 does not support `reference_images` reference-to-video, V2V edit, or video extension. For 2+ refs, use `grok-imagine-video`; if ima2 auto-retries a 1.5 Ref2V request to the base model, read `video.effectiveModel` and `video.modelFallback` from CLI `--json`, or `effectiveModel` and `modelFallback` from SSE.
-
-SSE events: `planning` → `submitted` → `progress` (0–100%) → `done` or `error`.
-
-```bash
-ima2 defaults set video grok/grok-imagine-video-1.5   # once; bare calls fail closed without it
-ima2 video "a cat playing piano"
-ima2 video "animate this" --ref photo.png --duration 10
-ima2 video "animate this in high detail" --ref photo.png --model grok-imagine-video-1.5 --resolution 1080p
-ima2 video "cinematic" --model grok/grok-imagine-video-1.5 --resolution 720p --aspect-ratio 16:9 -o out.mp4
-ima2 video "product reveal, slow dolly-in" --model runway/veo-3.1 --duration 8
-ima2 video "style transfer" --ref a.png --ref b.png --ref c.png --model grok-imagine-video
-ima2 video edit "make the lighting warm sunset" --video 1780226256355_50252101.mp4 -o edited.mp4
-ima2 video extend "camera slowly pulls back" --video 1780226256355_50252101.mp4 --duration 6
-ima2 video continue "from the last frame, the actor crosses the room, footsteps only, no dialogue, end on the door closing" --video 1780226256355_50252101.mp4
-ima2 video frame 1780226256355_50252101.mp4 --last -o lastframe.png
-ima2 video analyze 1780226256355_50252101.mp4 --json
-```
-
-Edit/extend accept HTTPS URLs, xAI `file_id`, `data:video/*` URLs, or generated `.mp4` filenames. Generated-file inputs are limited to real `.mp4` files under the generated directory. `ima2 video continue`, `ima2 video analyze`, and `ima2 video frame` intentionally accept generated `.mp4` files only; remote analysis URLs are rejected so the server does not fetch arbitrary URLs through `ffmpeg`.
-
-`ima2 video continue` differs from `ima2 video extend`: `extend` calls xAI's
-native extension endpoint and returns a combined original+extension video.
-`continue` calls ima2 generation with the parent video's server-extracted last
-frame and persists a `videoContinuity` stack of up to four `revisedPrompt`
-entries (`keep-start-plus-latest-3`) for future continuations.
-
-JSON output note: `ima2 video --json` wraps the final result with local
-download fields such as `ok`, `path`, and `filename`. `ima2 video continue
---json` prints the server SSE `done` payload directly, including `filename`,
-`url`, `video`, `revisedPrompt`, and `videoContinuity`.
+Multimode-specific flags include `--max-images <1..24>` by default (configurable through `IMA2_MAX_GENERATED_IMAGES`), `--ref <file>` (repeatable, max 5), `--mode <auto|direct>`, `--provider <auto|oauth|api>`, and `--show-partial`. `ima2 edit --mask` remains intentionally deferred to #31 because current mask plumbing is guided edit rather than guaranteed true masked/inpaint semantics.
 
 ## Diagnostics
 
@@ -349,10 +223,9 @@ Card News requires the server to be started with `IMA2_CARD_NEWS=1` (or `feature
 | `ima2 inflight rm <requestId>` | Force-remove a stuck job |
 | `ima2 storage status` | Storage inspection (richer than `doctor`) |
 | `ima2 storage open` | Open the generated dir in the OS file manager (POST) |
-| `ima2 billing` | API usage probe via `/api/billing` (OpenAI/API-key credits when configured). Grok quota is web-UI only via `GET /api/quota`: weekly percentage/reset for current Grok Build xAI auth, with legacy monthly `usedUsd`/`limitUsd` fallback. |
+| `ima2 billing` | API usage probe via `/api/billing` (OpenAI/API-key credits when configured). |
 | `ima2 providers` | Configured providers |
 | `ima2 oauth status` | OAuth proxy state |
-| `ima2 grok status` | Bundled progrok / xAI image-model probe state |
 | `ima2 ping` | Health-check the running server |
 
 ## Config
@@ -378,18 +251,15 @@ Card News requires the server to be started with `IMA2_CARD_NEWS=1` (or `feature
 | `ima2 defaults set model <model>` | Write `imageModels.default` and `apiProvider.defaultImageModel` |
 | `ima2 defaults set reasoning <effort>` | Write `imageModels.reasoningEffort` and `apiProvider.defaultReasoningEffort` |
 | `ima2 defaults set image <lane>/<model>` | Persist the fail-closed CLI image target (`defaults.image`); validated against `ima2 models`, locked lanes rejected |
-| `ima2 defaults set video <lane>/<model>` | Persist the fail-closed CLI video target (`defaults.video`) |
 | `ima2 defaults reset model` | Remove persisted model defaults |
 | `ima2 defaults reset reasoning` | Remove persisted reasoning defaults |
-| `ima2 defaults reset image` / `reset video` | Remove the persisted CLI generation targets |
+| `ima2 defaults reset image` | Remove the persisted CLI generation target |
 
 Allowed keys (whitelist):
 
 ```
 imageModels.default          imageModels.reasoningEffort
 apiProvider.defaultImageModel apiProvider.defaultReasoningEffort
-grokProvider.plannerModel     grokProvider.plannerTimeoutMs
-grokProvider.defaultImageModel
 log.level                    features.cardNews
 cardNewsPlanner.{enabled,model,timeoutMs,deterministicFallback}
 comfy.{defaultUrl,uploadTimeoutMs,maxUploadBytes}

@@ -16,14 +16,11 @@ const catalog = {
   lanes: {
     oauth: {
       status: "ready", defaults: { image: "gpt-5.6-luna" },
-      models: { image: [{ id: "gpt-5.6-luna", label: "Luna", capabilities: { parameters: [], inputRoles: ["text"] } }], video: [] },
+      models: { image: [{ id: "gpt-5.6-luna", label: "Luna", capabilities: { parameters: [], inputRoles: ["text"] } }] },
     },
-    runway: {
-      status: "disconnected", reason: "connect runway", defaults: { video: "veo-3.1" },
-      models: { image: [], video: [{ id: "veo-3.1", label: "Veo 3.1", capabilities: {
-        parameters: [{ name: "duration", type: "number", options: [4, 6, 8] }, { name: "resolution", type: "string", options: ["720p", "1080p"] }],
-        aspectRatios: ["16:9", "9:16"], inputRoles: ["text", "start_image"],
-      } }] },
+    api: {
+      status: "key-missing", defaults: { image: "gpt-5.6-luna" },
+      models: { image: [{ id: "gpt-5.6-luna", label: "Luna", capabilities: { parameters: [], inputRoles: ["text"] } }] },
     },
   },
 };
@@ -61,20 +58,17 @@ describe("ima2 models command", () => {
     assert.equal(result.code, 0);
     assert.match(result.stdout, /lane\s+kind\s+model-id\s+status\s+caps/);
     assert.match(result.stdout, /oauth\s+image\s+gpt-5\.6-luna\s+ready/);
-    assert.match(result.stdout, /runway\s+video\s+veo-3\.1\s+disconnected/);
-    assert.match(result.stdout, /duration:4\|6\|8/);
-    assert.match(result.stdout, /ratio:16:9\|9:16/);
+    assert.match(result.stdout, /api\s+image\s+gpt-5\.6-luna\s+key-missing/);
   });
 
-  it("keeps the stable JSON shape and applies kind/lane filters", async () => {
-    const result = await runCli(["models", "--kind", "video", "--lane", "runway", "--json", "--server", base]);
+  it("keeps the stable JSON shape and applies lane filters", async () => {
+    const result = await runCli(["models", "--lane", "oauth", "--json", "--server", base]);
     assert.equal(result.code, 0);
     const payload = JSON.parse(result.stdout);
-    assert.deepEqual(payload.kinds.image, []);
     assert.equal(payload.ok, true);
-    assert.deepEqual(Object.keys(payload.kinds.video[0]), ["lane", "id", "label", "status", "capabilities"]);
-    assert.equal(payload.kinds.video[0].lane, "runway");
-    assert.equal(payload.kinds.video[0].status, "disconnected");
+    assert.deepEqual(Object.keys(payload.kinds.image[0]), ["lane", "id", "label", "status", "capabilities"]);
+    assert.equal(payload.kinds.image[0].lane, "oauth");
+    assert.equal(payload.kinds.image[0].status, "ready");
   });
 
   it("returns exit 3 and one JSON document when the server is unreachable", async () => {

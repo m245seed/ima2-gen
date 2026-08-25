@@ -44,7 +44,6 @@
     "localImportInvalid": "僅支援 PNG、JPEG 或 WebP",
     "localStorageFull": "本機儲存已滿 - 最近的狀態可能不會持續。",
     "refLimitExceeded": "參考文獻上限為 5。多餘的圖像被刪除。",
-    "minimaxModelRequiresReference": "image-01-live 需要中國境外的參考影像。附上一個，或切換到 image-01。",
     "refLimitTrayFull": "參考托盤已滿 ({max})。使用 X 刪除項目以附加更多 — 已刪除的 @tags 可以使用 @ 重新提及。",
     "refLimitPartial": "僅新增了 {total} 影像中的 {added}（限制 {max}）。",
     "refOverProviderLimit": "此提供者最多接受 {max} 參考影像。刪除 {excess} 來產生。",
@@ -122,8 +121,6 @@
   },
   "size": {
     "title": "尺寸",
-    "grokAspectTitle": "縱橫比",
-    "grokResolutionTitle": "解析度",
     "width": "寬度",
     "height": "高度",
     "hint": "16px 步長，最大邊緣 3840，比例高達 3:1，655K–829M 像素",
@@ -169,8 +166,6 @@
   },
   "quality": {
     "title": "品質",
-    "grokTitle": "Grok 質量",
-    "grokModelTitle": "模型",
     "lowLabel": "低",
     "lowSub": "快速",
     "mediumLabel": "中",
@@ -279,7 +274,6 @@
       "outputTokens": "輸出",
       "reasoningTokens": "推理",
       "webSearchCalls": "網路搜尋",
-      "grokCostTicks": "Grok 成本刻度",
       "usage": "用量",
       "filename": "檔案名稱",
       "createdAt": "建立時間",
@@ -331,8 +325,6 @@
     "model": "模型",
     "reasoning": "推理",
     "webSearch": "網頁搜尋",
-    "grokApi": "Grok API",
-    "grokApiBody": "透過捆綁的 progrok 運作：強制搜尋、Grok 4.5 英語圖像和文字工具規劃，然後是 xAI Images API。附加參考使用 xAI 影像編輯，因此保留了 i2i 上下文。",
     "openAccount": "開設帳戶設置"
   },
   "generate": {
@@ -702,15 +694,6 @@
     "oauthStarting": "GPT OAuth 代理程式正在啟動。幾秒鐘後重試。",
     "serverUnreachable": "無法到達伺服器。確保後端正在運作。",
     "apiInvalid": "API 密鑰遺失或無效。檢查伺服器.env 中的 OPENAI_API_KEY。",
-    "grokOffline": "Grok 代理程式未運作。",
-    "grokNoImageModel": "找不到 Grok 影像生成模型。",
-    "grokNotReady": "Grok 不可用。",
-    "grokOfflineHint": "如果需要，執行 `ima2 grok login` 一次，然後啟動 `ima2 serve`； ima2 自動啟動捆綁的 Grok 代理程式。",
-    "grokManagedByIma2": "Grok 透過位於 127.0.0.1:18645 的捆綁 progrok 代理程式在 `ima2 serve` 內部本地運行。",
-    "grokClassicOnly": "Grok 影像產生在此表面中不可用。",
-    "grokClassicOnlyHint": "使用啟用了 Grok 的生成表面。",
-    "grokCompatTitle": "Grok 影像 API",
-    "grokCompatBody": "ima2 服務在 127.0.0.1:18645 管理捆綁的 progrok 代理。 Grok 始終在圖像生成之前進行搜索，將附加引用發送到 Grok 4.5 規劃器中，透過 xAI 圖像編輯保留它們，並將大小映射到 xAI 寬高比/分辨率。輸出格式、審核和推理僅是 OpenAI 提供者設定。",
     "settingsBody": "選擇下一代請求使用哪個提供者。",
     "availableTitle": "{name} 可用",
     "availableAria": "{name}：可用",
@@ -718,118 +701,9 @@
     "availableSr": "（可用的）",
     "unavailableSr": "（不可用）",
     "xaiApiKeyRequired": "需要 xAI API 密鑰",
-    "geminiApiKeyRequired": "Gemini API 需要密鑰",
-    "atlasCloudApiKeyRequired": "Atlas Cloud 需要 API 金鑰",
-    "minimaxApiKeyRequired": "MiniMax API 需要密鑰",
     "comingSoon": "即將推出",
-    "agyCompatTitle": "Gemini (agy)",
-    "agyCompatBody": "1024x1024 固定，JPEG 輸出，最多 3 個參考。沒有品質/尺寸控制。",
-    "agyCompatBodyLong": "1024x1024 固定輸出，JPEG 格式，最多 3 個參考影像。沒有網絡搜索，沒有品質/尺寸控制。",
-    "geminiApiCompatTitle": "Gemini API",
-    "geminiApiCompatBody": "Google Gemini API。支援從 512px 到 4K 的寬高比和解析度控制。",
-    "geminiApiCompatBodyLong": "Google Gemini API 直接。支援 nano-banana-2 (Flash) 和 nano-banana-pro (Pro)，寬高比和解析度控制範圍為 512px 至 4K。",
     "gptCompatTitle": "GPT Image",
     "gptCompatBody": "OpenAI 透過回應 API 產生影像。支援品質、大小、格式、審核和網路搜尋設定。"
-  },
-  "mcp": {
-    "connectionsTitle": "MCP 提供者連接",
-    "connectionsBody": "連接官方提供者帳戶並查看工具狀態。只有連線的提供者才會出現在產生選擇器中。",
-    "providerLabel": "發電商",
-    "modelLabel": "生成模型",
-    "coreProviders": "核心提供者",
-    "connectedProviders": "連接的 MCP 供應商",
-    "imageModels": "影像模型",
-    "videoModels": "視訊模型",
-    "chooseModel": "選擇型號",
-    "loadingModels": "載入模型",
-    "loadingProviders": "檢查連接",
-    "providersLoadFailed": "無法載入 MCP 提供者狀態。",
-    "modelsLoadFailed": "模型載入失敗 — 點選重試",
-    "retryModels": "重試",
-    "noModels": "沒有適用於此模式的型號。",
-    "refreshingConnection": "清爽…",
-    "exitLane": "使用核心提供者",
-    "modelSectionTitle": "模型",
-    "ratioAutoHelp": "自動讓模型選擇自己的縱橫比。某些型號可能會拒絕預設。",
-    "aspectRatioLabel": "縱橫比",
-    "durationLabel": "時長",
-    "resolutionLabel": "解析度",
-    "qualityLabel": "品質",
-    "modeLabel": "模式",
-    "audioLabel": "聲音的",
-    "onLabel": "在",
-    "offLabel": "離開",
-    "toolInputsLabel": "參考媒體",
-    "referenceNone": "沒有任何",
-    "referenceSelect": "從畫廊中選擇",
-    "referenceCurrent": "目前畫廊項目",
-    "referenceMissing": "不在載入的歷史記錄中",
-    "startFrameLabel": "起始畫面",
-    "endFrameLabel": "結束框架",
-    "endFrameNeedsStart": "首先選擇一個起始幀。",
-    "imageReferencesLabel": "圖片參考（最多 3 張）",
-    "imageReferenceAria": "圖片參考{index}",
-    "referenceTagAria": "影像參考標籤 {index}",
-    "referenceTagPlaceholder": "可選標籤",
-    "referenceTagInvalid": "使用 1-32 個字母、數字、底線或連字號作為標籤。",
-    "referenceAttachLocal": "附上本地圖片",
-    "referenceAttachHelp": "本機影像暫時上傳，並在產生穩定後刪除。",
-    "referenceLocalFallback": "本地圖片",
-    "referenceLocalInvalidType": "選擇 PNG、JPEG 或 WebP 影像。",
-    "referenceLocalReadFailed": "無法讀取該影像。再選擇一次。",
-    "referenceSource": {
-      "asset": "資產",
-      "element": "元素",
-      "local": "本地附件"
-    },
-    "videoReferenceLabel": "影片參考",
-    "videoReferenceCostNote": "使用視訊參考可能會增加提供者費用。",
-    "advancedPresetsLabel": "進階預設",
-    "providerDefaultsHelp": "此模型使用提供者預設值，無需額外預設。",
-    "chooseModelForPresets": "在頂部選擇器中選擇一個型號以查看其支援的預設。",
-    "refreshList": "刷新狀態",
-    "connect": "連接",
-    "connecting": "正在連接",
-    "connectOpensBrowser": "在瀏覽器視窗中開啟提供者登入。",
-    "refreshConnection": "重新連接",
-    "disconnect": "斷開",
-    "connectionActionFailed": "連接操作無法完成。稍後再試。",
-    "popupBlocked": "登入視窗被封鎖。允許彈出窗口，然後再次連接。",
-    "locked": "鎖定",
-    "unavailable": "不可用",
-    "unknownProvider": "{provider} 的連線資訊不可用。",
-    "disconnectedSelection": "已儲存的提供者已中斷連線。在“設定”中重新連線。",
-    "disabledProvider": "此提供者在目前伺服器配置中已停用。",
-    "selectionUnavailable": "所選的 MCP 提供者不可用。在“設定”中檢查其連接。",
-    "higgsfieldLocked": "該提供者的代數已鎖定。",
-    "toolCount": "{count} 工具",
-    "toolCountUnknown": "工具數量未知",
-    "snapshotChanges": "{count} 架構更改",
-    "billingLabel": "計費",
-    "billingSubscription": "訂閱積分",
-    "billingApi": "API 使用計費",
-    "billingUnknown": "未知",
-    "generateFailed": "無法啟動 MCP 產生。",
-    "errorUnsupportedInput": "此模型不支援選定的參考類型之一。選擇相容型號或將其刪除。",
-    "errorEndRequiresStart": "在新增結束幀之前選擇開始幀。",
-    "errorInvalidReferences": "一張或多張參考影像不再可用。再次選擇他們。",
-    "errorInvalidFrame": "所選幀或影片不再可用。再選擇一次。",
-    "errorTempReferences": "無法準備本地參考影像。再選擇一次。",
-    "status": {
-      "disconnected": "已斷開連接",
-      "connecting": "正在連接",
-      "auth_required": "需要登入",
-      "connected": "已連接",
-      "offline": "離線",
-      "error": "錯誤"
-    },
-    "characterSlotLabel": "特點",
-    "characterSlotNone": "無字元綁定",
-    "characterSlotConflictHint": "刪除 @element 提及使用字元綁定 - 它們不能組合。"
-  },
-  "grokMode": {
-    "image": "影像",
-    "video": "影片"
   },
   "cost": {
     "free": "免費",
@@ -1206,8 +1080,6 @@
     "imageModelLabel": "模型",
     "imageSectionLabel": "影像",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "grokImageSubLabel": "Grok Imagine",
-    "geminiImageSubLabel": "Gemini",
     "videoSectionLabel": "影片",
     "imageModelAria": "選擇圖像模型",
     "quickSettingsAria": "選擇模型和推理工作。當前模型{model}，推理{effort}",
@@ -1252,17 +1124,6 @@
       "apiReady": "可用",
       "apiUnavailable": "不可用",
       "apiUnknown": "狀態未知",
-      "grokEyebrow": "本地 xAI 代理",
-      "grokTitle": "Grok",
-      "grokBody": "在配置的本機連接埠使用 progrok 產生 xAI 映像 API。",
-      "agyEyebrow": "Antigravity CLI",
-      "agyTitle": "Gemini (agy)",
-      "agyInstalledBody": "無法檢測登入狀態。如果產生失敗，請在終端機中執行 `agy login` 。",
-      "agyMissingBody": "未安裝。獲取",
-      "agyMissingLink": "Antigravity CLI",
-      "agyFineprint": "Antigravity 模型和影像配額是單獨計費。",
-      "agyInstalled": "已安裝",
-      "agyMissing": "未安裝",
       "status": {
         "ready": "可用",
         "authRequired": "需要登入",
@@ -1277,7 +1138,6 @@
       "codexNotLoggedIn": "未登入",
       "fetchError": "無法加載配額",
       "noData": "無使用數據",
-      "grokUsageLink": "看 Grok 用法 →",
       "switchAccount": "切換 {provider} 帳戶",
       "startingLogin": "開始登入...",
       "enterCode": "在打開的選項卡中輸入此代碼：",
@@ -1298,17 +1158,9 @@
       "gpt56Sol": "GPT-5.6 索爾",
       "gpt56Terra": "GPT-5.6 泰拉",
       "gpt56Luna": "GPT-5.6 露娜",
-      "grokImagine20": "Grok Imagine 圖像 2.0",
-      "grokImagine": "Grok Imagine",
-      "grokImagineQuality": "Grok Imagine 質量",
       "nanoBanana2": "奈米香蕉2",
       "nanoBanana2Api": "奈米香蕉2",
       "nanoBananaPro": "奈米香蕉專業版",
-      "atlasCloudGptImage2": "阿特拉斯雲 GPT Image 2",
-      "atlasCloudGptImage2Edit": "阿特拉斯雲 GPT Image 2 編輯",
-      "minimaxImage01": "MiniMax image-01",
-      "minimaxImage01Live": "MiniMax image-01-live",
-      "agy": "Antigravity (agy)",
       "gpt53CodexSpark": "GPT-5.3 Codex Spark — 不支援影像",
       "unsupportedHelp": "Grok 模型透過捆綁的本地代理使用 xAI 的圖像 API。 GPT 模型使用 OpenAI 回應影像產生。"
     },
@@ -1319,28 +1171,6 @@
       "openai": {
         "label": "GPT API 密鑰 (OpenAI)",
         "placeholder": "貼上您的 OpenAI API 密鑰（sk-...）"
-      },
-      "xai": {
-        "label": "Grok API 密鑰 (xAI)",
-        "placeholder": "貼上您的 xAI API 密鑰 (xai-...)"
-      },
-      "gemini": {
-        "label": "Gemini (Google)",
-        "placeholder": "貼上您的 Gemini API 密鑰（AI...）"
-      },
-      "atlascloud": {
-        "label": "阿特拉斯雲",
-        "placeholder": "貼上您的 Atlas Cloud API 金鑰（apikey-...）"
-      },
-      "minimax": {
-        "label": "MiniMax",
-        "placeholder": "貼上您的 MiniMax API 密鑰"
-      },
-      "vertex": {
-        "label": "Vertex AI（服務帳戶）",
-        "placeholder": "貼上您的 Google 雲端服務帳號 JSON { \"type\": \"service_account\",... }",
-        "authModeApiKey": "API 密鑰",
-        "authModeVertex": "頂點 JSON"
       },
       "save": "節省",
       "saved": "已儲存",
@@ -1354,10 +1184,6 @@
         "valid": "有效的",
         "notConfigured": "未配置"
       }
-    },
-    "videoModel": {
-      "grokImagine": "Grok Imagine 視頻",
-      "grokImagine15": "Grok Imagine 影片 1.5"
     },
     "reasoning": {
       "title": "推理努力",
@@ -1374,14 +1200,6 @@
       "body": "在生成之前使用即時搜尋來尋找真實的人物、品牌、產品、地點和最近的事件。",
       "on": "搜尋於",
       "off": "關閉搜尋"
-    },
-    "grokCompatibility": {
-      "title": "Grok 相容性",
-      "body": "Grok 圖像生成首先運行強製網絡搜索，然後將文字和附加圖像發送到本地圖像工具規劃器，該規劃器用英語編寫最終圖像提示。附上透過 xAI 影像編輯的參考路線；大小對應到寬高比/解析度。輸出格式、審核和推理僅由 GPT OAuth 和 API 密鑰提供者使用。"
-    },
-    "grokPlanner": {
-      "title": "Grok 規劃器模型",
-      "body": "該模型用於搜尋和圖像/視訊提示規劃。 Grok 4.5 為默認，支援I2V/Ref2V 規劃的影像輸入；Grok 4.3 仍可用作相容性覆蓋。"
     },
     "gallery": {
       "defaultScopeTitle": "預設圖庫視圖",
@@ -1513,26 +1331,6 @@
     "apikeyDisabled": {
       "title": "API-按鍵模式不可用",
       "body": "此版本支援 API-密鑰生成，但目前請求無法使用配置的密鑰。切換到 GPT OAuth 或更新 API 密鑰。",
-      "cta": "確定"
-    },
-    "agyGenerationFailed": {
-      "title": "Gemini 產生失敗",
-      "body": "Antigravity CLI 回傳錯誤。檢查 agy 二進位檔案是否已安裝且您的 Gemini 帳戶是否處於活動狀態。",
-      "cta": "重試"
-    },
-    "agyTimeout": {
-      "title": "Gemini 產生逾時",
-      "body": "agy 程序在逾時視窗（360 秒）內沒有回應。重試或檢查 agy CLI 狀態。",
-      "cta": "重試"
-    },
-    "agyProcessError": {
-      "title": "Gemini 進程錯誤",
-      "body": "agy CLI 因意外錯誤而退出。驗證二進位檔案是否可以與「agy --version」一起使用。",
-      "cta": "重試"
-    },
-    "agyQuotaExhausted": {
-      "title": "Gemini 配額已用完",
-      "body": "您已用盡 Gemini 圖像生成能力。您的配額將自動重設 - 檢查錯誤詳細資料中的重設計時器。",
       "cta": "確定"
     },
     "authClass": {
@@ -1731,12 +1529,10 @@
     "backgroundHintTransparent": "GPT Image 2 直接產生真正的 Alpha 通道，不需再去背。儲存為 PNG。",
     "model": "模型",
     "modelGpt": "GPT",
-    "modelGrok": "Grok",
     "kind": "輸出",
     "kindImage": "影像",
     "kindVideo": "影片",
     "videoSoon": "影片功能稍後推出",
-    "videoGrokOnly": "影片生成需要使用 Grok，請切換模型。",
     "videoOptions": "影片選項",
     "videoDuration": "影片時長",
     "videoResolution": "影片解析度",
@@ -1873,7 +1669,10 @@
     "refFailed": "無法新增參考",
     "saveToAssets": "保存到資產",
     "savedToAssets": "保存到資產",
-    "saveToAssetsFailed": "無法保存到資產"
+    "saveToAssetsFailed": "無法保存到資產",
+    "saveAsElement": "Save as element",
+    "saved": "Saved",
+    "saveFailed": "Could not save"
   },
   "assets": {
     "title": "資產",

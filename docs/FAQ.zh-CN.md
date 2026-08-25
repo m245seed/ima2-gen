@@ -103,19 +103,9 @@ ima2 serve
 
 如果这种情况发生在公司网络上，防火墙、VPN、代理或强制门户也可能会阻止OAuth流动。
 
-### 我该如何使用Gemini提供商？
+### 如何重新验证Codex无需重新启动？
 
-二Gemini提供者可用：
-
-- **`agy`**— 使用Antigravity CLI (`agy -p`）没有API需要钥匙。需要`agy`要安装并登录的二进制文件。型号是`nano-banana-2`，输出固定为1024×1024。
-
-- **`gemini-api`**——称为谷歌生成语言API直接地。添加一个`GEMINI_API_KEY`env var，或通过设置 > 配置密钥API钥匙。为了Vertex AI,添加服务帐号JSON通过设置或`VERTEX_SERVICE_ACCOUNT_JSON`环境变量。当两者都APIkey 和 Vertex 凭证均存在，Vertex 优先。使用“设置”中的身份验证模式下拉菜单在`apikey`和`vertex`;该选择会自动保存并恢复。
-
-这`gemini-api`提供商支持两种模型：`nano-banana-2` (Gemini3.1 Flash 图像）和`nano-banana-pro` (Gemini3 专业图像）。网络UI显示宽高比和分辨率控件 (512px–4K)`gemini-api`;这些仅在直接上受到尊重Gemini API路径并被忽略Vertex AI.
-
-### 如何重新验证Grok或者Codex无需重新启动？
-
-使用**切换账户**提供商的“设置”>“配额卡”中的按钮。这会启动一个设备代码OAuth流程：新的浏览器选项卡打开验证URL，您完成登录，服务器会自动获取新凭据。对于电流Grok建造xAIauth，配额栏显示服务器计算的每周使用百分比和重置时间。旧版身份验证回退到较旧的每月身份验证`$used / $limit`帐单视图（如果可用）。
+使用**切换帐户**提供商的“设置”>“配额卡”中的按钮。这会启动一个设备代码OAuth流程：新的浏览器选项卡打开验证URL，您完成登录，服务器会自动获取新凭证。
 
 ## 型号及配额
 

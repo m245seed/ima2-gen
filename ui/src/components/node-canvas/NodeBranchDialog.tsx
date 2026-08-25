@@ -16,7 +16,7 @@ export interface NodeBranchDialogProps {
   onClose(): void;
 }
 
-const providers = ["oauth", "api", "grok", "gemini-api"] as const;
+const providers = ["oauth", "api"] as const;
 
 function createDraft(index: number, label: string): VariantDraft {
   return { id: `variant-${index + 1}`, label, provider: providers[index % providers.length], model: "", size: "" };

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { loadNodeB64, loadNodeMeta } from "./nodeStore.js";
 import { detectImageMimeFromB64 } from "./refs.js";
-import type { GrokReferenceImage } from "./grokImageAdapter.js";
+import type { ReferenceRef } from "./responsesImageAdapter.js";
 import type { UpstreamErr } from "./generationErrors.js";
 import type { RuntimeContext } from "./runtimeContext.js";
 import { writeSse } from "./routeHelpers.js";
@@ -83,7 +83,7 @@ export async function loadParentNodeB64(ctx: RuntimeContext, nodeId: string) {
   return loadNodeB64(ctx.rootDir, `${nodeId}.png`, ctx.config.storage.generatedDir);
 }
 
-export function toGrokReferences(parentB64: string | null, refs: Array<GrokReferenceImage | string>): GrokReferenceImage[] {
+export function toGrokReferences(parentB64: string | null, refs: Array<ReferenceRef | string>): ReferenceRef[] {
   const parentMime = parentB64 ? detectImageMimeFromB64(parentB64) : null;
   const parentRefs = parentB64
     ? [{ b64: parentB64, declaredMime: parentMime, detectedMime: parentMime }]

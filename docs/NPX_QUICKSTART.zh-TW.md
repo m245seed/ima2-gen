@@ -24,7 +24,7 @@ npx ima2-gen serve
 快取是冷的，這比全域安裝慢。
 - 生成的圖像儲存在`~/.ima2/generated`無論安裝
 方法。當 npx 快取過期時，它們不會遺失。
-- `ima2 setup`, `ima2 grok login`，以及其他CLI命令在之後仍然有效
+- `ima2 setup`以及其他CLI命令在之後仍然有效
 `npx ima2-gen serve`只要 npx 會話處於活動狀態，就會啟動伺服器。
 - 為了獲得穩定、更快的體驗，請使用全域安裝：
 

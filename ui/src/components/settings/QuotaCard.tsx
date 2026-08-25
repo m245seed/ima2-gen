@@ -18,7 +18,6 @@ interface QuotaResult {
 
 interface QuotaResponse {
   codex?: QuotaResult;
-  grok?: QuotaResult;
 }
 
 interface SwitchState {
@@ -58,7 +57,7 @@ function QuotaBar({ window: w }: { window: QuotaWindow }) {
   );
 }
 
-function SwitchAccountButton({ provider, onComplete }: { provider: "grok" | "codex"; onComplete: () => void }) {
+function SwitchAccountButton({ provider, onComplete }: { provider: "codex"; onComplete: () => void }) {
   const { t } = useI18n();
   const [state, setState] = useState<SwitchState>({ phase: "idle" });
   const [copied, setCopied] = useState(false);
@@ -120,7 +119,7 @@ function SwitchAccountButton({ provider, onComplete }: { provider: "grok" | "cod
         style={{ width: "100%", marginTop: "6px" }}
         onClick={startSwitch}
       >
-        {t("settings.quota.switchAccount", { provider: provider === "grok" ? "Grok" : "Codex" })}
+        {t("settings.quota.switchAccount", { provider: "Codex" })}
       </button>
     );
   }
@@ -263,44 +262,3 @@ export function CodexQuota({ data, loading, onRefresh }: QuotaBlockProps) {
   );
 }
 
-/** Grok quota block — lives inside the Grok provider card. */
-export function GrokQuota({ data, loading, onRefresh }: QuotaBlockProps) {
-  const { t } = useI18n();
-  const grok = data?.grok;
-  const hasGrokWindows = grok?.windows && grok.windows.length > 0;
-  const grokAccountLine = grok?.account
-    ? [grok.account.email, grok.account.plan].filter(Boolean).join(" · ")
-    : null;
-
-  return (
-    <div className="quota-card">
-      {grokAccountLine || grok?.billing ? (
-        <div className="quota-card__header" style={{ display: "flex", alignItems: "center" }}>
-          {grokAccountLine && <span className="quota-card__account">{grokAccountLine}</span>}
-          {grok?.billing && (
-            <span style={{ marginLeft: "auto", fontSize: "11px", color: "var(--text-dim, #888)", whiteSpace: "nowrap" }}>
-              ${grok.billing.usedUsd.toFixed(1)}/${grok.billing.limitUsd}
-            </span>
-          )}
-        </div>
-      ) : null}
-      {loading ? (
-        <span className="quota-card__loading">{t("common.loading")}</span>
-      ) : hasGrokWindows ? (
-        grok!.windows.map((w) => <QuotaBar key={w.label} window={w} />)
-      ) : grok?.authenticated === false ? (
-        <span className="quota-card__hint">{t("settings.quota.codexNotLoggedIn")}</span>
-      ) : (
-        <a
-          href="https://grok.com/?_s=usage"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="settings-action-btn"
-        >
-          {t("settings.quota.grokUsageLink")}
-        </a>
-      )}
-      <SwitchAccountButton provider="grok" onComplete={onRefresh} />
-    </div>
-  );
-}

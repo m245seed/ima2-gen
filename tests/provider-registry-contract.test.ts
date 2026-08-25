@@ -14,9 +14,7 @@ describe("core provider registry contract", () => {
   it("contains exactly one manifest for every core lane", () => {
     const ids = REGISTRY.map((provider) => provider.id);
     assert.equal(new Set(ids).size, ids.length);
-    assert.deepEqual(ids, [
-      "oauth", "api", "grok", "grok-api", "agy", "gemini-api", "atlascloud", "minimax",
-    ]);
+    assert.deepEqual(ids, ["oauth", "api"]);
   });
 
   it("uses scanner-safe optional error prefixes", () => {
@@ -29,13 +27,6 @@ describe("core provider registry contract", () => {
 
   it("represents credential shapes without assigning keys to proxy lanes", () => {
     assert.deepEqual(byKeyVocabulary("openai").map((provider) => provider.id), ["api"]);
-    assert.deepEqual(byKeyVocabulary("xai").map((provider) => provider.id), ["grok-api"]);
-    assert.deepEqual(byKeyVocabulary("gemini").map((provider) => provider.id), ["gemini-api"]);
-    const gemini = REGISTRY.find((provider) => provider.id === "gemini-api")!;
-    assert.deepEqual(gemini.credentials.map((credential) => credential.kind), ["api-key", "service-account"]);
-    const agy = REGISTRY.find((provider) => provider.id === "agy")!;
-    assert.equal(agy.credentials[0].kind, "local-cli");
-    assert.equal(agy.credentials[0].optionalApiKeyEnv, "GEMINI_API_KEY");
     for (const provider of REGISTRY) {
       for (const credential of provider.credentials) {
         assert.ok(credential.envVars.length > 0);
@@ -56,7 +47,6 @@ const manifestOnlyLane = [
     credentials: [],
     models: [
       { id: "test-image", kind: "image", supports: { edit: true, mask: false, streaming: false } },
-      { id: "test-video", kind: "video", supports: { edit: false, mask: false, streaming: false } },
     ],
     referenceLimits: { image: 2 },
     elementTaxonomy: null,
@@ -76,7 +66,6 @@ describe("manifest-only lane reaches the derived consumers (d5)", () => {
   it("appears in derived ids, model sets, and reference limits", () => {
     assert.ok(deriveIdsFrom(manifestOnlyLane).includes("test-lane"));
     assert.deepEqual([...deriveModelsFrom(manifestOnlyLane, "test-lane", "image")], ["test-image"]);
-    assert.deepEqual([...deriveModelsFrom(manifestOnlyLane, "test-lane", "video")], ["test-video"]);
     assert.ok(deriveImageModelSetFrom(manifestOnlyLane).has("test-image"));
     assert.ok(deriveCliImageModelSetFrom(manifestOnlyLane).has("test-image"));
     assert.equal(deriveReferenceLimitMapFrom(manifestOnlyLane, "image")["test-lane"], 2);

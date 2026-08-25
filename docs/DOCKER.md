@@ -40,7 +40,6 @@ container exits at startup with a clear error — that is by design, not a bug.
 | `IMA2_HOST` | `0.0.0.0` | Bind host |
 | `IMA2_CONFIG_DIR` | `/data` | Config + generated output + credentials |
 | `OPENAI_API_KEY` | — | Optional: API-key image provider |
-| `GEMINI_API_KEY` | — | Optional: Gemini API provider |
 
 State (config, generated images/videos, OAuth credentials) lives under `/data`
 — mount a volume there to persist it.

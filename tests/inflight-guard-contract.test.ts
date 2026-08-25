@@ -23,8 +23,8 @@ test("inflight startJob guards duplicate requestId and concurrent capacity", () 
   assert.match(inflight, /purgeStaleJobs\(\)/);
 });
 
-test("nodes, multimode, and video routes map startJob failures to 409 and 429", () => {
-  for (const relPath of ["lib/nodeGeneration.ts", "lib/multimodePipeline.ts", "routes/video.ts"]) {
+test("nodes and multimode routes map startJob failures to 409 and 429", () => {
+  for (const relPath of ["lib/nodeGeneration.ts", "lib/multimodePipeline.ts"]) {
     const src = readSource(relPath);
     assert.match(src, /const started = startJob\(/);
     assert.match(src, /if \(started && isStartJobFailure\(started\)\)/);
@@ -39,7 +39,6 @@ test("all generation pipelines only finish jobs they successfully started", () =
     "lib/generatePipeline.ts",
     "lib/multimodePipeline.ts",
     "lib/nodeGeneration.ts",
-    "routes/video.ts",
     "routes/edit.ts",
   ]) {
     const src = readSource(relPath);

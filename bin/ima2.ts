@@ -25,9 +25,6 @@ const CONFIG_DIR = runtimeConfig.storage.configDir;
 const CONFIG_FILE = runtimeConfig.storage.configFile;
 const LEGACY_CONFIG_FILE = join(ROOT, ".ima2", "config.json");
 
-function runSelf(args: string[]) {
-  execFileSync(process.execPath, [join(ROOT, "bin", "ima2.js"), ...args], { stdio: "inherit" });
-}
 
 function runCodexLogin() {
   const codex = packageCliCommand("@openai/codex", "codex", codexFileLoginArgs());
@@ -80,65 +77,26 @@ async function setup() {
   console.log("\n  ima2-gen — GPT Image 2 Generator\n");
   console.log("  Choose authentication method:\n");
   console.log("    1) GPT OAuth   — login with ChatGPT account (free, images only)");
-  console.log("    2) Grok OAuth  — login with xAI/Grok account (images + video)");
-  console.log("    3) Both        — GPT OAuth + Grok OAuth");
-  console.log("    4) Web setup   — configure everything in the web UI\n");
+  console.log("    2) OpenAI API  — use an OpenAI API key");
+  console.log("    3) Web setup   — configure everything in the web UI\n");
 
-  const choice = await rl.question("  Enter 1-4: ");
+  const choice = await rl.question("  Enter 1-3: ");
   const config = loadConfig();
 
-  if (choice.trim() === "4") {
+  if (choice.trim() === "3") {
     config.provider = "oauth";
     delete config.apiKey;
     saveConfig(config);
     console.log("\n  You can set up everything from the web UI.");
     console.log("  Run 'ima2 serve', then open Settings in the browser to sign in or add API keys.\n");
   } else if (choice.trim() === "2") {
-    config.provider = "grok";
-    config.oauth = config.oauth || {};
-    config.oauth.disableAutoStart = true;
-    delete config.apiKey;
+    config.provider = "api";
+    const key = await rl.question("  OpenAI API key (leave blank to configure later): ");
+    if (key.trim()) config.apiKey = key.trim();
+    else delete config.apiKey;
     saveConfig(config);
-    console.log("\n  Starting Grok OAuth login...\n");
-    try {
-      runSelf(["grok", "login", "--manual-paste"]);
-    } catch {
-      console.log("\n  Grok login failed or cancelled. You can retry with 'ima2 grok login'.\n");
-      rl.close();
-      exitFlushed(1);
-    }
-    console.log("  Grok configured. Run 'ima2 serve' to start.\n");
-  } else if (choice.trim() === "3") {
-    config.provider = "oauth";
-    delete config.apiKey;
-    if (config.oauth) delete config.oauth.disableAutoStart;
-    saveConfig(config);
-    console.log("\n  Setting up both GPT OAuth + Grok OAuth...\n");
-    // GPT OAuth
-    const auth = detectCodexAuth();
-    if (!auth.proxyReady) {
-      if (auth.authed) {
-        console.log("  Codex is signed in through the OS keyring; ima2 needs a file-backed session.\n");
-      }
-      console.log("  Running GPT OAuth login...\n");
-      try {
-        runCodexLogin();
-      } catch {
-        console.log("\n  GPT login failed. Continuing with Grok...\n");
-      }
-    } else {
-      console.log(`  GPT OAuth session found.\n`);
-    }
-    // Grok OAuth
-    console.log("  Running Grok OAuth login...\n");
-    try {
-      runSelf(["grok", "login", "--manual-paste"]);
-    } catch {
-      console.log("\n  Grok login failed. You can retry with 'ima2 grok login'.\n");
-    }
-    console.log("  Both providers configured.\n");
+    console.log("\n  OpenAI API configured. Run 'ima2 serve' to start.\n");
   } else {
-    // Default: GPT OAuth (choice 1 or anything else)
     config.provider = "oauth";
     config.oauth = config.oauth || {};
     config.oauth.disableAutoStart = false;
@@ -310,7 +268,7 @@ function showHelp() {
   Usage: ima2 <command> [options]
 
   Generation workflow:
-    Image/video jobs run on the server. For multiple candidates, prefer
+    Image jobs run on the server. For multiple candidates, prefer
     'ima2 gen -n <N>' or 'ima2 multimode <prompt>' instead of repeating
     one-image prompts. Start independent CLI jobs concurrently when needed;
     use 'ima2 ps --json' to monitor requestIds and 'ima2 cancel <id>' to stop.
@@ -325,7 +283,6 @@ function showHelp() {
 
   Client commands (require a running 'ima2 serve'):
     gen <prompt>   Generate image(s) from prompt  (ima2 gen --help)
-    video <prompt> Generate video via Grok        (ima2 video --help)
     edit <file>    Edit an existing image         (ima2 edit --help)
     ls             List recent history            (ima2 ls --help)
     show <name>    Show one history item          (ima2 show --help)
@@ -338,7 +295,7 @@ function showHelp() {
     canvas-versions <sub>  Canvas version save/update (ima2 canvas-versions --help)
     metadata <file>  Read embedded metadata
     comfy <sub>    ComfyUI workflow export          (ima2 comfy --help)
-    cardnews <sub> Card News templates/jobs/export  (ima2 cardnews --help)
+    cardnews <sub>  Card News templates/jobs/export  (ima2 cardnews --help)
     ps             List active jobs               (ima2 ps --help)
     cancel <id>    Mark an in-flight job canceled (ima2 cancel --help)
     inflight <sub> Inflight jobs (ls / rm)         (ima2 inflight --help)
@@ -347,10 +304,9 @@ function showHelp() {
     billing        API usage / quota
     providers      Configured providers
     oauth <sub>    GPT OAuth proxy status              (ima2 oauth --help)
-    grok <sub>     Bundled Grok auth/status         (ima2 grok --help)
     config <sub>   Config get/set/ls/path/rm       (ima2 config --help)
     defaults <sub> Inspect/change model defaults   (ima2 defaults --help)
-    models         List available lane models      (ima2 models --help)
+    models         List available image models    (ima2 models --help)
     capabilities   Agent capability metadata       (ima2 capabilities --help)
     tools          Machine tool contracts for agents (ima2 tools --help)
     ping           Ping running server / check health
@@ -391,7 +347,6 @@ function showHelp() {
                                       Generate 4 candidates in one request
     ima2 ps --json                    Watch active async generation jobs
     ima2 gen "merge" --ref a.png --ref b.png -q high -o out.png
-    ima2 video "a cat playing piano" --duration 10
     ima2 ls -n 10                    Last 10 generations
     ima2 skill                       Print core agent skill
     ima2 skill ls                     List all skills (core, front, uiux)
@@ -403,7 +358,7 @@ function showHelp() {
     ima2 skill install front --dir <path>  Install frontend skill only
     ima2 skill install --tmp          Install to temp dir
     ima2 capabilities --json         Inspect supported models/options
-    ima2 models --json               List image/video models by lane
+    ima2 models --json               List image models by lane
     ima2 defaults --json             Inspect running server defaults
     ima2 ping                        Health check
 `);
@@ -418,12 +373,15 @@ if (args.includes("-v") || args.includes("--version")) {
   exitFlushed(0);
 }
 
-const helpOwningCommands = ["doctor", "gen", "video", "edit", "ls", "show", "ps", "cancel", "session", "history", "prompt", "multimode", "node", "annotate", "canvas-versions", "metadata", "comfy", "cardnews", "inflight", "storage", "billing", "providers", "oauth", "grok", "config", "defaults", "models", "capabilities", "tools", "skill", "ping", "backfill-thumbs", "service"];
+const helpOwningCommands = ["doctor", "gen", "edit", "ls", "show", "ps", "cancel", "session", "history", "prompt", "multimode", "node", "annotate", "canvas-versions", "metadata", "comfy", "cardnews", "inflight", "storage", "billing", "providers", "oauth", "config", "defaults", "models", "capabilities", "tools", "skill", "ping", "backfill-thumbs", "service"];
+const globalHelpCommands = ["serve", "setup", "login", "status", "open", "reset", "stop"];
 if (!command) {
   showHelp();
   exitFlushed(1);
 }
-if ((args.includes("-h") || args.includes("--help")) && !helpOwningCommands.includes(command)) {
+if ((args.includes("-h") || args.includes("--help"))
+  && !helpOwningCommands.includes(command)
+  && globalHelpCommands.includes(command)) {
   showHelp();
   exitFlushed(0);
 }
@@ -480,8 +438,6 @@ switch (command) {
     }
     break;
   case "gen":
-  case "video":
-  case "upscale":
   case "edit":
   case "ls":
   case "show":
@@ -503,7 +459,6 @@ switch (command) {
   case "capabilities":
   case "tools":
   case "skill":
-  case "grok":
   case "ping": {
     const { setCliVersion } = await import("./lib/client.js");
     setCliVersion(pkg.version);
@@ -533,7 +488,7 @@ switch (command) {
     break;
   }
   default:
-    console.log(`  Unknown command: "${command}"`);
+    console.log(`  UNKNOWN_COMMAND: Unknown command: "${command}"`);
     console.log("  Run 'ima2 --help' for usage.\n");
-    exitFlushed(1);
+    exitFlushed(2);
 }

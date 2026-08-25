@@ -10,12 +10,6 @@ import { Select, type SelectItem } from "../controls/Select";
 const PROVIDER_LABELS: Record<Provider, string> = {
   oauth: "GPT OAuth",
   api: "GPT API",
-  grok: "Grok OAuth",
-  "grok-api": "Grok API",
-  agy: "Antigravity",
-  "gemini-api": "Gemini API",
-  atlascloud: "Atlas Cloud",
-  minimax: "MiniMax",
 };
 
 function homeReferenceThumbnail(item: TrayItem): string | undefined {

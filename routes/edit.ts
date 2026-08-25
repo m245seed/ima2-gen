@@ -3,18 +3,11 @@ import { safeWriteSidecar } from "../lib/atomicWrite.js";
 import { join } from "path";
 import { buildFilename, writeFileUnique } from "../lib/filename.js";
 import type { Express, Request, Response } from "express";
-import { detectImageMimeFromB64 } from "../lib/refs.js";
 import { generateImageThumbnailFromBuffer } from "../lib/imageThumb.js";
 import { classifyUpstreamError } from "../lib/errorClassify.js";
 import { normalizeOAuthParams } from "../lib/oauthNormalize.js";
 import { resolveProviderOptions } from "../lib/providerOptions.js";
 import { editViaResponses } from "../lib/responsesImageAdapter.js";
-import { editViaGrok } from "../lib/grokImageAdapter.js";
-import { resolveGrokQualityModel } from "../lib/imageModels.js";
-import { generateViaAgy } from "../lib/agyImageAdapter.js";
-import { generateViaGeminiApi } from "../lib/geminiApiImageAdapter.js";
-import { generateViaAtlasCloud } from "../lib/atlasCloudImageAdapter.js";
-import { generateViaMinimax } from "../lib/minimaxImageAdapter.js";
 import { startJob, finishJob, registerJobAbortController, isJobCanceled, isStartJobFailure, INFLIGHT_RETRY_AFTER_SECONDS } from "../lib/inflight.js";
 import {
   isGenerationCanceledError,
@@ -37,11 +30,6 @@ function validateModeration(ctx: RuntimeContext, moderation: unknown) {
   return { moderation };
 }
 
-function imageFormatFromMime(mime: string | null | undefined): "png" | "jpeg" | "webp" {
-  if (mime === "image/jpeg") return "jpeg";
-  if (mime === "image/webp") return "webp";
-  return "png";
-}
 
 const MAX_EDIT_MASK_BYTES = 16 * 1024 * 1024;
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -182,14 +170,7 @@ export function registerEditRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
         finishErrorCode = "INVALID_EDIT_INPUT";
         return res.status(400).json({ error: "Prompt and image are required" });
       }
-      if ((activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax") && rawMask) {
-        finishStatus = "error";
-        finishHttpStatus = 400;
-        const code = activeProvider === "agy" ? "AGY_MASK_UNSUPPORTED" : activeProvider === "gemini-api" ? "GEMINI_API_MASK_UNSUPPORTED" : activeProvider === "atlascloud" ? "ATLASCLOUD_MASK_UNSUPPORTED" : activeProvider === "minimax" ? "MINIMAX_MASK_UNSUPPORTED" : "GROK_MASK_UNSUPPORTED";
-        const label = activeProvider === "agy" ? "Agy" : activeProvider === "gemini-api" ? "Gemini API" : activeProvider === "atlascloud" ? "Atlas Cloud" : activeProvider === "minimax" ? "MiniMax" : "Grok";
-        return res.status(400).json({ error: `${label} provider does not support mask editing`, code, ...errorEnvelopeFields({ code, status: 400 }) });
-      }
-      const maskCheck: any = validateEditMask(imageB64, rawMask);
+      const maskCheck: MaskValidationResult = validateEditMask(imageB64, rawMask);
       if (maskCheck.error) {
         finishStatus = "error";
         finishHttpStatus = 400;
@@ -225,111 +206,36 @@ export function registerEditRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
       let usage: Record<string, number> | null;
       let revisedPrompt: string | undefined;
       let webSearchCalls = 0;
-      let resultMimeFromProvider: string | undefined;
-      let providerUrl: string | null = null;
 
-      if (activeProvider === "gemini-api") {
-        const r = await generateViaGeminiApi(`Edit this image: ${prompt}`, requireRuntimeContext(ctx), {
+      const r = await editViaResponses(
+        activeProvider,
+        prompt,
+        imageB64,
+        quality,
+        effectiveSize,
+        moderation,
+        normalizedPromptMode,
+        ctx,
+        requestId,
+        {
           model: imageModel,
-          size: effectiveSize,
+          reasoningEffort,
+          webSearchEnabled,
+          mask: maskCheck.mask ?? undefined,
           signal: cancelController.signal,
-          requestId,
-          references: [{ b64: imageB64, declaredMime: null, detectedMime: detectImageMimeFromB64(imageB64) || null }],
-        });
-        resultB64 = r.b64;
-        usage = r.usage;
-        revisedPrompt = r.revisedPrompt;
-        webSearchCalls = r.webSearchCalls;
-        resultMimeFromProvider = r.mime;
-      } else if (activeProvider === "agy") {
-        const r = await generateViaAgy(`Edit this image: ${prompt}`, {
-          references: [{ b64: imageB64, declaredMime: null, detectedMime: detectImageMimeFromB64(imageB64) || null }],
-          signal: cancelController.signal,
-          requestId,
-        });
-        resultB64 = r.b64;
-        usage = r.usage;
-        revisedPrompt = r.revisedPrompt;
-        webSearchCalls = r.webSearchCalls;
-        resultMimeFromProvider = r.mime;
-      } else if (activeProvider === "atlascloud") {
-        const r = await generateViaAtlasCloud(`Edit this image: ${prompt}`, requireRuntimeContext(ctx), {
-          model: imageModel,
-          size: effectiveSize,
-          quality,
-          signal: cancelController.signal,
-          requestId,
-          references: [{ b64: imageB64, declaredMime: null, detectedMime: detectImageMimeFromB64(imageB64) || null }],
-        });
-        resultB64 = r.b64;
-        providerUrl = r.providerUrl ?? null;
-        usage = r.usage;
-        revisedPrompt = r.revisedPrompt ?? undefined;
-        webSearchCalls = r.webSearchCalls;
-        resultMimeFromProvider = r.mime;
-      } else if (activeProvider === "minimax") {
-        const r = await generateViaMinimax(`Edit this image: ${prompt}`, requireRuntimeContext(ctx), {
-          model: imageModel,
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          references: [{ b64: imageB64, declaredMime: null, detectedMime: detectImageMimeFromB64(imageB64) || null }],
-        });
-        resultB64 = r.b64;
-        providerUrl = r.providerUrl ?? null;
-        usage = r.usage;
-        revisedPrompt = r.revisedPrompt ?? undefined;
-        webSearchCalls = r.webSearchCalls;
-        resultMimeFromProvider = r.mime;
-      } else if (activeProvider === "grok" || activeProvider === "grok-api") {
-        const directApiKey = activeProvider === "grok-api" ? ctx.xaiApiKey : undefined;
-        const grokModel = resolveGrokQualityModel(imageModel, quality);
-        const r = await editViaGrok(prompt, imageB64, ctx, {
-          model: grokModel,
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          directApiKey,
-        });
-        resultB64 = r.b64;
-        providerUrl = r.providerUrl ?? null;
-        usage = r.usage;
-        revisedPrompt = r.revisedPrompt;
-        webSearchCalls = r.webSearchCalls;
-        resultMimeFromProvider = r.mime;
-      } else {
-        const r = await editViaResponses(
-          activeProvider,
-          prompt,
-          imageB64,
-          quality,
-          effectiveSize,
-          moderation,
-          normalizedPromptMode,
-          ctx,
-          requestId,
-          {
-            model: imageModel,
-            reasoningEffort,
-            webSearchEnabled,
-            mask: maskCheck.mask,
-            signal: cancelController.signal,
-          },
-        );
-        resultB64 = r.b64;
-        usage = r.usage ?? null;
-        revisedPrompt = r.revisedPrompt ?? undefined;
-        webSearchCalls = r.webSearchCalls ?? 0;
-      }
+        },
+      );
+      resultB64 = r.b64;
+      usage = r.usage ?? null;
+      revisedPrompt = r.revisedPrompt ?? undefined;
+      webSearchCalls = r.webSearchCalls ?? 0;
+      const editMime = "image/png";
+      const editExt = "png";
       throwIfJobCanceled(requestId);
 
       const elapsed = +((Date.now() - startTime) / 1000).toFixed(1);
       await mkdir(ctx.config.storage.generatedDir, { recursive: true });
       throwIfJobCanceled(requestId);
-      const editMime = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax"
-        ? (resultMimeFromProvider || detectImageMimeFromB64(resultB64) || "image/png")
-        : "image/png";
-      const editExt = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax" ? imageFormatFromMime(editMime) : "png";
       const editBuffer = Buffer.from(resultB64, "base64");
       const createdAt = Date.now();
       // Semantic alpha verification: at least one pixel with alpha < 255.
@@ -351,7 +257,7 @@ export function registerEditRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
       const filename = await writeFileUnique(
         ctx.config.storage.generatedDir,
         buildFilename({
-          model: (activeProvider === "grok" || activeProvider === "grok-api") ? resolveGrokQualityModel(imageModel, quality) : (imageModel || activeProvider),
+          model: imageModel || activeProvider || "gpt-5.6-luna",
           size: effectiveSize,
           createdAt,
           prompt,
@@ -382,7 +288,6 @@ export function registerEditRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
         usage: usage || null,
         webSearchCalls,
         webSearchEnabled,
-        ...(providerUrl ? { providerUrl } : {}),
       };
       await safeWriteSidecar(join(ctx.config.storage.generatedDir, filename + ".json"), meta);
       invalidateHistoryIndex();
@@ -404,14 +309,13 @@ export function registerEditRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
         alphaReason,
         usage,
         provider: activeProvider,
-        model: activeProvider === "grok" ? resolveGrokQualityModel(imageModel, quality) : imageModel,
+        model: imageModel,
         moderation,
         warnings: qualityWarnings,
         revisedPrompt: revisedPrompt || null,
         promptMode: normalizedPromptMode,
         webSearchCalls,
         webSearchEnabled,
-        providerUrl,
         createdAt,
       });
     } catch (e) {

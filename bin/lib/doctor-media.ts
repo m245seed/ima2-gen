@@ -10,7 +10,7 @@ export async function buildMediaDoctorLines(): Promise<DoctorCheckLine[]> {
     return [{ kind: "pass", text: "ffmpeg available on PATH" }];
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return [{ kind: "warn", text: "ffmpeg not on PATH (video features unavailable)" }];
+    if (code === "ENOENT") return [{ kind: "warn", text: "ffmpeg not on PATH (media features unavailable)" }];
     return [{ kind: "warn", text: "ffmpeg probe failed" }];
   }
 }

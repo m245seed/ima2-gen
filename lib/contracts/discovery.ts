@@ -1,9 +1,26 @@
 // AI discovery surface (070 WP7): envelope, catalog version, availability
 // promotion, and execution bindings. Pure functions shared by the CLI and the
 // /api/contracts route. Design evidence: devlog 071 (gh/cargo/MCP/RFC 9457).
-import { randomBytes } from "node:crypto";
-import { canonicalHash } from "../mcp/sanitizer.js";
+import { createHash, randomBytes } from "node:crypto";
 import type { Availability, JsonSchema, ToolContract, TypedErrorCode } from "./types.js";
+
+/** Deterministic serialization: recursively sorts object keys (ex-MCP sanitizer). */
+function canonicalStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalStringify(item)).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonicalStringify(v)}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+/** Stable hash over canonical JSON (ex-MCP sanitizer). */
+function canonicalHash(value: unknown): string {
+  return "sha256:" + createHash("sha256").update(canonicalStringify(value)).digest("hex");
+}
 
 export const DISCOVERY_SCHEMA_VERSION = 1;
 
@@ -92,7 +109,7 @@ const MEDIA_ACTION_INPUT: JsonSchema = {
   additionalProperties: false,
 };
 
-const GENERATE_TOOLS = new Set(["generate_image", "generate_video"]);
+const GENERATE_TOOLS = new Set(["generate_image"]);
 const ACTION_TOOLS = new Set(["upscale_image", "upscale_video", "edit_video"]);
 
 /** Raw upstream schemas are reference material; execution flows through these

@@ -333,8 +333,8 @@ export function useCanvasModeSession({
       );
       const inheritedSize = canvasDisplayImage?.size ?? currentImage?.size ?? null;
       const editSize = inheritedSize && /^\d+x\d+$/.test(inheritedSize) ? inheritedSize : getResolvedSize();
-      // Always route through the OAuth lane; the workspace provider/model may
-      // be a non-GPT lane (Grok, Gemini...), so never forward its model id.
+      // Always route through the Responses image-edit lane; never forward a
+      // workspace-specific model id that the edit endpoint does not accept.
       const response = await postEdit({
         image: editImage,
         prompt:

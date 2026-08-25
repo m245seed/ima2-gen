@@ -12,7 +12,6 @@ export type AgentToolName =
   | "ima2.get_image_context"
   | "ima2.web_search"
   | "ima2.generate_image"
-  | "ima2.generate_video"
   | "ima2.get_generation_errors";
 export type AgentToolCallStatus = "queued" | "running" | "complete" | "error";
 export type AgentQueueStatus = "queued" | "running" | "succeeded" | "failed" | "canceled";
@@ -52,14 +51,8 @@ export type AgentToolCallSummary = {
   errorMessage?: string | null;
 };
 
-export type AgentVideoParams = {
-  duration?: number;
-  resolution?: "480p" | "720p" | "1080p";
-  aspectRatio?: string;
-};
-
 export type AgentGenerationPlan = {
-  mode: "single" | "fanout" | "question" | "video" | "errors";
+  mode: "single" | "fanout" | "question" | "errors";
   prompts: string[];
   requestedVariants: number;
   plannedVariants: number;
@@ -68,10 +61,8 @@ export type AgentGenerationPlan = {
   reason: string;
   command?: "question" | "help" | "variants" | "generate" | "parallelism" | null;
   assistantText?: string | null;
-  videoParams?: AgentVideoParams | null;
   sourceImagePolicy?: AgentSourceImagePolicy | null;
 };
-
 export type AgentQueueItem = {
   id: string;
   sessionId: string;

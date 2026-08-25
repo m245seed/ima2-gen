@@ -34,9 +34,6 @@ export function removeInsertedPromptFromComposerImpl(id: string, set: StoreSet):
     saveGenerationDefaultsPatch({ insertedPrompts });
     return {
       insertedPrompts,
-      videoContinuityLineage: id.startsWith("video-continuity:")
-        ? null
-        : state.videoContinuityLineage,
     };
   });
 }
@@ -76,7 +73,7 @@ export function moveInsertedPromptInComposerImpl(
 
 export function clearInsertedPromptsImpl(set: StoreSet): void {
   saveGenerationDefaultsPatch({ insertedPrompts: [] });
-  set({ insertedPrompts: [], videoContinuityLineage: null });
+  set({ insertedPrompts: [] });
 }
 
 export async function loadPromptLibraryImpl(set: StoreSet): Promise<void> {

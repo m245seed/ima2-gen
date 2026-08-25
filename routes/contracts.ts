@@ -1,4 +1,4 @@
-// Contract discovery API (070 WP7): catalog projections with live availability.
+// Contract discovery API (070 WP7): catalog projections.
 import type { Express, Request, Response } from "express";
 import { buildCatalog } from "../lib/contracts/catalog.js";
 import {
@@ -9,31 +9,14 @@ import {
   okEnvelope,
   type ProviderLiveState,
 } from "../lib/contracts/discovery.js";
-import { loadAllBundledSnapshots, readLocalSnapshot } from "../lib/mcp/snapshotStore.js";
 import { requireRuntimeContext, type RouteRuntimeContext } from "../lib/runtimeContext.js";
 
 export function registerContractRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
   const ctx = requireRuntimeContext(ctxRaw);
 
   function loadState() {
-    const snapshots = [];
+    const entries = buildCatalog({ snapshots: [] });
     const liveByProvider: Record<string, ProviderLiveState> = {};
-    for (const provider of ctx.config.mcp.enabledProviders) {
-      const local = readLocalSnapshot(ctx.config.mcp.snapshotDir, provider);
-      const bundled = loadAllBundledSnapshots(ctx.config.storage.packageRoot).find((s) => s.provenance.provider === provider);
-      const snapshot = local ?? bundled;
-      if (snapshot) snapshots.push(snapshot);
-      const status = ctx.mcpConnectionManager?.status(provider);
-      if (status) {
-        liveByProvider[provider] = {
-          state: status.state,
-          ...(status.connectedAt ? { connectedAt: status.connectedAt } : {}),
-          ...(local ? { snapshotFetchedAt: local.provenance.fetchedAt, snapshotToolNames: local.tools.map((t) => t.name) } : {}),
-          ...(status.snapshotDiff ? { driftedTools: status.snapshotDiff.drifted } : {}),
-        };
-      }
-    }
-    const entries = buildCatalog({ snapshots });
     return { entries, liveByProvider, meta: { catalogVersion: catalogVersion(entries), cliVersion: ctx.packageVersion } };
   }
 

@@ -101,7 +101,7 @@ function getQueueItemProgressMeta(item: AgentQueueItem) {
   return {
     startedAt: item.startedAt ?? null,
     progressStage: item.progressStage ?? null,
-    jobKind: item.plan.mode === "video" || item.plan.videoParams ? "video" as const : "image" as const,
+    jobKind: "image" as const,
     variantCount: item.plan.plannedVariants || item.plan.prompts.length || 1,
   };
 }

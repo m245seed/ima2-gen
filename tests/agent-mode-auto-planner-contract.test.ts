@@ -60,13 +60,6 @@ describe("Agent Mode auto generation planner contract", () => {
       settings: DEFAULT_AGENT_GENERATION_SETTINGS,
     });
     assert.equal(current.sourceImagePolicy, "current");
-
-    const video = deriveAgentGenerationPlan({
-      prompt: "방금 그 이미지를 10초 16:9 영상으로 만들어줘",
-      settings: DEFAULT_AGENT_GENERATION_SETTINGS,
-    });
-    assert.equal(video.mode, "video");
-    assert.equal(video.sourceImagePolicy, "auto");
   });
 
   it("infers source image policy for persisted plans missing the field", () => {

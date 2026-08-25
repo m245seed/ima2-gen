@@ -24,7 +24,7 @@ npx ima2-gen serve
   the cache is cold, which is slower than a global install.
 - Generated images are stored in `~/.ima2/generated` regardless of install
   method. They are not lost when the npx cache expires.
-- `ima2 setup`, `ima2 grok login`, and other CLI commands still work after
+- `ima2 setup` and other CLI commands still work after
   `npx ima2-gen serve` starts the server, as long as the npx session is active.
 - For a stable, faster experience, use the global install:
 

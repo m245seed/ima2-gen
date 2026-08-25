@@ -145,12 +145,11 @@ describe("prompt suffix carries the cutout intent that actually drives alpha", (
 describe("surface routing and entrypoint guards (source contract)", () => {
   const read = (p: string) => readFileSync(p, "utf8");
 
-  it("keys forced-transparent support off activeProvider, not the raw request provider", () => {
+  it("never forces background:transparent — all remaining lanes use auto", () => {
     const pipeline = read("lib/generatePipeline.ts");
-    // The raw body `provider` defaults to "auto", so it can never be trusted to
-    // name the lane that actually runs.
-    assert.match(pipeline, /supportsForcedTransparent: activeProvider === "atlascloud"/);
-    assert.doesNotMatch(pipeline, /supportsForcedTransparent: provider === /);
+    // Atlas Cloud (the only forced-transparent lane) is removed, so no remaining
+    // provider passes supportsForcedTransparent. All lanes resolve to "auto".
+    assert.doesNotMatch(pipeline, /supportsForcedTransparent/);
   });
 
   it("resolves background params only after provider resolution", () => {
@@ -159,17 +158,6 @@ describe("surface routing and entrypoint guards (source contract)", () => {
     const paramsIdx = pipeline.indexOf("const backgroundParams = resolveImageBackgroundParams");
     assert.ok(activeIdx > 0 && paramsIdx > 0);
     assert.ok(activeIdx < paramsIdx, "backgroundParams must resolve after activeProvider");
-  });
-
-  it("refuses transparent on the video route, which has no alpha channel", () => {
-    const video = read("routes/video.ts");
-    assert.match(video, /backgroundPreset === "transparent"/);
-    assert.match(video, /TRANSPARENT_VIDEO_UNSUPPORTED/);
-  });
-
-  it("atlas cloud never defaults a transparent request to jpeg", () => {
-    const atlas = read("lib/atlasCloudImageAdapter.ts");
-    assert.match(atlas, /background === "transparent" \? "png" : "jpeg"/);
   });
 
   it("ignores provider-reported mime for alpha results and trusts the bytes", () => {
@@ -189,9 +177,9 @@ describe("surface routing and entrypoint guards (source contract)", () => {
     assert.ok(verifyIdx < writeIdx, "alpha verification must precede any file write");
   });
 
-  it("captures the preset on the video item so registration cannot race it", () => {
+  it("captures the preset on the asset-gen item so registration cannot race it", () => {
     const impl = read("ui/src/store/storeAssetGenImpl.ts");
-    assert.match(impl, /backgroundPreset: item\.backgroundPreset \?\? s\.assetGenBackground/);
-    assert.doesNotMatch(impl, /metadata: \{\s*\n\s*source: "asset-gen",\s*\n\s*backgroundPreset: s\.assetGenBackground/);
+    assert.match(impl, /backgroundPreset: item\.backgroundPreset \?\? state\.assetGenBackground/);
+    assert.doesNotMatch(impl, /metadata: \{\s*\n\s*source: "asset-gen",\s*\n\s*backgroundPreset: state\.assetGenBackground/);
   });
 });

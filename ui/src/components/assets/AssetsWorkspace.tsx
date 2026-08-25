@@ -135,13 +135,6 @@ export function AssetsWorkspace() {
   const saveElement = async (draft: ElementDraft) => {
     if (!draft.id || !await updateAssetItem(draft.id, { name: draft.name, notes: draft.notes })) showToast(t("assets.actionFailed"), true);
   };
-  const saveElementBindings = async (id: string, bindings: import("../../lib/characterBinding").CharacterProviderBinding[]) => {
-    const asset = assets.find((entry) => entry.id === id);
-    const metadata = { ...(asset?.metadata ?? {}), characterBindings: bindings };
-    const ok = await updateAssetItem(id, { metadata });
-    if (!ok) showToast(t("assets.actionFailed"), true);
-    return ok;
-  };
   const renameAsset = async (id: string, name: string) => {
     const renamed = await updateAssetItem(id, { name });
     if (!renamed) showToast(t("assets.actionFailed"), true);
@@ -183,7 +176,7 @@ export function AssetsWorkspace() {
       role={isMobile ? "dialog" : undefined} aria-modal={isMobile ? true : undefined}
       aria-label={t("assets.detailAria", { name: selectedAsset.name })}>
       <button type="button" className="assets-workspace__detail-close" onClick={closeDetail} aria-label={t("assets.detailClose")}>×</button>
-      {selectedElement ? <ElementDetail element={selectedElement} saving={false} testing={false} onSave={saveElement} onSaveBindings={saveElementBindings} onDelete={deleteElement} onRunTestSheet={runTestSheet} /> : <AssetMetaDetail asset={selectedAsset} onRename={(name) => renameAsset(selectedAsset.id, name)} />}
+      {selectedElement ? <ElementDetail element={selectedElement} saving={false} testing={false} onSave={saveElement} onDelete={deleteElement} onRunTestSheet={runTestSheet} /> : <AssetMetaDetail asset={selectedAsset} onRename={(name) => renameAsset(selectedAsset.id, name)} />}
     </aside>}
     <KeyingPanel />
     {previewItem ? <AssetMediaLightbox item={previewItem} onClose={closePreview} /> : null}
@@ -253,6 +246,5 @@ function toElementDefinition(asset: AssetItem): ElementDefinition {
   const metadata = asset.metadata ?? {};
   const kind = metadata.elementKind;
   const refs = metadata.refs;
-  const characterBindings = Array.isArray(metadata.characterBindings) ? metadata.characterBindings as ElementDefinition["characterBindings"] : undefined;
-  return { id: asset.id, name: asset.name, kind: kind === "product" || kind === "style" || kind === "scene" ? kind : "character", refs: Array.isArray(refs) ? refs.filter((ref): ref is string => typeof ref === "string") : asset.filePath ? [asset.filePath] : [], notes: asset.notes ?? undefined, defaultStrength: typeof metadata.defaultStrength === "number" ? metadata.defaultStrength : undefined, characterBindings };
+  return { id: asset.id, name: asset.name, kind: kind === "product" || kind === "style" || kind === "scene" ? kind : "character", refs: Array.isArray(refs) ? refs.filter((ref): ref is string => typeof ref === "string") : asset.filePath ? [asset.filePath] : [], notes: asset.notes ?? undefined, defaultStrength: typeof metadata.defaultStrength === "number" ? metadata.defaultStrength : undefined };
 }

@@ -2,7 +2,7 @@ import { hostname, platform, release } from "node:os";
 import { listProviders } from "../../lib/providers/registry.js";
 import type { ProviderDoctorLine } from "./doctor-providers.js";
 
-const SECRET_PATTERN = /(sk-|xai-|apikey-|Bearer\s+[A-Za-z0-9._-]+|-----BEGIN)/i;
+const SECRET_PATTERN = /(sk-|apikey-|Bearer\s+[A-Za-z0-9._-]+|-----BEGIN)/i;
 
 export type DoctorBundle = {
   version: string;

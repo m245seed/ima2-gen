@@ -111,16 +111,6 @@ test("webp is accepted as an alpha-capable format", async () => {
   });
 });
 
-test("a lane without an alpha parameter refuses transparent instead of billing for an opaque image", async () => {
-  await withHarness(async ({ appUrl, captured }) => {
-    const res = await post(appUrl, { provider: "grok", backgroundPreset: "transparent" });
-    assert.equal(res.status, 400);
-    const json = (await res.json()) as ErrorBody;
-    assert.equal(json.code, "TRANSPARENT_PROVIDER_UNSUPPORTED");
-    assert.equal(captured(), null, "grok request should never reach upstream");
-  });
-});
-
 test("unknown background presets are still rejected", async () => {
   await withHarness(async ({ appUrl }) => {
     const res = await post(appUrl, { provider: "oauth", backgroundPreset: "see-through" });

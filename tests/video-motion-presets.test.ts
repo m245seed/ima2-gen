@@ -72,20 +72,6 @@ describe("video motion preset selection", () => {
     );
   });
 
-  it("VM-09 compiles the Gemini override fragment", () => {
-    assert.equal(
-      getMotionFragment("motion-dolly-in", "gemini"),
-      "Slow optical dolly-in with a tightening frame on the subject.",
-    );
-  });
-
-  it("VM-10 compiles the Grok fragment", () => {
-    assert.equal(getMotionFragment("motion-handheld", "grok"), "natural handheld");
-  });
-
-  it("VM-10 retains Grok motion intensity as compiler parameter metadata", () => {
-    assert.equal(MOTION_PRESETS.get("motion-handheld")?.intensity, "subtle");
-  });
 
   it("clears a prior rejection after a successful toggle", () => {
     assert.deepEqual(

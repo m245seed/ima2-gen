@@ -3,11 +3,7 @@
 // tests/settings-persistence-contract.test.js enforces this invariant.
 // Legacy generation-controls contract: GENERATION_DEFAULTS_STORAGE_KEY = "ima2.generationDefaults".
 import { create } from "zustand";
-import type { VideoResolutionUI } from "../types";
 import { getBrowserId } from "../lib/api";
-import {
-  isGrokImageModel,
-} from "../lib/imageModels";
 import {
   GALLERY_DEFAULT_SCOPE_STORAGE_KEY,
   GALLERY_SCOPE_STORAGE_KEY,
@@ -23,8 +19,6 @@ import {
   loadImageModel,
   loadReasoningEffort,
   loadWebSearchEnabled,
-  loadVideoDefaults,
-  saveVideoDefaults,
   loadGenerationDefaults,
 } from "./storePersistence";
 import {
@@ -48,10 +42,6 @@ import {
   generateMultimodeImpl,
   runGenerateImpl,
 } from "./storeGenImpl";
-import {
-  runVideoGenerateImpl,
-  animateImageImpl,
-} from "./storeVideoImpl";
 import {
   startInFlightPollingImpl,
   reconcileInflightImpl,
@@ -118,8 +108,7 @@ import {
 } from "./storeReferenceImpl";
 import {
   setProviderImpl, setQualityImpl, setSizePresetImpl, setCustomSizeImpl,
-  setGrokAspectRatioImpl, setGrokResolutionImpl, setFormatImpl, setModerationImpl,
-  setImageModelImpl, selectVideoModelImpl, activeVideoRefCountImpl,
+  setFormatImpl, setModerationImpl, setImageModelImpl,
   setReasoningEffortImpl, setWebSearchEnabledImpl, setCountImpl,
   setMultimodeImpl, setMultimodeMaxImagesImpl, setPromptModeImpl, setPromptImpl,
   getResolvedSizeImpl,
@@ -161,13 +150,9 @@ export { flushGraphSaveBeacon, selectCurrentSessionId } from "./storeGraphSave";
 import type { AppState } from "./storeTypes";
 import { effectiveReferenceLimit } from "../lib/referenceLimits";
 import { physicalVideoSourceCount as countPhysicalVideoSources } from "../lib/referenceTray";
-import { emptyMcpReferenceSelection } from "../lib/mcpSelection";
 const storedGenerationDefaults = loadGenerationDefaults();
 const storedImageModel = loadImageModel();
-const storedVideoDefaults = loadVideoDefaults();
-const initialProvider =
-  storedVideoDefaults.model ? "grok" :
-  isGrokImageModel(storedImageModel) ? "grok" : (storedGenerationDefaults.provider ?? "oauth") === "grok" ? "oauth" : (storedGenerationDefaults.provider ?? "oauth");
+const initialProvider = storedGenerationDefaults.provider ?? "oauth";
 
 export const useAppStore = create<AppState>((set, get, store) => ({
   ...createPresetSlice(set, get, store),
@@ -194,14 +179,7 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   assetsFilters: { kind: null, folderId: null, tag: null, q: "" },
   assetGenPrompt: "",
   assetGenBackground: "chroma-green",
-  assetGenProvider: initialProvider === "grok" || initialProvider === "grok-api" ? initialProvider : "oauth",
-  assetGenKind: "image",
-  assetGenVideoDuration: 5,
-  assetGenVideoResolution: "720p",
-  assetGenVideoAspect: "1:1",
-  setAssetGenVideoDuration: (v) => set({ assetGenVideoDuration: v }),
-  setAssetGenVideoResolution: (v) => set({ assetGenVideoResolution: v }),
-  setAssetGenVideoAspect: (v) => set({ assetGenVideoAspect: v }),
+  assetGenProvider: initialProvider,
   assetGenItems: [],
   assetGenSaveFailures: [],
   assetGenLastError: null,
@@ -225,16 +203,7 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   retryAssetGenSave: (requestId) => retryAssetGenSaveImpl(requestId, set, get),
   setAssetGenPrompt: (v) => set({ assetGenPrompt: v }),
   setAssetGenBackground: (v) => set({ assetGenBackground: v }),
-  setAssetGenProvider: (v) => set((state) => ({
-    assetGenProvider: v,
-    // Grok has no transparent-background parameter, so switching to it must
-    // not leave a stale "transparent" selection that silently returns an
-    // opaque image.
-    ...((v === "grok" || v === "grok-api") && state.assetGenBackground === "transparent"
-      ? { assetGenBackground: "chroma-green" as const }
-      : {}),
-  })),
-  setAssetGenKind: (v) => set({ assetGenKind: v }),
+  setAssetGenProvider: (assetGenProvider) => set({ assetGenProvider }),
   generateAssetGen: () => generateAssetGenImpl(set, get),
   loadAssets: (reset) => loadAssetsImpl(reset, set, get),
   loadMoreAssets: () => loadMoreAssetsImpl(set, get),
@@ -251,8 +220,6 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   sizePreset: storedGenerationDefaults.sizePreset ?? "1024x1024",
   customW: storedGenerationDefaults.customW ?? 1920,
   customH: storedGenerationDefaults.customH ?? 1088,
-  grokAspectRatio: (storedGenerationDefaults as any).grokAspectRatio ?? "1:1",
-  grokResolution: (storedGenerationDefaults as any).grokResolution ?? "1k",
   format: storedGenerationDefaults.format ?? "png",
   moderation: storedGenerationDefaults.moderation ?? "low",
   count: storedGenerationDefaults.count ?? 1,
@@ -264,9 +231,6 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   promptMode: storedGenerationDefaults.promptMode ?? "auto",
   prompt: storedGenerationDefaults.prompt ?? "",
   insertedPrompts: storedGenerationDefaults.insertedPrompts ?? [],
-  mcpInputRoles: [],
-  mcpReferenceSelection: emptyMcpReferenceSelection(),
-  mcpCharacterElementId: null,
   trayItems: [],
   nextAttachmentOrdinal: 1,
   retiredTags: {},
@@ -279,8 +243,6 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   activeReferenceLimit: () => effectiveReferenceLimit({
     provider: get().provider,
     serverLimit: get().referenceLimit,
-    videoModelSelected: Boolean(get().videoModelSelected),
-    mcpProvider: get().mcpProvider ?? null,
   }),
   providerUrlReference: null,
   canvasReferenceImage: null,
@@ -533,33 +495,9 @@ addChildNodeAt: (parentClientId, position, sourceHandle) => addChildNodeAtImpl(p
   setQuality: (quality) => setQualityImpl(quality, set),
   setSizePreset: (sizePreset) => setSizePresetImpl(sizePreset, set),
   setCustomSize: (w, h) => setCustomSizeImpl(w, h, set, get),
-  setGrokAspectRatio: (grokAspectRatio) => setGrokAspectRatioImpl(grokAspectRatio, set),
-  setGrokResolution: (grokResolution) => setGrokResolutionImpl(grokResolution, set),
-  setFormat: (format) => setFormatImpl(format, set),
-  setModeration: (moderation) => setModerationImpl(moderation, set),
-  setImageModel: (imageModel) => setImageModelImpl(imageModel, set, get),
-  videoModelSelected: storedVideoDefaults.model,
-  videoDuration: storedVideoDefaults.duration,
-  videoResolution: storedVideoDefaults.resolution as VideoResolutionUI,
-  videoSingleRefMode: storedVideoDefaults.singleRefMode,
-  videoAspectRatio: storedVideoDefaults.aspectRatio,
-  videoTopic: "",
-  videoContinuityLineage: null,
-  videoProgress: null,
-  selectVideoModel: (model) => selectVideoModelImpl(model, set, get),
-  setVideoDuration: (videoDuration) => { set({ videoDuration }); saveVideoDefaults({ duration: videoDuration }); },
-  setVideoResolution: (videoResolution) => { set({ videoResolution }); saveVideoDefaults({ resolution: videoResolution }); },
-  setVideoAspectRatio: (videoAspectRatio) => { set({ videoAspectRatio }); saveVideoDefaults({ aspectRatio: videoAspectRatio }); },
-  setVideoSingleRefMode: (videoSingleRefMode) => { set({ videoSingleRefMode }); saveVideoDefaults({ singleRefMode: videoSingleRefMode }); },
-  setVideoTopic: (videoTopic) => set({ videoTopic }),
-  setVideoContinuityLineage: (videoContinuityLineage) => set({ videoContinuityLineage }),
-  activeVideoRefCount: () => activeVideoRefCountImpl(get),
-  runVideoGenerate: async (nodeId) => {
-    await runVideoGenerateImpl(nodeId, set, get);
-  },
-  animateImage: async (filename, prompt) => {
-    return animateImageImpl(filename, prompt, set, get);
-  },
+  setFormat: (f) => setFormatImpl(f, set),
+  setModeration: (m) => setModerationImpl(m, set),
+  setImageModel: (m) => setImageModelImpl(m, set, get),
   setReasoningEffort: (reasoningEffort) => setReasoningEffortImpl(reasoningEffort, set),
   setWebSearchEnabled: (webSearchEnabled) => setWebSearchEnabledImpl(webSearchEnabled, set),
   setCount: (count) => setCountImpl(count, set),

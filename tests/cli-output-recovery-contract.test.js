@@ -91,7 +91,7 @@ describe("cli-output-recovery-contract: multimode.ts", () => {
   it("wires --timeout into the SSE abort path", () => {
     assert.match(src, /const timeoutMs = \(parseInt\(String\(args\.timeout\)\) \|\| 600\) \* 1000/);
     assert.match(src, /setTimeout\(\(\) => \{\s*timedOut = true;\s*ac\.abort\(\);/);
-    assert.match(src, /e\.name === "AbortError" && timedOut/);
+    assert.match(src, /isTimeout = info\.name === "TimeoutError" \|\| \(info\.name === "AbortError" && timedOut\)/);
   });
 });
 

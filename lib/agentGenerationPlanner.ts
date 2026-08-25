@@ -4,7 +4,6 @@ import type {
   AgentGenerationSettings,
   AgentSourceImagePolicy,
   AgentSlashCommand,
-  AgentVideoParams,
 } from "./agentTypes.js";
 import { config } from "../config.js";
 
@@ -69,20 +68,6 @@ export function deriveAgentGenerationPlan({ prompt, settings, command = null }: 
     };
   }
 
-  if (isVideoIntent(prompt)) {
-    return {
-      mode: "video",
-      prompts: [prompt],
-      requestedVariants: 1,
-      plannedVariants: 1,
-      plannedParallelism: 1,
-      source: "auto-request",
-      reason: "Video generation detected from prompt keywords.",
-      command: command?.name ?? null,
-      assistantText: null,
-      sourceImagePolicy: "auto",
-    };
-  }
 
   const variantDecision = decideVariantCount(prompt, settings, command);
   const plannedParallelism = resolvePlannedParallelism(settings, variantDecision.count, command);
@@ -124,7 +109,6 @@ export function normalizeAgentGenerationPlan(
       ),
       command: cleanCommandName(input.command),
       assistantText: typeof input.assistantText === "string" ? input.assistantText : null,
-      videoParams: null,
       sourceImagePolicy: null,
     };
   }
@@ -133,11 +117,7 @@ export function normalizeAgentGenerationPlan(
   const plannedVariants = cleanCount(input.plannedVariants, prompts.length, 0, HARD_MAX_VARIANTS);
   const requestedParallelism = cleanCount(input.plannedParallelism, settings.parallelism, 1, HARD_MAX_VARIANTS);
   const plannedParallelism = resolvePlannedParallelism({ ...settings, parallelism: requestedParallelism }, plannedVariants, null);
-  const mode: AgentGenerationPlan["mode"] = input.mode === "question"
-    ? "question"
-    : input.mode === "video"
-      ? "video"
-      : prompts.length > 1 ? "fanout" : "single";
+  const mode: AgentGenerationPlan["mode"] = prompts.length > 1 ? "fanout" : "single";
   return {
     mode,
     prompts,
@@ -148,14 +128,12 @@ export function normalizeAgentGenerationPlan(
     reason: cleanReason(input.reason, prompts.length > 1 ? "Stored fanout plan." : "Stored single-image plan."),
     command: cleanCommandName(input.command),
     assistantText: typeof input.assistantText === "string" ? input.assistantText : null,
-    videoParams: mode === "video" ? cleanVideoParams(input.videoParams) : null,
     sourceImagePolicy: cleanSourceImagePolicy(input.sourceImagePolicy) ?? inferSourceImagePolicy(prompt, mode),
   };
 }
 
 function inferSourceImagePolicy(prompt: string, mode: AgentGenerationPlan["mode"]): AgentSourceImagePolicy | null {
   if (mode === "question" || mode === "errors") return null;
-  if (mode === "video") return "auto";
   const text = prompt.trim();
   if (/(?:i2i\s*말고|image-to-image\s*말고|새로운\s*방식|새로|별도|독립|from\s+scratch|new\s+image|fresh\s+image|without\s+(?:reference|refs?)|no\s+(?:reference|refs?))/iu.test(text)) {
     return "none";
@@ -269,21 +247,6 @@ function cleanSourceImagePolicy(value: unknown): AgentSourceImagePolicy | null {
   return null;
 }
 
-export function cleanVideoParams(value: unknown): AgentVideoParams | null {
-  if (!value || typeof value !== "object") return null;
-  const input = value as Record<string, unknown>;
-  const params: AgentVideoParams = {};
-  const duration = typeof input.duration === "number" ? input.duration : Number(input.duration);
-  if (Number.isFinite(duration)) params.duration = Math.max(1, Math.min(15, Math.round(duration)));
-  if (input.resolution === "480p" || input.resolution === "720p" || input.resolution === "1080p") params.resolution = input.resolution;
-  if (typeof input.aspectRatio === "string" && /^(auto|16:9|9:16|4:3|3:4|3:2|2:3|1:1)$/.test(input.aspectRatio)) {
-    params.aspectRatio = input.aspectRatio;
-  }
-  if (input.mode === "text-to-video" || input.mode === "image-to-video" || input.mode === "reference-to-video") {
-    params.mode = input.mode;
-  }
-  return Object.keys(params).length > 0 ? params : null;
-}
 
 function cleanCommandName(value: unknown): AgentGenerationPlan["command"] {
   if (
@@ -324,32 +287,3 @@ function clampCount(value: number, max: number): number {
   return Math.max(1, Math.min(max, Math.round(value)));
 }
 
-const VIDEO_INTENT_PATTERN = /(?:^|\s|[^\p{L}])(?:video|animate|animation)(?:\s|[^\p{L}]|$)|(?:동영상|비디오|영상|애니메이트|움직이|클립)/iu;
-
-function isVideoIntent(prompt: string): boolean {
-  return VIDEO_INTENT_PATTERN.test(prompt);
-}
-
-export interface VideoParamsFromPrompt {
-  duration?: number | undefined;
-  resolution?: "480p" | "720p" | "1080p" | undefined;
-  aspectRatio?: string | undefined;
-}
-
-const DURATION_PATTERN = /(\d{1,2})\s*(?:s|sec|seconds?|초)/i;
-const RESOLUTION_PATTERN = /(1080p|720p|480p)/i;
-const ASPECT_PATTERN = /(16:9|9:16|4:3|3:4|3:2|2:3|1:1)/;
-
-export function parseVideoParams(prompt: string): VideoParamsFromPrompt {
-  const params: VideoParamsFromPrompt = {};
-  const durMatch = DURATION_PATTERN.exec(prompt);
-  if (durMatch) {
-    const d = parseInt(durMatch[1] ?? "", 10);
-    if (d >= 1 && d <= 15) params.duration = d;
-  }
-  const resMatch = RESOLUTION_PATTERN.exec(prompt);
-  if (resMatch?.[1]) params.resolution = resMatch[1].toLowerCase() as "480p" | "720p" | "1080p";
-  const aspMatch = ASPECT_PATTERN.exec(prompt);
-  if (aspMatch) params.aspectRatio = aspMatch[1];
-  return params;
-}

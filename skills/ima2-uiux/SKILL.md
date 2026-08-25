@@ -382,9 +382,8 @@ utility CRUD/dashboard screens are exempt.
    five times concurrently (or `ima2 gen <prompt> --model <lane>/<model> -n 5 -d <dir>` for a single
    request) and monitor with `ima2 ps --json`. For component-level surfaces,
    generate about 3 context-strip renders of the component within its top
-   viewport context. If the mockup needs motion material, use `ima2 video`.
-   Asset prompts inside mockups/builds should be VERY EXPLICIT LONG prompts;
-   prefer real/generated photographic, texture, illustration, or motion assets
+   viewport context. Asset prompts inside mockups/builds should be VERY EXPLICIT LONG prompts;
+   prefer real/generated photographic, texture, or illustration assets
    over CSS gradient washes.
    **Parallel strategy selection** (see `ima2 skill front ref asset-requirements`
    FE-ASSET-PARALLEL-01): for the 5-render process, prefer `ima2 gen -n 5 -d <dir>`

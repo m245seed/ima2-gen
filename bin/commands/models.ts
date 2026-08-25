@@ -3,11 +3,8 @@ import { request, resolveServer } from "../lib/client.js";
 import type { ModelCatalog as Catalog } from "../lib/modelResolver.js";
 import { fail, json, out, table } from "../lib/output.js";
 
-type Kind = "image" | "video";
-
 const SPEC = {
   flags: {
-    kind: { type: "string" },
     lane: { type: "string" },
     json: { type: "boolean" },
     server: { type: "string" },
@@ -16,12 +13,11 @@ const SPEC = {
 };
 
 const HELP = `
-  ima2 models [--kind image|video] [--lane <lane>] [--json]
+  ima2 models [--lane <lane>] [--json]
 
-  List image/video models exposed by the running ima2 server.
+  List image models exposed by the running ima2 server.
 
   Options:
-        --kind <image|video>  Filter by media kind
         --lane <lane>         Filter by provider lane
         --json                Print the stable machine-readable contract
         --server <url>        Override server URL
@@ -45,10 +41,10 @@ function capText(raw: unknown): string {
   return summaries.join(", ");
 }
 
-function flatten(catalog: Catalog, kind: Kind, laneFilter?: string) {
+function flatten(catalog: Catalog, laneFilter?: string) {
   return Object.entries(catalog.lanes)
     .filter(([lane]) => !laneFilter || lane === laneFilter)
-    .flatMap(([lane, info]) => (info.models?.[kind] ?? []).map((model) => ({
+    .flatMap(([lane, info]) => (info.models.image ?? []).map((model) => ({
       lane,
       id: model.id,
       label: model.label ?? model.id,
@@ -72,19 +68,11 @@ export default async function modelsCmd(argv: string[]): Promise<void> {
   const args = parseArgs(argv, SPEC);
   if (args.help) { out(HELP); return; }
   const isJson = Boolean(args.json);
-  const kind = args.kind === undefined ? undefined : String(args.kind);
-  if (kind && kind !== "image" && kind !== "video") {
-    fail({ json: isJson, code: "INVALID_KIND", message: "--kind must be image or video" });
-  }
   const { catalog } = await fetchCatalog(args.server, isJson);
-  const kinds = {
-    image: kind === "video" ? [] : flatten(catalog, "image", args.lane ? String(args.lane) : undefined),
-    video: kind === "image" ? [] : flatten(catalog, "video", args.lane ? String(args.lane) : undefined),
-  };
-  if (isJson) { json({ ok: true, kinds }); return; }
-  const rows = ([...kinds.image.map((item) => ({ ...item, kind: "image" })),
-    ...kinds.video.map((item) => ({ ...item, kind: "video" }))])
-    .map((item) => ({ ...item, caps: capText(item.capabilities) }));
+  const models = flatten(catalog, args.lane ? String(args.lane) : undefined);
+  if (isJson) { json({ ok: true, kinds: { image: models } }); return; }
+  const rows = models
+    .map((item) => ({ ...item, kind: "image", caps: capText(item.capabilities) }));
   table(rows, [
     { key: "lane", label: "lane" }, { key: "kind", label: "kind" },
     { key: "id", label: "model-id" }, { key: "status", label: "status" },

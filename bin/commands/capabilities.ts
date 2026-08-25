@@ -3,7 +3,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { config } from "../../config.js";
 import { buildIma2Capabilities } from "../../lib/capabilities.js";
-import { parseArgs } from "../lib/args.js";
+import { parseArgs, type ParsedArgs } from "../lib/args.js";
 import { resolveServer, request } from "../lib/client.js";
 import { color, dieWithError, json, out } from "../lib/output.js";
 
@@ -27,7 +27,29 @@ const FLAGS = {
   "require-server": { type: "boolean" },
   help: { short: "h", type: "boolean" },
 };
-
+type CapabilityData = {
+  source: string;
+  version: string;
+  server: string | null;
+  defaults?: {
+    oauth?: { model?: string; reasoningEffort?: string };
+    api?: { model?: string; reasoningEffort?: string };
+  };
+  valid?: {
+    imageModels?: { supported?: string[] };
+    reasoningEfforts?: string[];
+    quality?: string[];
+    modes?: string[];
+    moderation?: unknown[];
+    providers?: string[];
+  };
+  configKeys?: { writable?: unknown[] };
+  limits?: {
+    maxRefCount?: number;
+    maxGeneratedImages?: number;
+    maxParallel?: { value?: number; note?: string };
+  };
+};
 function packageVersion(): string {
   try {
     const pkg = JSON.parse(readFileSync(PACKAGE_PATH, "utf-8")) as { version?: string };
@@ -46,17 +68,17 @@ function localCapabilities() {
   });
 }
 
-async function readCapabilities(args: ReturnType<typeof parseArgs>) {
+async function readCapabilities(args: ParsedArgs): Promise<CapabilityData> {
   try {
     const server = await resolveServer({ serverFlag: args.server });
-    return await request(server.base, "/api/capabilities", { timeoutMs: 5000 });
+    return await request(server.base, "/api/capabilities", { timeoutMs: 5000 }) as CapabilityData;
   } catch (error) {
     if (args.server || args["require-server"]) throw error;
     return localCapabilities();
   }
 }
 
-function printText(capabilities: any): void {
+function printText(capabilities: CapabilityData): void {
   out(`ima2 capabilities (${capabilities.source})`);
   out(`version: ${capabilities.version}`);
   out(`server: ${capabilities.server || "none"}`);
@@ -66,20 +88,9 @@ function printText(capabilities: any): void {
   out(`  gpt-oauth reasoning: ${capabilities.defaults?.oauth?.reasoningEffort}`);
   out(`  api model: ${capabilities.defaults?.api?.model}`);
   out(`  api reasoning: ${capabilities.defaults?.api?.reasoningEffort}`);
-  out(`  grok model: ${capabilities.defaults?.grok?.model}`);
-  out(`  grok planner: ${capabilities.defaults?.grok?.plannerModel}`);
   out("");
   out("valid:");
   out(`  models: ${capabilities.valid?.imageModels?.supported?.join(", ")}`);
-  if (capabilities.valid?.imageModels?.grokSupported?.length) {
-    out(`  grok models: ${capabilities.valid.imageModels.grokSupported.join(", ")}`);
-  }
-  if (capabilities.valid?.videoModels?.supported?.length) {
-    out(`  video models: ${capabilities.valid.videoModels.supported.join(", ")}`);
-    out(`  video resolutions: ${capabilities.valid.videoModels.resolutions?.join(", ")}`);
-    out(`  video aspect ratios: ${capabilities.valid.videoModels.aspectRatios?.join(", ")}`);
-    out(`  video duration: ${capabilities.valid.videoModels.durationRange?.[0]}-${capabilities.valid.videoModels.durationRange?.[1]}s`);
-  }
   out(`  reasoning: ${capabilities.valid?.reasoningEfforts?.join(", ")}`);
   out(`  quality: ${capabilities.valid?.quality?.join(", ")}`);
   out(`  modes: ${capabilities.valid?.modes?.join(", ")}`);

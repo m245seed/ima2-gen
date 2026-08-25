@@ -7,7 +7,6 @@ import {
   type ElementTrayItem,
   type TrayItem,
 } from "./referenceTray";
-import { mcpReferenceTag } from "./mcpSelection";
 import type { AppState, AssetItem, StoreGet, StoreSet } from "../store/storeTypes";
 
 export type ElementCatalog = AssetItem[] | null;
@@ -96,7 +95,11 @@ export function addTrayElementImpl(
     }
     const catalogState = state as AppState & ElementCatalogState;
     const asset = resolveElementAsset(catalogState, elementId, snapshot);
-    const requestedTag = asset ? mcpReferenceTag(asset.name) : null;
+    const requestedTag = asset?.name
+      .trim()
+      .replace(/[^\p{L}\p{N}_-]+/gu, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 32) || null;
     if (!asset || !requestedTag) return { result: null };
     const tag = uniquifyElementTag(requestedTag, state.trayItems.map((item) => item.tag));
     const item: ElementTrayItem = {

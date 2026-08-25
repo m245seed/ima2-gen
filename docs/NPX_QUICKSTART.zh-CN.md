@@ -24,7 +24,7 @@ npx ima2-gen serve
 缓存是冷的，这比全局安装慢。
 - 生成的图像存储在`~/.ima2/generated`无论安装
 方法。当 npx 缓存过期时，它们不会丢失。
-- `ima2 setup`, `ima2 grok login`，以及其他CLI命令在之后仍然有效
+- `ima2 setup`以及其他CLI命令在之后仍然有效
 `npx ima2-gen serve`只要 npx 会话处于活动状态，就会启动服务器。
 - 为了获得稳定、更快的体验，请使用全局安装：
 

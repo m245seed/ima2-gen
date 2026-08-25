@@ -68,16 +68,15 @@ export const nodeTemplateSeeds: readonly NodeTemplateRecord[] = [
   ], [
     ...["front", "three-quarter", "side", "back"].flatMap((angle) => [edge(`element-${angle}`, "element", `angle-${angle}`), edge(`${angle}-result`, `angle-${angle}`, `result-${angle}`)]),
   ], ["character", "element", "sheet"], 4, ["character-element"]),
-  seed("seed-provider-compare", "프로바이더 비교", "같은 입력을 GPT, Gemini, Grok에서 비교합니다.", [
-    node("input", "prompt", 0, 120, { prompt: "" }),
-    node("gpt", "generator", 300, 0, { provider: "openai" }),
-    node("gemini", "generator", 300, 120, { provider: "gemini" }),
-    node("grok", "generator", 300, 240, { provider: "grok" }),
-    node("gpt-result", "result", 580, 0), node("gemini-result", "result", 580, 120), node("grok-result", "result", 580, 240),
+  seed("seed-provider-compare", "프로바이더 비교", "같은 입력을 OAuth와 API 키로 비교합니다.", [
+    node("input", "prompt", 0, 60, { prompt: "" }),
+    node("oauth", "generator", 300, 0, { provider: "oauth" }),
+    node("api", "generator", 300, 120, { provider: "api" }),
+    node("oauth-result", "result", 580, 0), node("api-result", "result", 580, 120),
   ], [
-    edge("input-gpt", "input", "gpt"), edge("input-gemini", "input", "gemini"), edge("input-grok", "input", "grok"),
-    edge("gpt-result", "gpt", "gpt-result"), edge("gemini-result", "gemini", "gemini-result"), edge("grok-result", "grok", "grok-result"),
-  ], ["compare", "providers", "gpt", "gemini", "grok"], 3),
+    edge("input-oauth", "input", "oauth"), edge("input-api", "input", "api"),
+    edge("oauth-result", "oauth", "oauth-result"), edge("api-result", "api", "api-result"),
+  ], ["compare", "providers", "oauth", "api"], 2),
 ];
 
 export const NODE_TEMPLATE_SEEDS = nodeTemplateSeeds;

@@ -7,9 +7,7 @@ interface KeyStatusEntry {
   maskedKey: string | null;
 }
 
-export type KeyStatus = Record<"openai" | "xai" | "gemini" | "atlascloud" | "minimax" | "vertex", KeyStatusEntry> & {
-  geminiAuthMode?: "apikey" | "vertex";
-};
+export type KeyStatus = Record<"openai", KeyStatusEntry>;
 
 export function useKeyStatus() {
   const [data, setData] = useState<KeyStatus | null>(null);
@@ -21,8 +19,8 @@ export function useKeyStatus() {
       const json: KeyStatus = await res.json();
       setData(json);
       setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause : new Error(String(cause)));
     }
   }, []);
 
@@ -32,9 +30,7 @@ export function useKeyStatus() {
 
     const poll = async () => {
       await fetchStatus();
-      if (!cancelled) {
-        timer = setInterval(fetchStatus, 30_000);
-      }
+      if (!cancelled) timer = setInterval(fetchStatus, 30_000);
     };
 
     void poll();

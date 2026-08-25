@@ -1,9 +1,9 @@
-export type KeyProviderId = "openai" | "xai" | "gemini" | "atlascloud" | "minimax";
+export type KeyProviderId = "openai";
 
-export type ProviderVendor = "openai" | "xai" | "google" | "atlascloud" | "minimax";
+export type ProviderVendor = "openai";
 export type ProviderModelKind = "image" | "video";
 export type ProviderReferenceMode = "image" | "edit" | "video";
-export type ElementTaxonomy = "gpt" | "gemini" | "grok";
+export type ElementTaxonomy = "gpt";
 
 export type ProviderCredential =
   | {
@@ -14,9 +14,7 @@ export type ProviderCredential =
       validateUrl?: string;
       /**
        * Set when the runtime picks the validation endpoint per request instead
-       * of using `validateUrl` verbatim (MiniMax resolves a region-aware host in
-       * routes/keys.ts). `validateUrl` is then a documented fallback, not the
-       * value actually called.
+       * of using `validateUrl` verbatim. `validateUrl` is then a documented
        */
       validateUrlIsFallback?: boolean;
       configKey?: string;

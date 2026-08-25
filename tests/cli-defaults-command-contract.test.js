@@ -47,13 +47,12 @@ describe("CLI defaults command contract", () => {
     assert.match(src, /case "capabilities":/);
   });
 
-  it("declares image/video CLI-only targets without exposing them through config set", () => {
+  it("declares image CLI-only targets without exposing them through config set", () => {
     const src = readSource("bin/commands/defaults.ts");
     const keys = readSource("lib/configKeys.ts");
     assert.match(src, /set image <lane>\/<model>/);
-    assert.match(src, /set video <lane>\/<model>/);
     assert.match(src, /loadCliDefaults\(\)/);
-    assert.doesNotMatch(keys, /"defaults\.(?:image|video)"/);
+    assert.doesNotMatch(keys, /"defaults\.image"/);
   });
 });
 
@@ -69,15 +68,15 @@ function runCli(args, configDir) {
   });
 }
 
-describe("CLI image/video defaults behavior", () => {
+describe("CLI image defaults behavior", () => {
   it("validates ready targets, persists raw CLI keys, lists, and resets without restart notice", async () => {
     const configDir = mkdtempSync(join(tmpdir(), "ima2-defaults-ready-"));
     const server = createServer((req, res) => {
       res.setHeader("Content-Type", "application/json");
       if (req.url === "/api/health") { res.end('{"ok":true}'); return; }
       if (req.url === "/api/models") {
-        res.end(JSON.stringify({ ok: true, lanes: { runway: { status: "ready", defaults: {}, models: {
-          image: [{ id: "gen-4" }], video: [{ id: "veo-3.1" }],
+        res.end(JSON.stringify({ ok: true, lanes: { oauth: { status: "ready", defaults: {}, models: {
+          image: [{ id: "gpt-5.6-luna" }],
         } } } })); return;
       }
       res.writeHead(404).end();
@@ -85,12 +84,12 @@ describe("CLI image/video defaults behavior", () => {
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
-      const set = await runCli(["defaults", "set", "image", "runway/gen-4", "--server", base], configDir);
+      const set = await runCli(["defaults", "set", "image", "oauth/gpt-5.6-luna", "--server", base], configDir);
       assert.equal(set.code, 0);
       assert.doesNotMatch(set.stdout, /restart/i);
-      assert.equal(JSON.parse(readFileSync(join(configDir, "config.json"), "utf8")).defaults.image, "runway/gen-4");
+      assert.equal(JSON.parse(readFileSync(join(configDir, "config.json"), "utf8")).defaults.image, "oauth/gpt-5.6-luna");
       const listed = await runCli(["defaults", "ls", "--local", "--json"], configDir);
-      assert.equal(JSON.parse(listed.stdout).defaults.cli.image, "runway/gen-4");
+      assert.equal(JSON.parse(listed.stdout).defaults.cli.image, "oauth/gpt-5.6-luna");
       const reset = await runCli(["defaults", "reset", "image", "--json"], configDir);
       assert.deepEqual(JSON.parse(reset.stdout), { ok: true, kind: "image", reset: true });
       assert.equal(JSON.parse(readFileSync(join(configDir, "config.json"), "utf8")).defaults.image, undefined);
@@ -105,9 +104,9 @@ describe("CLI image/video defaults behavior", () => {
     const server = createServer((req, res) => {
       res.setHeader("Content-Type", "application/json");
       if (req.url === "/api/health") { res.end('{"ok":true}'); return; }
-      if (req.url === "/api/models") { res.end(JSON.stringify({ ok: true, lanes: { higgsfield: {
-        status: "locked", reason: "catalog only", defaults: {}, models: { image: [{ id: "x" }], video: [] },
-      }, runway: { status: "ready", defaults: {}, models: { image: [], video: [] } } } })); return; }
+      if (req.url === "/api/models") { res.end(JSON.stringify({ ok: true, lanes: { api: {
+        status: "locked", reason: "catalog only", defaults: {}, models: { image: [{ id: "x" }] },
+      }, oauth: { status: "ready", defaults: {}, models: { image: [] } } } })); return; }
       res.writeHead(404).end();
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -115,11 +114,11 @@ describe("CLI image/video defaults behavior", () => {
     try {
       const malformed = await runCli(["defaults", "set", "image", "gen-4", "--json"], configDir);
       assert.equal(malformed.code, 2); assert.equal(JSON.parse(malformed.stdout).code, "INVALID_MODEL_TARGET");
-      const locked = await runCli(["defaults", "set", "image", "higgsfield/x", "--json", "--server", base], configDir);
+      const locked = await runCli(["defaults", "set", "image", "api/x", "--json", "--server", base], configDir);
       assert.equal(locked.code, 2); assert.equal(JSON.parse(locked.stdout).code, "LANE_UNAVAILABLE");
-      const missing = await runCli(["defaults", "set", "video", "runway/nope", "--json", "--server", base], configDir);
+      const missing = await runCli(["defaults", "set", "image", "oauth/nope", "--json", "--server", base], configDir);
       assert.equal(missing.code, 2); assert.equal(JSON.parse(missing.stdout).code, "MODEL_NOT_FOUND");
-      const down = await runCli(["defaults", "set", "image", "runway/gen-4", "--json", "--server", "http://127.0.0.1:1"], configDir);
+      const down = await runCli(["defaults", "set", "image", "oauth/gpt-5.6-luna", "--json", "--server", "http://127.0.0.1:1"], configDir);
       assert.equal(down.code, 3); assert.equal(JSON.parse(down.stdout).code, "SERVER_UNREACHABLE");
     } finally {
       await new Promise((resolve) => server.close(resolve));

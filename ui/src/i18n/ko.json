@@ -44,7 +44,6 @@
     "localImportInvalid": "PNG, JPEG, WebP만 지원해요",
     "localStorageFull": "로컬 저장소가 가득 차서 최근 상태가 저장되지 않을 수 있습니다.",
     "refLimitExceeded": "참조 이미지는 최대 5장까지 추가할 수 있습니다. 초과한 이미지는 제외되었습니다.",
-    "minimaxModelRequiresReference": "image-01-live는 중국 리전 밖에서 참조 이미지가 필요합니다. 참조를 추가하거나 image-01로 바꾸세요.",
     "refLimitTrayFull": "참조 트레이가 가득 찼습니다({max}개). 트레이의 X로 항목을 지우면 더 첨부할 수 있어요 — 지운 @태그는 @로 다시 멘션할 수 있습니다.",
     "refLimitPartial": "총 {total}개 중 {added}개만 추가됐습니다(한도 {max}개).",
     "refOverProviderLimit": "이 공급자는 참조 이미지를 최대 {max}장까지 지원합니다. {excess}장을 제거해야 생성할 수 있습니다.",
@@ -122,8 +121,6 @@
   },
   "size": {
     "title": "크기",
-    "grokAspectTitle": "종횡비",
-    "grokResolutionTitle": "해상도",
     "width": "가로",
     "height": "세로",
     "hint": "16px 단위, 최대 변 3840, 비율 3:1 이하, 65.5만-829만 픽셀",
@@ -169,8 +166,6 @@
   },
   "quality": {
     "title": "품질",
-    "grokTitle": "Grok 품질",
-    "grokModelTitle": "모델",
     "lowLabel": "낮음",
     "lowSub": "빠름",
     "mediumLabel": "중간",
@@ -279,7 +274,6 @@
       "outputTokens": "출력",
       "reasoningTokens": "추론",
       "webSearchCalls": "웹 검색",
-      "grokCostTicks": "Grok 비용 ticks",
       "usage": "사용량",
       "filename": "파일명",
       "createdAt": "생성 시각",
@@ -331,8 +325,6 @@
     "model": "모델",
     "reasoning": "추론",
     "webSearch": "웹 검색",
-    "grokApi": "Grok API",
-    "grokApiBody": "번들 progrok에서 필수 검색 → Grok 4.5 이미지·텍스트 도구 기획(영어 프롬프트) → xAI Images API 순서로 실행합니다. 첨부 레퍼런스는 xAI 이미지 편집으로 보내 i2i 맥락을 유지합니다.",
     "openAccount": "계정 설정 열기"
   },
   "generate": {
@@ -702,15 +694,6 @@
     "oauthStarting": "GPT OAuth 프록시가 시작 중입니다. 몇 초 후 다시 시도하세요.",
     "serverUnreachable": "서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인하세요.",
     "apiInvalid": "API 키가 없거나 유효하지 않습니다. 서버의 .env 파일에서 OPENAI_API_KEY를 확인하세요.",
-    "grokOffline": "Grok 프록시가 실행되지 않고 있습니다.",
-    "grokNoImageModel": "Grok 이미지 생성 모델을 찾을 수 없습니다.",
-    "grokNotReady": "Grok을 사용할 수 없습니다.",
-    "grokOfflineHint": "필요하면 `ima2 grok login`을 한 번 실행한 뒤 `ima2 serve`를 시작하세요. ima2가 번들된 Grok 프록시를 자동으로 띄웁니다.",
-    "grokManagedByIma2": "Grok은 `ima2 serve` 안에서 번들된 progrok 프록시(127.0.0.1:18645)로 로컬 실행됩니다.",
-    "grokClassicOnly": "이 화면에서는 Grok 이미지 생성을 사용할 수 없습니다.",
-    "grokClassicOnlyHint": "Grok이 켜진 생성 화면에서 사용하세요.",
-    "grokCompatTitle": "Grok 이미지 API",
-    "grokCompatBody": "ima2 serve가 번들 progrok 프록시(127.0.0.1:18645)를 관리합니다. Grok은 항상 먼저 검색하고 첨부 레퍼런스를 Grok 4.5 플래너에 함께 보냅니다. 레퍼런스는 xAI 이미지 편집 경로에서 유지되며, 크기는 xAI aspect ratio/resolution으로 매핑됩니다. 출력 포맷·모더레이션·추론은 OpenAI 공급자에서만 설정합니다.",
     "settingsBody": "앞으로 생성 요청에 사용할 공급자를 선택합니다.",
     "availableTitle": "{name} 사용 가능",
     "availableAria": "{name}: 사용 가능",
@@ -718,118 +701,9 @@
     "availableSr": "(사용 가능)",
     "unavailableSr": "(사용 불가)",
     "xaiApiKeyRequired": "xAI API 키 필요",
-    "geminiApiKeyRequired": "Gemini API 키 필요",
-    "atlasCloudApiKeyRequired": "Atlas Cloud API 키 필요",
-    "minimaxApiKeyRequired": "MiniMax API 키 필요",
     "comingSoon": "준비 중",
-    "agyCompatTitle": "Gemini (agy)",
-    "agyCompatBody": "1024x1024 고정, JPEG 출력, 최대 3개 참조. 품질/크기 조절 없음.",
-    "agyCompatBodyLong": "1024x1024 고정 출력, JPEG 형식, 최대 3개 참조 이미지. 웹 검색, 품질/크기 조절 없음.",
-    "geminiApiCompatTitle": "Gemini API",
-    "geminiApiCompatBody": "Google Gemini API. 512px부터 4K까지 종횡비와 해상도를 조절할 수 있습니다.",
-    "geminiApiCompatBodyLong": "Google Gemini API 직접 호출. nano-banana-2(Flash), nano-banana-pro(Pro)를 지원하며 512px부터 4K까지 종횡비와 해상도를 조절할 수 있습니다.",
     "gptCompatTitle": "GPT Image",
     "gptCompatBody": "OpenAI Responses API를 통한 이미지 생성. 품질, 크기, 형식, 모더레이션, 웹 검색 설정 지원."
-  },
-  "mcp": {
-    "connectionsTitle": "MCP 프로바이더 연결",
-    "connectionsBody": "공식 프로바이더 계정을 연결하고 도구 상태를 확인합니다. 연결된 프로바이더만 생성 셀렉터에 표시됩니다.",
-    "providerLabel": "생성 프로바이더",
-    "modelLabel": "생성 모델",
-    "coreProviders": "기본 프로바이더",
-    "connectedProviders": "연결된 MCP 프로바이더",
-    "imageModels": "이미지 모델",
-    "videoModels": "비디오 모델",
-    "chooseModel": "모델 선택",
-    "loadingModels": "모델 불러오는 중",
-    "loadingProviders": "연결 확인 중",
-    "providersLoadFailed": "MCP 프로바이더 상태를 불러오지 못했습니다.",
-    "modelsLoadFailed": "모델 목록을 불러오지 못했어요. 눌러서 다시 시도하세요.",
-    "retryModels": "다시 시도",
-    "noModels": "이 모드에서 사용할 수 있는 모델이 없습니다.",
-    "refreshingConnection": "새로고침 중…",
-    "exitLane": "코어 프로바이더 사용",
-    "modelSectionTitle": "모델",
-    "ratioAutoHelp": "Auto는 모델이 비율을 직접 정합니다. 프리셋은 일부 모델에서 거부될 수 있습니다.",
-    "aspectRatioLabel": "화면 비율",
-    "durationLabel": "길이",
-    "resolutionLabel": "해상도",
-    "qualityLabel": "품질",
-    "modeLabel": "모드",
-    "audioLabel": "오디오",
-    "onLabel": "켜기",
-    "offLabel": "끄기",
-    "toolInputsLabel": "참조 미디어",
-    "referenceNone": "선택 안 함",
-    "referenceSelect": "갤러리에서 선택",
-    "referenceCurrent": "현재 갤러리 항목",
-    "referenceMissing": "불러온 기록에 없음",
-    "startFrameLabel": "시작 프레임",
-    "endFrameLabel": "종료 프레임",
-    "endFrameNeedsStart": "시작 프레임을 먼저 선택해주세요.",
-    "imageReferencesLabel": "참조 이미지 (최대 3장)",
-    "imageReferenceAria": "참조 이미지 {index}",
-    "referenceTagAria": "참조 이미지 {index} 태그",
-    "referenceTagPlaceholder": "태그 (선택)",
-    "referenceTagInvalid": "태그는 한글·영문·숫자·밑줄(_), 하이픈(-)만 사용해 1~32자로 입력해주세요.",
-    "referenceAttachLocal": "내 이미지 첨부",
-    "referenceAttachHelp": "내 이미지는 생성할 때만 임시로 올리고, 작업이 끝나면 삭제해요.",
-    "referenceLocalFallback": "내 이미지",
-    "referenceLocalInvalidType": "PNG, JPEG, WebP 이미지를 선택해주세요.",
-    "referenceLocalReadFailed": "이미지를 읽지 못했어요. 다시 선택해주세요.",
-    "referenceSource": {
-      "asset": "에셋",
-      "element": "요소",
-      "local": "내 이미지"
-    },
-    "videoReferenceLabel": "참조 영상",
-    "videoReferenceCostNote": "참조 영상을 사용하면 프로바이더 요금이 더 붙을 수 있어요.",
-    "advancedPresetsLabel": "고급 프리셋",
-    "providerDefaultsHelp": "이 모델은 추가 프리셋 없이 프로바이더 기본값을 사용합니다.",
-    "chooseModelForPresets": "상단 모델 선택기에서 모델을 고르면 지원 프리셋이 표시됩니다.",
-    "refreshList": "상태 새로고침",
-    "connect": "연결",
-    "connecting": "연결 중",
-    "connectOpensBrowser": "브라우저에서 프로바이더 로그인을 엽니다.",
-    "refreshConnection": "다시 연결",
-    "disconnect": "연결 해제",
-    "connectionActionFailed": "연결 작업을 완료하지 못했습니다. 잠시 후 다시 시도해주세요.",
-    "popupBlocked": "로그인 창이 차단되었습니다. 팝업을 허용한 뒤 다시 연결해주세요.",
-    "locked": "잠김",
-    "unavailable": "사용 불가",
-    "unknownProvider": "{provider} 연결 정보를 찾을 수 없습니다.",
-    "disconnectedSelection": "저장된 프로바이더 연결이 끊겼습니다. 설정에서 다시 연결해주세요.",
-    "disabledProvider": "이 프로바이더는 현재 서버 설정에서 비활성화되어 있습니다.",
-    "selectionUnavailable": "선택한 MCP 프로바이더를 사용할 수 없습니다. 설정에서 연결 상태를 확인해주세요.",
-    "higgsfieldLocked": "이 제공자는 현재 생성이 잠겨 있습니다.",
-    "toolCount": "도구 {count}개",
-    "toolCountUnknown": "도구 수 미확인",
-    "snapshotChanges": "스키마 변경 {count}건",
-    "billingLabel": "과금 방식",
-    "billingSubscription": "구독 크레딧",
-    "billingApi": "API 사용량 과금",
-    "billingUnknown": "미확인",
-    "generateFailed": "MCP 생성을 시작하지 못했습니다.",
-    "errorUnsupportedInput": "이 모델이 지원하지 않는 참조 유형이 포함되어 있어요. 다른 모델을 고르거나 해당 첨부를 빼주세요.",
-    "errorEndRequiresStart": "종료 프레임을 쓰려면 시작 프레임부터 선택해주세요.",
-    "errorInvalidReferences": "선택한 참조 이미지 중 일부를 찾을 수 없어요. 다시 선택해주세요.",
-    "errorInvalidFrame": "선택한 프레임이나 영상을 찾을 수 없어요. 다시 선택해주세요.",
-    "errorTempReferences": "내 참조 이미지를 준비하지 못했어요. 다시 선택해주세요.",
-    "status": {
-      "disconnected": "연결 안 됨",
-      "connecting": "연결 중",
-      "auth_required": "로그인 필요",
-      "connected": "연결됨",
-      "offline": "오프라인",
-      "error": "오류"
-    },
-    "characterSlotLabel": "캐릭터",
-    "characterSlotNone": "캐릭터 바인딩 없음",
-    "characterSlotConflictHint": "캐릭터 바인딩을 쓰려면 @엘리먼트 멘션을 빼주세요 — 함께 쓸 수 없습니다."
-  },
-  "grokMode": {
-    "image": "이미지",
-    "video": "비디오"
   },
   "cost": {
     "free": "무료",
@@ -1206,8 +1080,6 @@
     "imageModelLabel": "모델",
     "imageSectionLabel": "이미지",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "grokImageSubLabel": "Grok Imagine",
-    "geminiImageSubLabel": "Gemini",
     "videoSectionLabel": "비디오",
     "imageModelAria": "이미지 모델 선택",
     "quickSettingsAria": "모델과 추론 강도 선택. 현재 모델 {model}, 추론 {effort}",
@@ -1252,17 +1124,6 @@
       "apiReady": "준비됨",
       "apiUnavailable": "사용 불가",
       "apiUnknown": "상태 불명",
-      "grokEyebrow": "로컬 xAI 프록시",
-      "grokTitle": "Grok",
-      "grokBody": "설정된 로컬 포트의 progrok을 통해 xAI Images API 생성을 사용합니다.",
-      "agyEyebrow": "Antigravity CLI",
-      "agyTitle": "Gemini (agy)",
-      "agyInstalledBody": "로그인 상태는 확인할 수 없습니다. 생성이 실패하면 터미널에서 agy login 을 실행하세요.",
-      "agyMissingBody": "설치되지 않았습니다. 설치:",
-      "agyMissingLink": "Antigravity CLI",
-      "agyFineprint": "antigravity 모델과 이미지 할당량은 별도입니다.",
-      "agyInstalled": "설치됨",
-      "agyMissing": "미설치",
       "status": {
         "ready": "준비됨",
         "authRequired": "로그인 필요",
@@ -1277,7 +1138,6 @@
       "codexNotLoggedIn": "로그인 필요",
       "fetchError": "쿼타를 불러올 수 없음",
       "noData": "사용량 데이터 없음",
-      "grokUsageLink": "Grok 사용량 보기 →",
       "switchAccount": "{provider} 계정 전환",
       "startingLogin": "로그인 시작 중…",
       "enterCode": "열린 탭에 이 코드를 입력하세요:",
@@ -1298,17 +1158,9 @@
       "gpt56Sol": "GPT-5.6 Sol",
       "gpt56Terra": "GPT-5.6 Terra",
       "gpt56Luna": "GPT-5.6 Luna",
-      "grokImagine20": "Grok Imagine Image 2.0",
-      "grokImagine": "Grok Imagine",
-      "grokImagineQuality": "Grok Imagine Quality",
       "nanoBanana2": "Nano Banana 2",
       "nanoBanana2Api": "Nano Banana 2",
       "nanoBananaPro": "나노 바나나 Pro",
-      "atlasCloudGptImage2": "Atlas Cloud GPT Image 2",
-      "atlasCloudGptImage2Edit": "Atlas Cloud GPT Image 2 Edit",
-      "minimaxImage01": "MiniMax image-01",
-      "minimaxImage01Live": "MiniMax image-01-live",
-      "agy": "Antigravity (agy)",
       "gpt53CodexSpark": "GPT-5.3 Codex Spark — 이미지 생성 미지원",
       "unsupportedHelp": "Grok 모델은 번들된 로컬 프록시를 통해 xAI Images API를 사용합니다. GPT 모델은 OpenAI Responses 이미지 생성을 사용합니다."
     },
@@ -1319,28 +1171,6 @@
       "openai": {
         "label": "GPT API Key (OpenAI)",
         "placeholder": "OpenAI API 키 붙여넣기 (sk-...)"
-      },
-      "xai": {
-        "label": "Grok API Key (xAI)",
-        "placeholder": "xAI API 키 붙여넣기 (xai-...)"
-      },
-      "gemini": {
-        "label": "Gemini (Google)",
-        "placeholder": "Gemini API 키 붙여넣기 (AI...)"
-      },
-      "atlascloud": {
-        "label": "Atlas Cloud",
-        "placeholder": "Atlas Cloud API 키 붙여넣기 (apikey-...)"
-      },
-      "minimax": {
-        "label": "MiniMax",
-        "placeholder": "MiniMax API 키 붙여넣기"
-      },
-      "vertex": {
-        "label": "Vertex AI (서비스 계정)",
-        "placeholder": "Google Cloud 서비스 계정 JSON 붙여넣기 { \"type\": \"service_account\", ... }",
-        "authModeApiKey": "API Key",
-        "authModeVertex": "Vertex JSON"
       },
       "save": "저장",
       "saved": "저장됨",
@@ -1354,10 +1184,6 @@
         "valid": "유효",
         "notConfigured": "미설정"
       }
-    },
-    "videoModel": {
-      "grokImagine": "Grok Imagine Video",
-      "grokImagine15": "Grok Imagine Video 1.5"
     },
     "reasoning": {
       "title": "추론 강도",
@@ -1374,14 +1200,6 @@
       "body": "실존 인물, 브랜드, 제품, 장소, 최신 이벤트를 생성 전에 실시간 검색해서 반영합니다.",
       "on": "검색 켬",
       "off": "검색 끔"
-    },
-    "grokCompatibility": {
-      "title": "Grok 호환성",
-      "body": "Grok 이미지 생성은 먼저 필수 웹 검색을 수행하고, 그 다음 텍스트와 첨부 이미지를 함께 보는 image-tool planner가 최종 이미지 프롬프트를 영어로 작성한 뒤 xAI Images API로 실행됩니다. 첨부 레퍼런스는 xAI 이미지 편집 경로로 유지되고, 크기는 aspect ratio/resolution으로 매핑됩니다. 출력 포맷·모더레이션·추론은 GPT OAuth/API 키 공급자에서만 사용됩니다."
-    },
-    "grokPlanner": {
-      "title": "Grok planner 모델",
-      "body": "검색과 이미지·비디오 프롬프트를 기획하는 모델입니다. 기본값은 Grok 4.5이며 I2V·Ref2V 기획에서 이미지 입력을 지원합니다. Grok 4.3은 호환 선택지로 남아 있습니다."
     },
     "gallery": {
       "defaultScopeTitle": "기본 갤러리 보기",
@@ -1513,26 +1331,6 @@
     "apikeyDisabled": {
       "title": "API-Key 모드를 사용할 수 없어요",
       "body": "이 빌드는 API-Key 생성을 지원하지만 현재 요청에서 설정된 키를 사용할 수 없었습니다. GPT OAuth로 전환하거나 API 키를 갱신해 주세요.",
-      "cta": "확인"
-    },
-    "agyGenerationFailed": {
-      "title": "Gemini 생성 실패",
-      "body": "Antigravity CLI에서 오류가 발생했습니다. agy 바이너리가 설치되어 있고 Gemini 계정이 활성화되어 있는지 확인하세요.",
-      "cta": "재시도"
-    },
-    "agyTimeout": {
-      "title": "Gemini 생성 시간 초과",
-      "body": "agy 프로세스가 제한 시간(360초) 내에 응답하지 않았습니다. 다시 시도하거나 agy CLI 상태를 확인하세요.",
-      "cta": "재시도"
-    },
-    "agyProcessError": {
-      "title": "Gemini 프로세스 오류",
-      "body": "agy CLI가 예기치 않은 오류로 종료되었습니다. 'agy --version'으로 바이너리가 정상인지 확인하세요.",
-      "cta": "재시도"
-    },
-    "agyQuotaExhausted": {
-      "title": "Gemini 할당량 소진",
-      "body": "Gemini 이미지 생성 용량이 소진되었습니다. 할당량은 자동으로 리셋됩니다 — 에러 상세에서 리셋 타이머를 확인하세요.",
       "cta": "확인"
     },
     "authClass": {
@@ -1731,12 +1529,10 @@
     "backgroundHintTransparent": "GPT Image 2가 실제 알파 채널로 생성하므로 배경 제거 단계가 필요 없습니다. PNG로 저장됩니다.",
     "model": "모델",
     "modelGpt": "GPT",
-    "modelGrok": "Grok",
     "kind": "출력",
     "kindImage": "이미지",
     "kindVideo": "비디오",
     "videoSoon": "비디오 에셋은 다음 단계에서 열립니다",
-    "videoGrokOnly": "비디오 생성은 Grok에서 동작합니다 — 모델을 Grok으로 바꿔 주세요",
     "videoOptions": "비디오 옵션",
     "videoDuration": "길이",
     "videoResolution": "해상도",
@@ -1873,7 +1669,10 @@
     "refFailed": "참조 추가 실패",
     "saveToAssets": "보관",
     "savedToAssets": "보관함에 저장됨",
-    "saveToAssetsFailed": "보관함 저장 실패"
+    "saveToAssetsFailed": "보관함 저장 실패",
+    "saveAsElement": "Save as element",
+    "saved": "Saved",
+    "saveFailed": "Could not save"
   },
   "assets": {
     "title": "보관함",

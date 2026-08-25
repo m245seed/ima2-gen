@@ -36,9 +36,6 @@ const REQUIRED_SOURCE_PACK_FILES = [
   "assets/card-news/templates/clean-report-square/template.json",
   "assets/card-news/templates/clean-report-square/base.png",
   "assets/card-news/templates/clean-report-square/preview.png",
-  "assets/mcp-snapshots/README.md",
-  "assets/mcp-snapshots/runway.sanitized.json",
-  "assets/mcp-snapshots/higgsfield.sanitized.json",
 ];
 
 const REQUIRED_BUILD_PACK_FILES = [

@@ -85,13 +85,13 @@ export function startOAuthProxy(options: any = {}) {
       if (uptime < 5000 && !hasBeenReady) {
         // Crashed immediately without ever becoming ready — likely missing openai-oauth or no token.
         // Don't restart; just mark as failed silently.
-        console.log(`[gpt-oauth] proxy exited immediately (code ${code}). Skipping — Grok-only mode is fine.`);
+        console.log(`[gpt-oauth] proxy exited immediately (code ${code}). Skipping — API-key-only mode is fine.`);
         options.onExit?.({ code });
         return;
       }
       options.onExit?.({ code });
       if (restartCount >= MAX_RESTARTS) {
-        console.log(`[gpt-oauth] max restarts (${MAX_RESTARTS}) reached. Giving up — Grok-only mode is fine.`);
+        console.log(`[gpt-oauth] max restarts (${MAX_RESTARTS}) reached. Giving up — API-key-only mode is fine.`);
         return;
       }
       restartCount++;

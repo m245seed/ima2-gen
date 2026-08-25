@@ -10,10 +10,8 @@ const SKILL_PATH = "skills/ima2/SKILL.md";
 
 const { buildCatalog } = await import("../lib/contracts/catalog.ts");
 const { catalogVersion, buildToolsList, executionBindingFor } = await import("../lib/contracts/discovery.ts");
-const { loadAllBundledSnapshots } = await import("../lib/mcp/snapshotStore.ts");
 
-const snapshots = loadAllBundledSnapshots(process.cwd());
-const entries = buildCatalog({ snapshots });
+const entries = buildCatalog({ snapshots: [] });
 const version = catalogVersion(entries);
 const rows = buildToolsList(entries);
 

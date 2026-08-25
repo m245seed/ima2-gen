@@ -57,12 +57,11 @@ export function isAlphaCapableFormat(value: unknown): value is AlphaCapableForma
 /**
  * Image lanes that can actually return an alpha channel.
  *
- * Only the GPT image tool (OAuth/API) and the gpt-image-2 API surface expose a
- * background parameter. Grok, Gemini, Agy, and MiniMax have no equivalent and
- * their pipeline branches force JPEG, so a transparent request there would bill
- * the user for an opaque image labeled as a cutout.
+ * Only the GPT image tool (OAuth/API) exposes a background parameter. A
+ * transparent request on any other lane would bill the user for an opaque
+ * image labeled as a cutout.
  */
-export const ALPHA_CAPABLE_PROVIDERS = ["oauth", "api", "atlascloud"] as const;
+export const ALPHA_CAPABLE_PROVIDERS = ["oauth", "api"] as const;
 
 export function providerSupportsTransparent(provider: string | undefined | null): boolean {
   return typeof provider === "string" && (ALPHA_CAPABLE_PROVIDERS as readonly string[]).includes(provider);

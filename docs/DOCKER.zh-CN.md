@@ -40,7 +40,6 @@ IMA2_LAN_TOKEN=change-me docker compose up -d
 | `IMA2_HOST` | `0.0.0.0` |绑定主机|
 | `IMA2_CONFIG_DIR` | `/data` |配置+生成的输出+凭据|
 | `OPENAI_API_KEY` | — |选修的：API-关键图像提供商|
-| `GEMINI_API_KEY` | — |选修的：Gemini API提供者|
 
 状态（配置、生成的图像/视频、OAuth凭证）生活在`/data`
 — 在那里挂载一个卷来保存它。

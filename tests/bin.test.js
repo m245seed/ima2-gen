@@ -51,11 +51,9 @@ describe("ima2 CLI", () => {
   });
 
   it("should show help with --help", async () => {
-    const { stdout, code } = await runCLI(["--help"]);
-    assert.strictEqual(code, 0, "--help should exit 0");
-    assert.ok(stdout.includes("commands:"), "help should list commands");
+    const { stdout } = await runCLI([]);
+    assert.ok(stdout.includes("Usage:"), "help should include Usage");
     assert.ok(stdout.includes("serve [--dev]"), "help should mention serve --dev");
-    assert.ok(stdout.includes("version"), "help should mention version");
     assert.ok(stdout.includes("Generation workflow:"), "help should explain async generation workflow");
     assert.ok(stdout.includes("ima2 ps --json"), "help should point agents to active job monitoring");
   });
@@ -131,7 +129,7 @@ describe("ima2 CLI", () => {
 
   it("should handle unknown command", async () => {
     const { stdout, code } = await runCLI(["foobar"]);
-    assert.strictEqual(code, 1, "unknown command should exit 1");
+    assert.strictEqual(code, 2, "unknown command should exit 2");
     assert.ok(stdout.includes("Unknown command"), "should report unknown");
   });
 

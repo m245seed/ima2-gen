@@ -1,6 +1,6 @@
 export type PresetCategory = "camera-motion" | "style" | "lighting";
 export type PresetMode = "image" | "video" | "both";
-export type PresetProvider = "gpt" | "grok" | "gemini";
+export type PresetProvider = "gpt";
 
 export interface PresetDefinition {
   id: string;

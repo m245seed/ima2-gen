@@ -31,7 +31,6 @@ let startupRecovered = false;
 const runningControllers = new Map<string, AbortController>();
 
 const IMAGE_TIMEOUT_MS = 10 * 60 * 1_000;
-const VIDEO_TIMEOUT_MS = 30 * 60 * 1_000;
 
 export function ensureAgentQueueWorker(ctx: RuntimeContext) {
   if (!startupRecovered) {
@@ -80,15 +79,14 @@ export async function tickAgentQueueWorker(ctx: RuntimeContext) {
 }
 
 // LLM planning runs only for plans the regex deriver produced automatically.
-// Slash commands, manual settings, agy sessions, and already-LLM-planned
-// retries keep their stored plan (audit decision F4/F5).
+// Slash commands, manual settings, and already-LLM-planned retries keep their
+// stored plan (audit decision F4/F5).
 function isLlmPlanningEligible(item: AgentQueueItem): boolean {
   return Boolean(
     config.agentPlanner.enabled &&
     (item.plan.source === "auto-default" || item.plan.source === "auto-request") &&
     item.plan.command == null &&
-    item.options.generationStrategy === "auto" &&
-    item.options.provider !== "agy",
+    item.options.generationStrategy === "auto",
   );
 }
 
@@ -121,7 +119,7 @@ async function runClaimedQueueItem(ctx: RuntimeContext, itemId: string) {
     runningControllers.delete(item.id);
     return;
   }
-  const timeoutMs = plan.mode === "video" ? VIDEO_TIMEOUT_MS : IMAGE_TIMEOUT_MS;
+  const timeoutMs = IMAGE_TIMEOUT_MS;
   const timeoutController = new AbortController();
   const timeout = setTimeout(() => timeoutController.abort("timeout"), timeoutMs);
   timeout.unref?.();

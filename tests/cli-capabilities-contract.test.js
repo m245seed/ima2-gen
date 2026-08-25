@@ -28,28 +28,21 @@ describe("CLI capabilities contract", () => {
     assert.match(src, /modes:\s*\[\.\.\.VALID_MODES\]/);
     assert.match(src, /providers:\s*\[\.\.\.VALID_PROVIDERS\]/);
     assert.match(src, /const VALID_PROVIDERS = \["auto", \.\.\.deriveProviderIds\(\)\]/);
-    assert.match(src, /"grok status"/);
     assert.match(src, /"prompt build"/);
     assert.match(src, /configKeys:/);
     assert.match(src, /maxGeneratedImages:\s*appConfig\.limits\.maxGeneratedImages/);
     assert.match(src, /enforced:\s*true/);
-    assert.match(src, /server-side inflight capacity guard/);
-    assert.match(src, /supported:\s*\["grok-imagine-video", "grok-imagine-video-1\.5"\]/);
-    assert.match(src, /aliases:\s*\{ "grok-imagine-video-1\.5-preview": "grok-imagine-video-1\.5" \}/);
-    assert.match(src, /resolutions:\s*\["480p", "720p", "1080p"\]/);
-    assert.match(src, /resolutionNotes:\s*\{ "1080p": "grok-imagine-video-1\.5 text-to-video canvas shim or image-to-video; reference-to-video unsupported" \}/);
+    assert.match(src, /server-side inflight capacity guard uses this runtime limit/);
   });
 
-  it("capabilities marks Agent Mode as web-UI only while exposing Grok defaults", () => {
+  it("capabilities marks Agent Mode as web-UI only", () => {
     const src = readSource("lib/capabilities.ts");
 
-    assert.match(src, /grok:\s*\{/);
-    assert.match(src, /defaultImageModel/);
-    assert.match(src, /plannerModel/);
     assert.match(src, /agentMode:\s*\{/);
     assert.match(src, /uiOnly:\s*true/);
     assert.match(src, /cliCommand:\s*null/);
   });
+
 
   it("capabilities command falls back to local metadata unless server is required", () => {
     const src = readSource("bin/commands/capabilities.ts");

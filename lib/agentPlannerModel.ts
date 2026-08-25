@@ -4,7 +4,6 @@ import { formatToolManifestForPrompt } from "./agentToolManifest.js";
 import { getAgentSession } from "./agentStore.js";
 import { errInfo } from "./errInfo.js";
 import { logEvent } from "./logger.js";
-import { getGrokEndpoint, getPlannerConfig } from "./grokImageCore.js";
 import { waitForOAuthReady } from "./oauthProxy/runtime.js";
 import { requireRuntimeContext, type RouteRuntimeContext } from "./runtimeContext.js";
 import type { AgentGenerationPlan, AgentGenerationSettings } from "./agentTypes.js";
@@ -17,11 +16,8 @@ type AgentPlanRequest = {
   signal?: AbortSignal | null;
 };
 
-type ChatCompletionsBody = {
-  choices?: Array<{ message?: { content?: string | null } }>;
-};
 
-function buildPlannerDeveloperPrompt(hasSourceImage: boolean, imageCount: number): string {
+function buildPlannerDeveloperPrompt(_hasSourceImage: boolean, imageCount: number): string {
   return [
     "You are the generation planner for the ima2 Agent. Decide how to fulfill the user's request using the available tools.",
     "",
@@ -29,32 +25,28 @@ function buildPlannerDeveloperPrompt(hasSourceImage: boolean, imageCount: number
     formatToolManifestForPrompt(),
     "",
     "Tool execution contract:",
-    "- You do not call provider image/video APIs directly. You choose a plan; the ima2 runtime executes the corresponding ima2.* tools.",
-    "- The session model is the planner/LLM model, not an image or video model. For example, grok-4.5 means Grok planner/provider routing; image generation still uses ima2.generate_image with the configured Grok image backend.",
+    "- You do not call provider image APIs directly. You choose a plan; the ima2 runtime executes the corresponding ima2.* tools.",
+    "- The session model is the planner/LLM model, not an image model. Image generation still uses ima2.generate_image with the configured OpenAI backend.",
     "- For image creation/edit requests choose mode single or fanout, which maps to ima2.get_image_context followed by ima2.generate_image.",
-    "- For image creation/edit requests, also choose sourceImagePolicy: none for a fresh image, current to use the session's current image as an edit/reference input, or auto only when genuinely ambiguous.",
-    "- For video creation requests choose mode video, which maps to ima2.generate_video. Never put video model names in prompts.",
+    "- Choose sourceImagePolicy: none for a fresh image, current to use the session's current image as an edit/reference input, or auto only when genuinely ambiguous.",
     "- For failure questions choose mode errors, which maps to ima2.get_generation_errors.",
     "",
     "Session context:",
     `- Images in session: ${imageCount}`,
-    `- Last image available as image-to-video source: ${hasSourceImage ? "yes" : "no"}`,
     "",
     "Decide ONE plan and respond with ONLY a JSON object (no prose, no code fences):",
-    '{"mode":"single|fanout|video|question|errors","prompts":["..."],"plannedVariants":1,"plannedParallelism":1,"sourceImagePolicy":"none|current|auto","videoParams":{"duration":5,"resolution":"480p","aspectRatio":"auto","mode":"text-to-video|image-to-video|reference-to-video"},"assistantText":"...","reason":"short reason"}',
+    '{"mode":"single|fanout|question|errors","prompts":["..."],"plannedVariants":1,"plannedParallelism":1,"sourceImagePolicy":"none|current|auto","assistantText":"...","reason":"short reason"}',
     "",
     "Rules:",
-    "- You are a conversational assistant first. Generate media ONLY when the user clearly asks you to create or edit an image/video. Everything else (questions, chat, greetings, feedback, follow-ups) is mode question.",
+    "- You are a conversational assistant first. Generate media ONLY when the user clearly asks you to create or edit an image. Everything else (questions, chat, greetings, feedback, follow-ups) is mode question.",
     "- mode single: one image. prompts has exactly 1 entry (the generation prompt, user language preserved).",
     "- mode fanout: multiple image variants. prompts has one entry per variant; respect any count the user asked for.",
     "- sourceImagePolicy for single/fanout: use none for new/fresh/separate/from-scratch requests, including '새로', '별도', 'i2i 말고', '새로운 방식', 'new image', 'from scratch', 'without reference'.",
     "- sourceImagePolicy for single/fanout: use current only when the user explicitly asks to use/edit/modify/transform/reference the current image, including '이 이미지', '현재 이미지', '방금 그거', '참조', 'reference', 'i2i', 'image-to-image', '유지해서'.",
     "- sourceImagePolicy for plain image requests with no explicit reference wording is none.",
-    "- mode video: one video via ima2.generate_video. Choose it only when the user asks to CREATE a video. prompts has exactly 1 entry. Extract duration (1-15 s), resolution (480p|720p|1080p), aspectRatio (auto|1:1|16:9|9:16|4:3|3:4|3:2|2:3) from the request into videoParams; omit fields the user did not specify. 1080p uses Grok Video 1.5; prompt-only requests are valid because the server injects a white-canvas I2V shim.",
-    "- videoParams.mode decides what the session's current image is FOR. Use image-to-video when the user wants that exact picture animated or continued ('이 이미지를 움직여줘', 'animate this', 'make it move'): it becomes the first frame. Use reference-to-video when the user wants the subject, character, outfit or place carried into a DIFFERENT scene ('이 캐릭터로 다른 장면', 'same person at the beach', 'use this outfit'): it guides the video without locking the opening shot. reference-to-video cannot use 1080p. Omit mode when the user did not imply either.",
-    "- mode question: the user is NOT requesting generation — a question (capabilities, how-to, status), small talk, a greeting, or feedback — e.g. '영상 생성가능하니?', 'can you make videos?', '고마워'. prompts must be []. Write the full answer in assistantText. Mentioning a media word like 'video' or '영상' inside a question does NOT make it a generation request.",
-    "- mode errors: the user is asking why a previous generation failed or about recent errors. prompts must be [].",
-    "- assistantText: REQUIRED for every mode, written in the user's language. For question/errors it is the full reply. For single/fanout/video it is a short natural chat reply telling the user what you are creating (1-2 sentences, no markdown headings).",
+    "- mode question is for questions, small talk, greetings, feedback, or follow-ups; prompts must be []. Write the full answer in assistantText.",
+    "- mode errors is for asking why a previous generation failed or about recent errors; prompts must be [].",
+    "- assistantText is REQUIRED for every mode, written in the user's language. For question/errors it is the full reply. For single/fanout it is a short natural chat reply telling the user what you are creating (1-2 sentences, no markdown headings).",
     "- Preserve the user's prompt content; do not censor, embellish, or translate it.",
     "- reason: one short sentence explaining the decision.",
   ].join("\n");
@@ -67,7 +59,6 @@ export async function requestAgentPlanFromModel(
   const ctx = requireRuntimeContext(ctxRaw);
   const plannerCfg = (ctx.config as { agentPlanner?: { enabled?: boolean; timeoutMs?: number } }).agentPlanner;
   if (!plannerCfg?.enabled) return null;
-  if (input.settings.provider === "agy") return null;
   const timeoutMs = plannerCfg.timeoutMs ?? 30_000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -75,9 +66,7 @@ export async function requestAgentPlanFromModel(
   try {
     const session = getAgentSession(input.sessionId);
     const developerPrompt = buildPlannerDeveloperPrompt(Boolean(session?.lastImageId), session?.imageCount ?? 0);
-    const rawText = input.settings.provider === "grok"
-      ? await requestGrokPlan(ctx, developerPrompt, input.prompt, signal)
-      : await requestResponsesPlan(ctx, developerPrompt, input.prompt, input.settings, signal);
+    const rawText = await requestResponsesPlan(ctx, developerPrompt, input.prompt, input.settings, signal);
     const parsed = extractJsonObject(rawText);
     if (!parsed) {
       logEvent("agent_planner", "parse_failed", { requestId: input.requestId, provider: input.settings.provider, chars: rawText.length });
@@ -106,31 +95,6 @@ export async function requestAgentPlanFromModel(
   }
 }
 
-async function requestGrokPlan(
-  ctx: ReturnType<typeof requireRuntimeContext>,
-  developerPrompt: string,
-  userPrompt: string,
-  signal: AbortSignal,
-): Promise<string> {
-  const { url, headers } = getGrokEndpoint(ctx, "/v1/chat/completions");
-  const planner = getPlannerConfig(ctx);
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    signal,
-    body: JSON.stringify({
-      model: planner.model,
-      stream: false,
-      messages: [
-        { role: "system", content: developerPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
-  if (!res.ok) throw plannerHttpError("grok", res.status);
-  const body = await res.json() as ChatCompletionsBody;
-  return typeof body.choices?.[0]?.message?.content === "string" ? body.choices[0].message.content : "";
-}
 
 async function requestResponsesPlan(
   ctx: ReturnType<typeof requireRuntimeContext>,

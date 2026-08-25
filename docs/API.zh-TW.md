@@ -10,21 +10,13 @@ http://localhost:3333
 
 ## 供應商政策
 
-圖像生成支持OAuth, API-鑰匙，Grok， 和Gemini (`agy`和`gemini-api`) 提供者。
+圖像生成支持OAuth和API-金鑰提供者。
 
 - `provider: "oauth"`使用本地的Codex OAuth代理人。
 - `provider: "api"`使用OpenAI回應API與託管的`image_generation`工具。
-- `provider: "grok"`使用捆綁的progrok xAI代理人。經典、節點和代理生成強制運行xAI網頁搜尋透過`/v1/responses`，然後運行`grok-4.5`計劃員與強製本地人通話`generate_image`函數，那麼ima2執行xAI `/v1/images/generations`. `grok-4.3`仍然可以作為顯式相容性覆蓋使用。如果附加了參考影像、節點父映像或代理目前影像，則最後一步將切換到xAI `/v1/images/edits`因此圖像到圖像的上下文被保留。
-- `provider: "agy"`產生Antigravity CLI (`agy -p`）透過Google生成圖像Gemini's `default_api:generate_image`工具。型號是`nano-banana-2`。輸出固定為1024×1024JPEG。最多 3 個參考影像 (i2i)。沒有網路搜尋、品質、尺寸或遮罩控制。多模式返回單一影像。不支援影片（`AGY_VIDEO_UNSUPPORTED`).
-- `provider: "grok-api"`使用直接xAI API密鑰而不是捆綁的progrok OAuth代理人。與相同的管道`grok`（網頁搜尋 → 策劃 →`/v1/images/generations`），相同的寬高比和解析度選項。需要一個xAI API透過網路配置的密鑰UI密鑰管理或`XAI_API_KEY`環境變數。也支援視頻生成。
-- `provider: "gemini-api"`呼叫 Google 生成語言API直接（或Vertex AI使用服務帳戶JSON）。支援型號`nano-banana-2` (Gemini3.1 Flash 影像）和`nano-banana-pro` (Gemini3 專業圖像）。在兩個身份驗證路徑上支援可變寬高比（1:1 到 21:9）和四個解析度層（512px、1K、2K、4K）—直接API路徑發送`generation_config.response_format.image`（蛇_情況）而Vertex AI端點（`aiplatform.googleapis.com`) 發送`generationConfig.imageConfig`（駝峰式）。和`size: "auto"`影像配置被完全省略，模型決定比率/大小。授權：`GEMINI_API_KEY`環境變數、網絡UI密鑰管理（`/api/keys/gemini`），或一個Vertex AI服務帳戶JSON (`VERTEX_SERVICE_ACCOUNT_JSON`或者`/api/keys/vertex`）。當 Vertex 憑證和APIkey 已配置，Vertex 優先。選擇的身份驗證模式（`apikey`或者`vertex`）堅持`~/.ima2/config.json`作為`geminiAuthMode`並在伺服器啟動時恢復。每個模型的成本：`nano-banana-2`（快閃記憶體）：512=0.001 美元、1K=0.003 美元、2K=0.004 美元、4K=0.006 美元；`nano-banana-pro`：1K=0.007 美元，2K=0.007 美元，4K=0.013 美元。沒有網路搜尋或遮罩控制。
 - API-金鑰產生涵蓋經典生成、編輯、掩模引導編輯、多模式和節點生成。
 - 如果`provider: "api"`請求時沒有API關鍵，路由在上游之前失敗`401`和`API_KEY_REQUIRED`.
-- Grok生成圖`size`到xAI `aspect_ratio`和`resolution`;它不發送OpenAI-風格`size`上游田地。Grok編輯用途xAI `/v1/images/edits`; Grok蒙版編輯仍然不受支援並返回`GROK_MASK_UNSUPPORTED`.
 - 蒙版編輯是蒙版/選擇引導編輯，而不是像素完美的修復保證。
-
-Grok影片生成用途`POST /api/video/generate` (SSE）。看影片
-下面的生成部分提供了完整的端點規格。
 
 ## 健康狀況
 
@@ -33,18 +25,17 @@ Grok影片生成用途`POST /api/video/generate` (SSE）。看影片
 | `GET` | `/api/health` |伺服器健康狀況、版本、路徑、提供者策略|
 | `GET` | `/api/providers` |提供者可用性和運行時端口|
 | `GET` | `/api/oauth/status` | OAuth代理狀態和可見模型|
-| `GET` | `/api/grok/status` |捆綁式progrok狀態和可見xAI影像模型|
 | `GET` | `/api/billing` |計費/狀態探測，包括API配置時的密鑰來源|
-| `GET` | `/api/quota` |供應商配額：回報`{ codex, grok }`。有資格的Grok建造xAIOIDC/外部身份驗證返回`weekly`百分比/重置視窗`GET /v1/billing?format=credits`。如果不可用，舊端點可能會返回`monthly`視窗加`billing: { usedUsd, limitUsd }`. |
+| `GET` | `/api/quota` |供應商配額：回報`{ codex }`。|
 
 ## 帳戶切換
 
 |方法|小路|筆記|
 |---|---|---|
-| `POST` | `/api/auth/switch` |啟動設備代碼OAuth流動。身體：`{ "provider": "grok" \| "codex" }`。退貨`{ sessionId, userCode, verificationUrl }`. |
+| `POST` | `/api/auth/switch` |啟動設備代碼OAuth流動。身體：`{ "provider": "codex" }`。退貨`{ sessionId, userCode, verificationUrl }`. |
 | `GET` | `/api/auth/switch/:sessionId` |輪詢切換帳號會話狀態。退貨`{ status }`狀態是`pending`, `complete`, `error`， 或者`expired`. |
 
-切換帳戶流程會開啟瀏覽器驗證URL。用戶完成設備代碼步驟後，伺服器將保存新憑證（Grok: `~/.progrok/auth.json`; Codex： 透過`codex login --device-auth`）並且會話轉換為`complete`。該端點顯示為**切換帳戶**設定配額卡中的按鈕Grok和Codex提供者。
+切換帳戶流程會開啟瀏覽器驗證URL。用戶完成設備代碼步驟後，伺服器將保存新憑證（Codex： 透過`codex login --device-auth`）並且會話轉換為`complete`。該端點顯示為**切換帳戶**設定配額卡中的按鈕Codex提供者。
 
 ## 貯存
 
@@ -130,14 +121,11 @@ Grok影片生成用途`POST /api/video/generate` (SSE）。看影片
 
 |事件|發射者|描述|
 |---|---|---|
-| `phase` |節點、多模、視頻|生命週期階段變化|
+| `phase` |節點、多模|生命週期階段變化|
 | `partial` |節點，多模|漸進式預覽影像（base64 數據URL) |
 | `image` |多模|最終保存`GenerateItem`對於一幅序列影像|
-| `done` |節點、多模、視頻|終端成功有效負載（特定於路線的形狀）|
+| `done` |節點、多模|終端成功有效負載（特定於路線的形狀）|
 | `error` |所有生成路線|終端故障|
-| `submitted` |影片|作業提交至xAI |
-| `progress` |影片|進度分數 0.0–1.0|
-| `planning` |影片|視訊規劃器運行|
 
 例子SSE框架：
 
@@ -149,7 +137,7 @@ data: {"requestId":"req_abc","jobId":"req_abc","phase":"streaming"}
 
 ### 非同步生成模式
 
-`POST /api/node/generate`, `POST /api/generate/multimode`， 和`POST /api/video/generate`支援已持有的客戶端的非同步 POST 模式`GET /api/events`:
+`POST /api/node/generate`和`POST /api/generate/multimode`支援已持有的客戶端的非同步 POST 模式`GET /api/events`:
 
 ```json
 {
@@ -215,59 +203,11 @@ CLI和遺留客戶省略`async`並保持原始行為：每個請求SSE在同一�
 
 當前應用程式預設值：`gpt-5.6-luna`. `gpt-5.5`和其他支持的GPT image當呼叫者明確選擇模型時，模型仍然可用。
 
-什麼時候`provider`是`"grok"`，支援的型號有`grok-imagine-image`和
-`grok-imagine-image-quality`。伺服器使用`grok-4.5`作為搜尋/規劃者
-預設型號（`IMA2_GROK_PLANNER_MODEL`）和強制搜尋的時間和
-規劃器步驟與影像呼叫分開（`IMA2_GROK_PLANNER_TIMEOUT_MS`).
-為了`n > 1`，搜尋和計劃運行一次，計劃的提示將重複用於
-圖像請求。成功的Grok經典世代報告一強制
-元資料中的網路搜尋呼叫。
-
-如果`references`存在於Grok經典請求，ima2仍然執行
-強制搜索和`grok-4.5`規劃階段。規劃者收到
-多模態參考影像`image_url`輸入及其強制
-`generate_image.prompt`參數被指示為僅限英語，除了
-使用者請求的精確可見文字。最終的圖像調用然後使用xAI
-`/v1/images/edits`使用相同的參考圖像而不是
-`/v1/images/generations`。這可以保持圖像到圖像/參考上下文的活力
-通過三相管道。xAI目前最多記錄三個來源
-用於圖像編輯的圖像，所以Grok超過三個的經典請求
-參考文獻返回`GROK_REF_TOO_MANY`.
-
-Grok尺寸映射：
-
-|要求尺寸| xAI `aspect_ratio` | xAI `resolution` |
-|---|---|---|
-| `1024x1024` | `1:1` | `1k` |
-| `1536x1024` | `3:2` | `1k` |
-| `1024x1536` | `2:3` | `1k` |
-| `1360x1024` | `4:3` | `1k` |
-| `1024x1360` | `3:4` | `1k` |
-| `1824x1024` | `16:9` | `1k` |
-| `1024x1824` | `9:16` | `1k` |
-| `2048x2048` | `1:1` | `2k` |
-| `2048x1152` | `16:9` | `2k` |
-| `1152x2048` | `9:16` | `2k` |
-| `3840x2160` | `16:9` | `2k` |
-| `2160x3840` | `9:16` | `2k` |
-| `auto` | `auto` |省略|
-
-客製尺寸縮小到最接近的尺寸xAI- 支援的寬高比和使用
-`2k`當請求的最長邊緣或像素預算更接近 2K 影像。
-
 ### `POST /api/edit`
 
 圖像編輯/圖像到圖像生成。
 
 該請求包括提示和圖像負載。`provider: "api"`透過共享響應圖像適配器發送提示和圖像。可選蒙版作為蒙版指導轉發，而不是像素完美的編輯保證。
-
-和`provider: "grok"`，編輯請求發送至xAI `/v1/images/edits`
-透過捆綁的progrok代理人。蒙面Grok之前編輯被拒絕
-上游與`GROK_MASK_UNSUPPORTED`.
-
-Grokmultimode 目前將每個圖像請求直接發送到xAI圖片API
-與映射的`aspect_ratio`/`resolution`;強制搜尋+規劃器
-管道僅限於經典`/api/generate`.
 
 ### `POST /api/node/generate`
 
@@ -283,23 +223,19 @@ Grokmultimode 目前將每個圖像請求直接發送到xAI圖片API
   "size": "1024x1024",
   "format": "png",
   "moderation": "low",
-  "model": "grok-imagine-image",
+  "model": "gpt-5.6-luna",
   "references": [],
   "externalSrc": "optional-history-url",
   "sessionId": "session-id",
   "clientNodeId": "client-node-id",
   "requestId": "request-id",
-  "provider": "grok"
+  "provider": "oauth"
 }
 ```
 
 什麼時候`parentNodeId`如果存在，伺服器載入儲存的父節點映像並使用編輯路徑。根節點和子/編輯節點都允許節點本地引用；對於子/編輯節點，首先發送父圖像，然後發送引用，然後發送文字提示。
 
-和`provider: "grok"`，Node模式使用相同xAI搜尋+`grok-4.5`規劃師+圖像API管道作為經典一代。父節點影像，`externalSrc`，或額外的參考傳遞給規劃者，然後傳遞給xAI `/v1/images/edits`;否則最終調用使用`/v1/images/generations`. Grok節點請求的上限為三個輸入影像，計算父/當前影像加上引用，然後返回`GROK_REF_TOO_MANY`當超過該限制時，在上游之前。`quality: "high"`將最終的影像模型提升為`grok-imagine-image-quality`.
-
 當客戶端發送時，路由可以串流傳輸伺服器發送的事件`Accept: text/event-stream`。可能發生的事件包括`phase`, `partial`, `done`， 和`error`。或者，發送`{ "async": true, "requestId": "req_xxx" }`在體內接收`202 { requestId }`立即並追蹤進展`GET /api/events`（請參閱「活動」部分）。
-
-Grok節點SSE回覆不包括回覆API `partial`影像事件是因為xAI圖片API調用是同步的JSON。他們仍然散發著`phase`和`done`/`error`事件所以節點UI可以使用相同的飛行生命週期。
 
 ### `POST /api/generate/multimode` (SSE)
 
@@ -351,211 +287,6 @@ Grok節點SSE回覆不包括回覆API `partial`影像事件是因為xAI圖片API
 | `REF_EMPTY` |參考項目為空|
 | `REF_TOO_LARGE` |引用超出了配置的 base64 大小|
 | `REF_NOT_BASE64` |引用的 base64 無效|
-| `GROK_REF_TOO_MANY` | Grok經典一代收到三張以上參考圖|
-| `GROK_MASK_UNSUPPORTED` | Grok請求編輯時帶有掩碼；xAI此版本中未連接蒙版編輯|
-
-## 影片生成
-
-### `POST /api/video/generate` (SSE)
-
-透過生成視頻Grok視訊提供者。在 POST 連線上傳回伺服器傳送的事件，或接受非同步模式（`{ "async": true, "requestId": "req_xxx" }`） 為了`202 { requestId }`取得進展`GET /api/events`（請參閱「活動」部分）。
-
-```json
-{
-  "prompt": "a cat playing piano",
-  "provider": "grok",
-  "model": "grok-imagine-video",
-  "duration": 5,
-  "resolution": "480p",
-  "aspectRatio": "auto",
-  "sourceImage": "<base64>",
-  "referenceImages": ["<base64>", "<base64>"],
-  "referenceFilenames": ["existing-file.png"],
-  "continueFromVideo": "1780226256355_50252101.mp4",
-  "continuityLineage": { "lineageId": "optional-client-hint", "entries": [] },
-  "sessionId": "optional",
-  "requestId": "optional-client-id"
-}
-```
-
-**型號**: `grok-imagine-video-1.5`(預設),`grok-imagine-video`。遺產`grok-imagine-video-1.5-preview`string 被接受為相容性別名稱並在上游請求之前進行規範化。
-
-**模式**從參考輸入自動檢測：
-
-|輸入|模式|期限上限|
-|---|---|---|
-|沒有圖片|文字轉視頻| 1–15s |
-|1 張圖片（`sourceImage`或者`sourceFilename`) |影像到視頻| 1–15s |
-|2–7 張圖像 (`referenceImages` / `referenceFilenames`) |參考影片| 1–10s |
-
-1080p 可接受`grok-imagine-video-1.5`僅提示文字到視頻和圖像到視頻，具有一個圖像/幀源，包括`continueFromVideo`伺服器提取父影片的最後一幀後。僅提示 1.5 文字到影片在上游請求之前使用內部白色畫布圖像到影片 shim。 1.5 不新增 Ref2V、V2V 編輯或擴充支援。
-
-**參數**:
-
-|場地|類型|預設|筆記|
-|---|---|---|---|
-| `prompt` |細繩| — |必需的|
-| `provider` |細繩| `"grok"` | `"grok"`或者`"grok-api"` |
-| `model` |細繩| `grok-imagine-video-1.5` |視訊模型|
-| `duration` |整數| `5` |1–15 秒（為了參考視頻，限制為 10 秒）|
-| `resolution` |細繩| `"480p"` | `480p`, `720p`， 或者`1080p` (`1080p`使用 1.5 T2V 帆布墊片或 I2V）|
-| `aspectRatio` |細繩| `"auto"` |1:1、16:9、9:16、4:3、3:4、3:2、2:3、自動|
-| `sourceImage` |細繩| — |用於影像轉影片的 Base64 影像|
-| `sourceFilename` |細繩| — |用於影像到影片的現有生成文件|
-| `referenceImages` |細繩[] | — |用於視訊參考的 Base64 影像|
-| `referenceFilenames` |細繩[] | — |現有產生的影片參考文件|
-| `continueFromVideo` |細繩| — |產生`.mp4`父母；伺服器提取最後一幀並從 sidecar 重建譜系|
-| `continuityLineage` |目的| — |可選的客戶端提示；僅當`continueFromVideo`缺席|
-| `plannerModel` |細繩| `grok-4.5` | Grok視訊規劃器模型覆蓋範圍；`grok-4.3`保持相容（也可以透過設定UI或者`IMA2_GROK_PLANNER_MODEL`) |
-| `storyboard` |布林值| `false` |啟用故事板模式 - 保持連續剪輯中的角色/場景連續性|
-
-返回空白提示`PROMPT_REQUIRED`與一個`guidance`細繩。活躍的
-提示應描述視覺流、運動流、聲音/音樂/無音樂，
-對話/無對話、結束幀和持續時間節奏。影片策劃者使用
-將選定的持續時間作為完整剪輯的運行時間，並將短請求擴展為
-具有開場構圖、關聯動作/情緒的製作級序列
-變化，以及適合延續的穩定的結束框架。對於多字元
-場景中，策劃者透過視覺外觀（服裝、體格、
-位置、道具）而不是名稱，並相應地為每個對話行賦予屬性。
-
-什麼時候`continueFromVideo`存在，伺服器處理產生的`.mp4`
-sidecar 具有權威性。客戶`continuityLineage`無法覆蓋它。這
-保存的子 sidecar 包括`videoContinuity`，一個分支本地 max-4 堆疊，使用
-`keep-start-plus-latest-3`保留。
-
-`videoContinuity`形狀：
-
-```json
-{
-  "lineageId": "lineage:parent",
-  "parentFilename": "parent.mp4",
-  "sourceFrame": "last",
-  "maxEntries": 4,
-  "retention": "keep-start-plus-latest-3",
-  "entries": [
-    {
-      "id": "clip:parent.mp4",
-      "ordinal": 1,
-      "role": "start",
-      "filename": "parent.mp4",
-      "userPrompt": "original user prompt",
-      "revisedPrompt": "planner prompt actually sent to Grok video",
-      "createdAt": 1780300000000
-    }
-  ]
-}
-```
-
-入口`role`是`start`, `ancestor`, `parent`， 或者`current`。第一個剪輯是
-保留為起始錨點；後人只保留最近的三個條目。
-`lineageId`使用產生的影片基本名稱，不含`.mp4`擴大。
-該元資料儲存在生成的`.mp4.json`邊車並返回
-歷史行和視頻`done`事件；`/generated/*.json`仍然是私有的。
-
-Grok視訊 API 使用的提示介面：
-
-|表面|模型|責任|
-|---|---|---|
-|影片策劃師| `grok-4.5`（透過覆蓋`plannerModel`) |將使用者提示、搜尋上下文、參考和可選的連續性沿襲轉換為最終的英語影片提示。它必須建立核心主題、動作/運動、攝影機/構圖、環境/風格、對話/音訊、結束幀切換和約束。多字符對話使用基於外觀的說話者識別。|
-|影片生成| xAI視訊模型|收到計劃者提示加上`sourceImage`或者`referenceImages`當存在時。|
-|影片分析| `grok-4.5` |讀取第一幀/最後一幀影像`/api/video/analyze`並返回娛樂/繼續指導。|
-
-**SSE事件**:
-
-|事件|數據|描述|
-|---|---|---|
-| `planning` | `{ requestId }` |準備視頻生成|
-| `submitted` | `{ requestId, xaiVideoRequestId, requestedModel, effectiveModel, modelFallback }` |提交至xAI |
-| `progress` | `{ requestId, progress, stalled }` |進度 0.0–1.0|
-| `done` | `{ requestId, filename, url, mediaType, revisedPrompt, elapsed, usage, requestedModel, effectiveModel, modelFallback, video, videoContinuity }` |影片準備就緒|
-| `error` | `{ error, code, status, requestId, guidance? }` |生成失敗|
-
-**視訊錯誤代碼**:
-
-|程式碼|意義|
-|---|---|
-| `VIDEO_PROVIDER_UNSUPPORTED` |提供者不是`"grok"` |
-| `PROMPT_REQUIRED` |提示為空或缺失|
-| `INVALID_GROK_VIDEO_MODEL` |模型不在有效集中|
-| `INVALID_VIDEO_RESOLUTION` |解析度不是 480p/720p/1080p，或外部請求 1080p`grok-imagine-video-1.5`僅提示 T2V / I2V|
-| `INVALID_VIDEO_ASPECT_RATIO` |寬高比不在有效集中|
-| `INVALID_VIDEO_DURATION` |持續時間不是 1–15 整數|
-| `GROK_VIDEO_REF_TOO_MANY` |超過 7 張參考圖片|
-| `GROK_VIDEO_FAILED` |上游xAI視訊生成失敗|
-| `GROK_VIDEO_FRAME_FAILED` |伺服器無法提取父視訊的最後一幀|
-
-### `POST /api/video/edit`
-
-透過編輯現有視頻GrokV2V。這是一個阻塞JSON啟動的端點xAI編輯作業，輪詢它，下載最終的 MP4，並將其儲存為產生的視訊工件。
-
-```json
-{
-  "prompt": "make it sunset",
-  "videoUrl": "https://vidgen.x.ai/.../clip.mp4",
-  "model": "grok-imagine-video"
-}
-```
-
-`videoUrl`可能是一個HTTPS影片URL, xAI `file_id`, `data:video/*` URL，或生成`.mp4`文件名。產生的文件輸入僅限於真實的`.mp4`生成的目錄下的檔案。
-
-### `POST /api/video/extend`
-
-從最後一幀開始擴展影片（最後一幀→I2V 編排）。這是一個非同步作業端點：它會傳回HTTP202 立即並串流生命週期事件（`queued → extracting-frame → planning → submitted/progress → persisting → done`或者`error`） 超過`GET /api/events`。伺服器提取父視訊的最後一幀，將其作為圖像到視訊來源注入，並在子工件上記錄持久的沿襲。
-
-```json
-{
-  "sourceVideoId": "1780226256355_50252101.mp4",
-  "requestId": "vext_optional",
-  "prompt": "camera pulls back (optional — inherits parent prompt when empty)",
-  "provider": "grok",
-  "model": "grok-imagine-video",
-  "duration": 6
-}
-```
-
-立即回應：
-
-```json
-{ "ok": true, "requestId": "vext_...", "sourceVideoId": "1780226256355_50252101.mp4", "workflow": "last-frame-i2v" }
-```
-
-航廈`done`有效載荷攜帶`video.operation: "extend"`, `video.sourceFrame: "last"`， 和`videoLineage` (`id`, `parentId`, `rootId`, `seriesId`, `sequenceIndex`）。複製`requestId`返回 409。幀提取失敗映射到`VIDEO_FRAME_EXTRACT_UNAVAILABLE` (503), `VIDEO_FRAME_EXTRACT_TIMEOUT`（504，可重試），或`VIDEO_FRAME_EXTRACT_FAILED` (500).
-
-### `POST /api/video/extend/native`
-
-舊的提供者本機擴充（阻止JSON）。開始xAI擴展作業，輪詢它，下載組合輸出 MP4，並將其儲存為產生的視訊工件。更喜歡`/api/video/extend`用於新的整合。
-
-```json
-{
-  "prompt": "camera pulls back",
-  "videoUrl": "1780226256355_50252101.mp4",
-  "duration": 6,
-  "model": "grok-imagine-video"
-}
-```
-
-`duration`必須是 2 到 10 秒之間的整數。編輯和本機擴展支持`grok-imagine-video`僅有的;`grok-imagine-video-1.5`這些端點不接受其​​預覽別名。
-
-### `GET /api/video/frame`
-
-提取一個PNG產生的幀`.mp4`文件。
-
-|詢問|筆記|
-|---|---|
-| `file` |所需生成`.mp4`檔案名稱或產生的目錄絕對路徑|
-| `position` | `last`（預設）或非負秒|
-
-### `POST /api/video/analyze`
-
-分析產生的第一幀和最後一幀`.mp4`使用配置的規劃器模型（`grok-4.5`預設情況下）。這不會將視頻作為時間視頻上傳；它提取兩個PNG框架並要求視覺模型推斷可能的運動。
-
-```json
-{
-  "videoUrl": "1780226256355_50252101.mp4"
-}
-```
-
-遠端 URL 和`data:`故意拒絕輸入以避免伺服器端URL獲取透過`ffmpeg`.
 
 ## 產生請求日誌
 
@@ -620,7 +351,7 @@ Grok視訊 API 使用的提示介面：
 
 ## 節點模板
 
-節點圖模板（higgsfield120）。種子模板隨應用程式一起提供，並且是唯讀的；使用者範本是從畫布創建的。
+節點圖模板。種子模板隨應用程式一起提供，並且是唯讀的；使用者範本是從畫布創建的。
 
 |方法|小路|筆記|
 |---|---|---|
@@ -726,26 +457,6 @@ X-Ima2-Tab-Id
 | `GRAPH_VERSION_CONFLICT` |過時的圖表版本|
 | `GRAPH_TOO_LARGE` |圖超出節點/邊限制|
 | `NODE_NOT_FOUND` |未找到節點元數據|
-| `INVALID_GROK_IMAGE_MODEL` | A Grok請求使用外部模型`grok-imagine-image`或者`grok-imagine-image-quality` |
-| `GROK_RATE_LIMITED` | xAI透過返回速率限制響應progrok |
-| `GROK_AUTH_FAILED` | progrok無法驗證xAI要求|
-| `GROK_SEARCH_TIMEOUT` / `GROK_PLANNER_TIMEOUT` / `GROK_IMAGE_TIMEOUT` |這Grok搜尋、規劃器或圖片API步驟超出了其超時預算|
-| `AGY_GENERATION_FAILED` | Gemini(agy) 影像生成失敗|
-| `AGY_TIMEOUT` |阿吉CLI進程超過 360 秒逾時|
-| `AGY_PROCESS_ERROR` |阿吉CLI二進位檔案無法啟動或崩潰|
-| `AGY_QUOTA_EXHAUSTED` | Gemini API配額已用完（速率限制）|
-| `AGY_PARSE_FAILED` |無法從 agy 輸出解析工件路徑|
-| `AGY_ARTIFACT_NOT_FOUND` |Agy 報告了不存在的工件路徑|
-| `AGY_PATH_REJECTED` |Agy 工件路徑位於允許的目錄之外|
-| `AGY_VIDEO_UNSUPPORTED` |不支援影片生成Gemini（agy）提供者|
-| `AGY_MASK_UNSUPPORTED` |不支援基於蒙版的編輯Gemini（agy）提供者|
-| `AGY_REF_TOO_MANY` |agy 的參考影像太多（最多 3 張）|
-| `GEMINI_API_KEY_MISSING` | Gemini API鍵或Vertex AI未配置憑證|
-| `GEMINI_API_RATE_LIMITED` | Gemini API速率有限 (429)|
-| `GEMINI_API_BAD_REQUEST` | Gemini API錯誤請求 (400/403)|
-| `GEMINI_API_SAFETY_BLOCKED` | Gemini API安全過濾器阻止發電|
-| `GEMINI_API_NO_IMAGE` | Gemini API沒有返回任何圖像作為響應|
-| `VIDEO_PROVIDER_UNSUPPORTED` |視訊生成需要提供者`"grok"`或者`"grok-api"` |
 | `SSE_CAPACITY` |併發數超過512`GET /api/events`聽眾|
 | `REQUEST_ID_IN_USE` |非同步 POST 使用了`requestId`已經有一份活躍的工作|
 | `TOO_MANY_JOBS` |超過配置的並發活動產生作業限制（`Retry-After: 5`;預設`24`) |
@@ -756,14 +467,11 @@ API用於在運行時透過 Web 設定提供者憑證的關鍵管理端點UI或�
 
 |端點|方法|描述|
 |---|---|---|
-| `/api/keys/status` |得到|傳回所有提供者的配置/有效/屏蔽金鑰狀態（openai, xai, gemini, 頂點) 加`geminiAuthMode` (`"apikey"`或者`"vertex"`) |
-| `/api/keys/:provider` |放|保存一個API鑰匙。身體：`{ "apiKey": "..." }`。在保存之前驗證金鑰格式和上游config.json。提供者：`openai`, `xai`， 或者`gemini`. |
-| `/api/keys/:provider` |刪除|刪除配置來源API鑰匙。無法刪除源自環境的金鑰（`ENV_KEY_IMMUTABLE`). |
-| `/api/keys/vertex` |放|保存一個Vertex AI服務帳戶JSON。身體：`{ "serviceAccountJson": "..." }`。驗證JSON結構 （`type: "service_account"`, `project_id`必需的）。|
-| `/api/keys/vertex` |刪除|刪除配置來源Vertex AI服務帳戶。|
-| `/api/keys/gemini-auth-mode` |放|堅持Gemini在設定下拉清單中選擇身份驗證模式。身體：`{ "mode": "apikey" \| "vertex" }`。保存至`config.json`並熱更新。|
+| `/api/keys/status` |得到|傳回所有提供者的配置/有效/屏蔽金鑰狀態（openai）|
+| `/api/keys/:provider` |放|保存一個API金鑰。身體：`{ "apiKey": "..." }`。在保存之前驗證金鑰格式和上游config.json。提供者：`openai`. |
+| `/api/keys/:provider` |刪除|刪除配置來源API金鑰。無法刪除源自環境的金鑰（`ENV_KEY_IMMUTABLE`). |
 
-透過 PUT 保存的密鑰儲存在`config.json`並在運行時上下文中進行熱更新（無需重新啟動伺服器）。從環境變數載入的金鑰（`OPENAI_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY`, `VERTEX_SERVICE_ACCOUNT_JSON`）優先並且透過以下方式不可變API.
+透過 PUT 保存的金鑰儲存在`config.json`並在運行時上下文中進行熱更新（無需重新啟動伺服器）。從環境變數載入的金鑰（`OPENAI_API_KEY`）優先並且透過以下方式不可變API.
 
 ## 縮圖回填
 
@@ -804,12 +512,6 @@ API用於在運行時透過 Web 設定提供者憑證的關鍵管理端點UI或�
 | `POST /api/generate` | `ima2 gen` |
 | `POST /api/edit` | `ima2 edit` |
 | `POST /api/generate/multimode` (SSE) | `ima2 multimode` |
-| `POST /api/video/generate` (SSE) | `ima2 video` |
-| `POST /api/video/generate`和`continueFromVideo` | `ima2 video continue` |
-| `POST /api/video/edit` | `ima2 video edit` |
-| `POST /api/video/extend` | `ima2 video extend` |
-| `GET /api/video/frame` | `ima2 video frame` |
-| `POST /api/video/analyze` | `ima2 video analyze` |
 | `POST /api/node/generate` (SSE) / `GET /api/node/:id` | `ima2 node generate` / `ima2 node show` |
 | `GET /api/history` | `ima2 ls` |
 | `DELETE /api/history/:name` / `…/permanent` | `ima2 history rm [--permanent]` |
@@ -830,23 +532,20 @@ API用於在運行時透過 Web 設定提供者憑證的關鍵管理端點UI或�
 | `GET /api/inflight` / `DELETE /api/inflight/:id` | `ima2 inflight ls`（別名`ps`) / `ima2 inflight rm`（別名`cancel`) |
 | `GET /api/events` (SSE復用）|網路UI僅（持續`EventSource`;不CLI包裝紙）|
 | `GET /api/storage/status` / `POST /api/storage/open-generated-dir` | `ima2 storage status` / `ima2 storage open` |
-| `GET /api/billing` / `GET /api/providers` / `GET /api/oauth/status` / `GET /api/grok/status` | `ima2 billing` / `ima2 providers` / `ima2 oauth status` / `ima2 grok status` |
-| `GET /api/quota` |網路UI僅有的 （Grok設定中的配額欄）|
+| `GET /api/billing` / `GET /api/providers` / `GET /api/oauth/status` | `ima2 billing` / `ima2 providers` / `ima2 oauth status` |
+| `GET /api/quota` |網路UI僅有的（設定中的配額欄）|
 | `POST /api/auth/switch` / `GET /api/auth/switch/:sessionId` |網路UI僅（設定 > QuotaCard > 切換帳號）|
 | `GET /api/health` | `ima2 ping` |
 | `GET /api/capabilities` | `ima2 capabilities` |
-| `GET /api/config/grok-planner` | — (Grok規劃器模型查詢）|
-| `PATCH /api/config/grok-planner` | — (Grok規劃器模型更新）|
-| `GET /api/agy/status` | — (Antigravity CLI安裝狀態）|
 | `POST /api/history/backfill-thumbnails` | `ima2 backfill-thumbs` |
-| `GET /api/keys/status`, `PUT/DELETE /api/keys/:provider`, `PUT/DELETE /api/keys/vertex` |網路UI僅（設定 >API按鍵）|
+| `GET /api/keys/status`, `PUT/DELETE /api/keys/:provider` |網路UI僅（設定 >API按鍵）|
 | `GET/POST/PATCH/DELETE /api/agent/*`（會話、輪流、隊列）|—（代理模式；網絡UI僅有、沒有CLI) |
 | `POST /api/prompt-builder/chat` | `ima2 prompt build` |
 
 筆記：
 - `ima2 history favorite`和`ima2 annotate …`傳送`X-Ima2-Browser-Id: cli-<sha1prefix>`從配置目錄派生，所以CLI活動不會與瀏覽器會話發生衝突。
 - `ima2 session graph save`執行 GET-then-PUT 操作`If-Match: "<version>"`防範`GRAPH_VERSION_CONFLICT`.
-- `ima2 history import`和`ima2 canvas-versions save/update`傳送原始位元組`Content-Type: image/<png|jpeg|webp>`;這SSE端點（`multimode`, `node generate`, `video`） 使用`Accept: text/event-stream`。網路UI相反使用`GET /api/events`加`async: true`在 POST 路線上。
+- `ima2 history import`和`ima2 canvas-versions save/update`傳送原始位元組`Content-Type: image/<png|jpeg|webp>`;這SSE端點（`multimode`, `node generate`） 使用`Accept: text/event-stream`。網路UI相反使用`GET /api/events`加`async: true`在 POST 路線上。
 - `ima2 cardnews …`檢查`runtimeConfig.features.cardNews`在調用門控端點之前；當禁用時CLI退出 2 並帶有明確的訊息，而不是產生 404。
 
 ## CLI發現
@@ -920,123 +619,13 @@ CLI命令如`ima2 ping`, `ima2 gen`， 和`ima2 ls`使用此文件，除非`--se
 
 為核准的食譜產生精靈行。身體：`{ states?, async, requestId }`。非同步：`202 { requestId }`.
 
-## MCP提供者連接
-
-遠端訂閱MCP提供者（Runway, Higgsfield）透過編譯連接
-註冊表——任意端點都會被拒絕。所有回應都是無秘密的：令牌
-僅存在於版本化中`${configDir}/mcp/<provider>.json`記錄 (0600)，綁定到
-提供者端點和即時回調來源。
-
-伺服器選擇並發布其實際連接埠後，會自動恢復
-每個啟用的提供者都有一個完整的相同綁定令牌包。這條路徑不
-打開瀏覽器。遺失、損壞、僅待處理、停用或綁定不符的記錄
-不發送承載請求並且不會被靜默刪除。不符報告為
-`auth_required`;再次啟動 Connect 以授權新的端點/來源。OAuth狀態
-和 PKCE 是僅記憶體的，因此因重新啟動而中斷的瀏覽器流程必須重新啟動。
-
-### `GET /api/mcp/providers`
-
-列出註冊表提供者以及每個提供者的連線狀態。
-
-### `POST /api/mcp/temp-references`
-
-將本機參考來源（資料 URL）暫存為臨時圖庫批次，以便MCP
-一代可以透過檔案名稱上傳它們。退貨`{ ok, batchId, files[] }`.
-
-### `DELETE /api/mcp/temp-references/:batchId`
-
-刪除分階段臨時參考批次後MCP工作完成。
-
 ### `GET /api/models`
 
 規範車道目錄CLI/代理路由。退貨
-`{ ok, lanes: { [lane]: { status, reason?, defaults: { image?, video? }, models: { image[], video[] } } } }`
-對於六個核心通道（`oauth|api|grok|grok-api|agy|gemini-api`) 加MCP車道
-(`runway|higgsfield`）。狀態是其中之一`ready|locked|disconnected|key-missing`
-優先`locked > key-missing|disconnected > ready`. MCP靜態快照
-型號始終列出；動態的 （`models_explore`）模型僅在以下情況出現
-連接。消耗於`ima2 models`, `ima2 defaults set image|video`，以及
-CLI模型解析器。
-
-### `GET /api/mcp/providers/:id/status`
-
-連線狀態：`disconnected | connecting | auth_required | connected | offline | error`.
-可選的`detail`是一個穩定、無秘密的診斷代碼。`connected`意味著
-目前發電/運輸可用；`offline`表示終端傳輸故障
-已觀察到並且最多安排一次重新連接；`error`是一個無法恢復的故障。
-
-### `POST /api/mcp/providers/:id/connect`
-
-啟動或恢復連線。退貨`202 { status: { state: "auth_required", authorizationUrl } }`
-當用戶必須批准時OAuth在瀏覽器中；`202`連接時；`200`一次
-連接。終端響應保留狀態：`409 disconnected`, `503 offline`， 或者
-`502 error`. `ok`僅適用於`connected`.
-
-### `GET /api/mcp/oauth/callback`
-
-OAuth重定向目標（`?state=&code=`）。免除 LAN 令牌保護；受保護
-一次使用的OAuth `state`+ PKCE。無效狀態 →`400`沒有代幣交換。
-完成HTML僅在經理到達後才返回`connected`;否則
-回呼返回狀態的對應 202/409/503/502 回應和失敗頁面。
-
-### `POST /api/mcp/providers/:id/refresh`
-
-關閉並重新使用儲存的令牌（刷新令牌路徑）重新建立會話。它使用
-相同的狀態到HTTP映射為連接並且無法覆蓋較新的斷開連接或
-連接生成。
-
-### `DELETE /api/mcp/providers/:id/connection`
-
-清除本機令牌並關閉會話。回覆說明明確指出這是
-僅限本地；它不會撤銷提供者方的授予。墓碑可以防止老人變老
-透過重新建立憑證進行連線、回呼、復原或刷新工作。
-
-傳輸復原從不重播主機`callTool`要求。特別是，突變或
-連線管理器不會自動重試計費媒體操作。
-
-### `POST /api/mcp/generate`
-
-透過連結生成媒體MCP提供者。身體：
-`{ provider: "runway", kind: "image"|"video", prompt, model?, ratio?, startFrameUrl?, requestId? }`.
-非同步：返回`202 { requestId }`;進步 （`submitted`, `provider-queued`,
-`provider-running`, `downloading`）和終端`done`/`error`到達`/api/events`.
-此路由是單一持久性所有者：結果被提交給產生的
-之前的庫（文件+嚴格sidecar+縮圖）`done`被發射。限目錄
-提供者（例如Higgsfield免費計劃）返回`409 MCP_EXECUTION_LOCKED`.
-`startFrameFilename`接受現有的生成庫圖像：將其上傳到
-提供者並用作圖像到視頻的起始幀，錄製
-`parent: { filename, mediaType, role: "start-frame" }`邊車中的血統。
-
-### `POST /api/mcp/media-action`
-
-執行媒體工作流程操作。身體：`{ action: "stitch"|"upscale-video"|"upscale-image"|"edit-video"|"extend"|"reframe", files: [generated filenames], prompt?, provider? }`.
-工作流程路由器決定每個工具：`native`（提供者工具即時顯示
-匹配模式），`fallback` (`stitch`→本地ffmpeg連線；`extend`→ 最後一幀
-I2V），或`unavailable` (`409 MEDIA_ACTION_UNAVAILABLE`，例如重新構建，同時
-提供者僅提供目錄）。非同步：`202 { requestId, mode, plan }`;結果提交
-透過同一個持久性所有者`parent`/`inputs`血統。
-
-### `POST /api/mcp/tasks/:taskId/recover`
-
-### `POST /api/mcp/multishot`
-
-透過生成多鏡頭（多場景）視頻Runway MCP。身體：
-`{ prompt?: string, shots?: string[] (3-5), duration?: 5|10|15, resolution?: "720p"|"1080p", aspectRatio?, sound?: boolean, firstSceneFilename?, requestId? }`.
-`prompt`映射到自動模式（storyPrompt）；`shots[]`映射到自訂模式。
-之一`prompt`或者`shots`是必須的 （`400 INVALID_MULTISHOT`否則）。
-非同步：`202 { requestId, provider }`;生命週期事件`/api/events`.
-結果提交`workflow: "video.multishot"`和`mcpParameters`.
-
-重新下載遠端成功MCP任務到生成的庫中。身體：
-`{ provider?: "runway", kind?: "video"|"image" }`。一代後使用
-下載/提交步驟暫時失敗 - 提供者資產仍可獲取
-〜24-48小時。重新投票`get_task`，需要`SUCCEEDED`有輸出URL
-(`error` SSE事件與`MCP_TASK_NOT_SUCCEEDED`否則），然後運行相同的
-下載（重試 + IPv4 回退）→ 單一持久性提交路徑作為
-正常一代。非同步：`202 { requestId, taskId }`; `done`攜帶
-`recovered: true`.
-僅目錄提供者（例如Higgsfield免費計劃）返回
-`409 MCP_EXECUTION_LOCKED`，與`/api/mcp/generate`.
+`{ ok, lanes: { [lane]: { status, reason?, defaults: { image? }, models: { image[] } } } }`
+對於兩個核心通道（`oauth|api`）。狀態是其中之一`ready|locked|key-missing`
+優先`locked > key-missing > ready`. 消耗於`ima2 models`,
+`ima2 defaults set image`，以及CLI模型解析器。
 
 ## 合約發現
 

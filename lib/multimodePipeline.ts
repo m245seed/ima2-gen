@@ -4,18 +4,12 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 import { buildFilename, writeFileUnique } from "./filename.js";
 import type { Request, Response } from "express";
-import { detectImageMimeFromB64, summarizeReferencePayload, validateAndNormalizeRefs } from "./refs.js";
+import { summarizeReferencePayload, validateAndNormalizeRefs } from "./refs.js";
 import { generateImageThumbnailFromBuffer } from "./imageThumb.js";
 import { classifyUpstreamError } from "./errorClassify.js";
 import { normalizeOAuthParams } from "./oauthNormalize.js";
 import { resolveProviderOptions } from "./providerOptions.js";
 import { generateMultimodeViaResponses } from "./responsesImageAdapter.js";
-import { generateMultimodeViaGrok } from "./grokMultimodeAdapter.js";
-import { resolveGrokQualityModel } from "./imageModels.js";
-import { generateViaAgy } from "./agyImageAdapter.js";
-import { generateViaGeminiApi } from "./geminiApiImageAdapter.js";
-import { generateViaAtlasCloud } from "./atlasCloudImageAdapter.js";
-import { generateViaMinimax } from "./minimaxImageAdapter.js";
 import { startJob, finishJob, registerJobAbortController, isJobCanceled, isStartJobFailure, INFLIGHT_RETRY_AFTER_SECONDS } from "./inflight.js";
 import { isGenerationCanceledError, makeGenerationCanceledError, throwIfJobCanceled, } from "./generationCancel.js";
 import { logEvent, logError } from "./logger.js";
@@ -23,8 +17,8 @@ import { embedImageMetadataBestEffort } from "./imageMetadataStore.js";
 import { invalidateHistoryIndex } from "./historyIndex.js";
 import { normalizeComposerInsertedPrompts, normalizeComposerPrompt, } from "./composerSnapshot.js";
 import { errInfo } from "./errInfo.js";
-import { requireRuntimeContext, type RuntimeContext } from "./runtimeContext.js";
-import { validateModeration, imageFormatFromMime, writeSse } from "./routeHelpers.js";
+import { type RuntimeContext } from "./runtimeContext.js";
+import { validateModeration, writeSse } from "./routeHelpers.js";
 import { publish } from "./eventBus.js";
 import { publishJobEvent } from "./ssePublish.js";
 import { normalizeMaxImages, sequenceStatus, type MultimodeImage, type MultimodeRouteItem, } from "./multimodeHelpers.js";
@@ -34,7 +28,7 @@ import { compileElements, ELEMENT_CAPACITY_DEFAULTS, type ElementDefinition, typ
 import { errorEnvelopeFields } from "./errors/envelope.js";
 
 async function resolveMultimodeElements(
-  elementIds: string[], references: string[], activeProvider: string, requestId: string | undefined,
+  elementIds: string[], references: string[], _activeProvider: string, requestId: string | undefined,
 ) {
   let notesFragment = "";
   const resolvedRefs: string[] = [];
@@ -47,8 +41,7 @@ async function resolveMultimodeElements(
       const meta = typeof record.metadata === "string" ? JSON.parse(record.metadata) : record.metadata;
       elements.set(id, { id, name: meta.name ?? record.name, kind: meta.elementKind ?? "character", refs: Array.isArray(meta.refs) ? meta.refs : [], notes: meta.notes, defaultStrength: meta.defaultStrength, createdAt: record.createdAt ?? 0, updatedAt: record.updatedAt ?? 0 });
     }
-    const provider = activeProvider === "grok" || activeProvider === "grok-api" ? "grok"
-      : activeProvider === "gemini-api" ? "gemini" : "gpt";
+    const provider = "gpt";
     const capacity = ELEMENT_CAPACITY_DEFAULTS[provider]?.image ?? { maxTotalRefs: 6, maxRefsPerElement: 6 };
     const compiled = compileElements({ elementIds, elements, existingRefs: references.map((path): ExistingReferenceInput => ({ source: "composer", path })), provider, mode: "image", capacity, missingPolicy: "collect" });
     notesFragment = compiled.notesFragment;
@@ -212,7 +205,6 @@ export async function runMultimodePipeline(req: Request, res: Response, ctx: Run
         });
       }
       const refCheck = refCheckResult as Extract<typeof refCheckResult, { refs: string[] }>;
-      const incomingProviderUrl = typeof req.body?.providerUrl === "string" && req.body.providerUrl.startsWith("http") ? req.body.providerUrl : null;
       const referencePayload = summarizeReferencePayload(mergedReferences);
       const started = startJob({
         requestId,
@@ -253,7 +245,7 @@ export async function runMultimodePipeline(req: Request, res: Response, ctx: Run
       logEvent("multimode", "request", { requestId, quality, model: imageModel, size: effectiveSize, moderation, maxImages, refs: refCheck.refs.length, referenceBytes: referencePayload.referenceBytes, promptChars: typeof prompt === "string" ? prompt.length : 0, webSearchEnabled, });
       const startTime = Date.now();
       const mimeMap: Record<string, string> = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
-      const mmFormat = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax" ? "jpeg" : String(format);
+      const mmFormat = String(format);
       const mime = mimeMap[mmFormat] || "image/png";
       const sequenceId = `seq_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
       routeMaxImages = maxImages;
@@ -273,13 +265,11 @@ export async function runMultimodePipeline(req: Request, res: Response, ctx: Run
       const persistAndSendImage = async ( image: MultimodeImage, index: number, totalReturned: number, status: ReturnType<typeof sequenceStatus>, ) => {
         if (persistedIndexes.has(index)) return;
         throwIfJobCanceled(requestId);
-        const resultMime = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax"
-          ? (image.mime || detectImageMimeFromB64(image.b64) || mime)
-          : mime;
-        const resultFormat = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" || activeProvider === "atlascloud" || activeProvider === "minimax" ? imageFormatFromMime(resultMime) : mmFormat;
+        const resultMime = mime;
+        const resultFormat = mmFormat;
         const createdAt = Date.now();
         const baseName = buildFilename({
-          model: (activeProvider === "grok" || activeProvider === "grok-api") ? resolveGrokQualityModel(imageModel, quality) : imageModel,
+          model: imageModel ?? "gpt-5.6-luna",
           size: effectiveSize,
           createdAt,
           prompt,
@@ -306,7 +296,7 @@ export async function runMultimodePipeline(req: Request, res: Response, ctx: Run
           size: effectiveSize,
           format: resultFormat,
           moderation,
-          model: activeProvider === "grok" ? resolveGrokQualityModel(imageModel, quality) : imageModel,
+          model: imageModel,
           provider: activeProvider,
           createdAt,
           usage: latestUsage,
@@ -344,106 +334,34 @@ export async function runMultimodePipeline(req: Request, res: Response, ctx: Run
       };
       dualEmitMultimode(res, requestId, "phase", { phase: "streaming", requestId, sequenceId, maxImages });
       let generated: { images: Array<{ b64: string; revisedPrompt?: string | null }>; usage: Record<string, number> | null; webSearchCalls?: number | undefined; extraIgnored?: number | undefined; error?: unknown | undefined };
-      if (activeProvider === "gemini-api") {
-        const r = await generateViaGeminiApi(generationPrompt, requireRuntimeContext(ctx), {
+      generated = await generateMultimodeViaResponses(
+        activeProvider,
+        generationPrompt,
+        quality,
+        effectiveSize,
+        moderation,
+        refCheck.refDetails || refCheck.refs,
+        requestId,
+        normalizedPromptMode,
+        ctx,
+        {
           model: imageModel,
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          references: refCheck.refDetails,
-        });
-        generated = {
-          images: [{ b64: r.b64, ...(r.revisedPrompt !== undefined ? { revisedPrompt: r.revisedPrompt } : {}) }],
-          usage: r.usage,
-          webSearchCalls: r.webSearchCalls,
-        };
-      } else if (activeProvider === "agy") {
-        const r = await generateViaAgy(generationPrompt, {
-          references: refCheck.refDetails,
-          signal: cancelController.signal,
-          requestId,
-        });
-        generated = {
-          images: [{ b64: r.b64, ...(r.revisedPrompt !== undefined ? { revisedPrompt: r.revisedPrompt } : {}) }],
-          usage: r.usage,
-          webSearchCalls: r.webSearchCalls,
-        };
-      } else if (activeProvider === "atlascloud") {
-        const r = await generateViaAtlasCloud(prompt, requireRuntimeContext(ctx), {
-          model: imageModel,
-          size: effectiveSize,
-          quality: routeQuality,
-          signal: cancelController.signal,
-          requestId,
-          references: refCheck.refDetails,
-        });
-        generated = {
-          images: [{ b64: r.b64, ...(r.revisedPrompt !== undefined ? { revisedPrompt: r.revisedPrompt } : {}) }],
-          usage: r.usage,
-          webSearchCalls: r.webSearchCalls,
-        };
-      } else if (activeProvider === "minimax") {
-        const r = await generateViaMinimax(prompt, requireRuntimeContext(ctx), {
-          model: imageModel,
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          references: refCheck.refDetails,
-        });
-        generated = {
-          images: [{ b64: r.b64, ...(r.revisedPrompt !== undefined ? { revisedPrompt: r.revisedPrompt } : {}) }],
-          usage: r.usage,
-          webSearchCalls: r.webSearchCalls,
-        };
-      } else if (activeProvider === "grok" || activeProvider === "grok-api") {
-        const directApiKey = activeProvider === "grok-api" ? ctx.xaiApiKey : undefined;
-        const grokModel = resolveGrokQualityModel(imageModel, quality);
-        const grokRefs = incomingProviderUrl
-          ? [{ b64: "", url: incomingProviderUrl }, ...refCheck.refDetails]
-          : refCheck.refDetails;
-        generated = await generateMultimodeViaGrok(generationPrompt, ctx, {
-          model: grokModel,
           maxImages,
-          size: effectiveSize,
-          signal: cancelController.signal,
-          requestId,
-          references: grokRefs,
-          directApiKey,
+          reasoningEffort,
+          webSearchEnabled,
+          onPartialImage: (partial) => {
+            if (isJobCanceled(requestId)) return;
+            const pd = { image: `data:${mime};base64,${partial.b64}`, requestId, sequenceId, index: partial.index };
+            if (!res.writableEnded && !res.destroyed) writeSse(res, "partial", pd);
+            publish(requestId, "partial", pd);
+          },
           onFinalImage: async (image, index) => {
             const totalReturned = Math.max(index + 1, images.length + 1);
             await persistAndSendImage(image, index, totalReturned, sequenceStatus(totalReturned, maxImages));
           },
-        });
-      } else {
-        generated = await generateMultimodeViaResponses(
-          activeProvider,
-          generationPrompt,
-          quality,
-          effectiveSize,
-          moderation,
-          refCheck.refDetails || refCheck.refs,
-          requestId,
-          normalizedPromptMode,
-          ctx,
-          {
-            model: imageModel,
-            maxImages,
-            reasoningEffort,
-            webSearchEnabled,
-            onPartialImage: (partial) => {
-                if (isJobCanceled(requestId)) return;
-                const pd = { image: `data:${mime};base64,${partial.b64}`, requestId, sequenceId, index: partial.index };
-                if (!res.writableEnded && !res.destroyed) writeSse(res, "partial", pd);
-                publish(requestId, "partial", pd);
-              },
-            onFinalImage: async (image, index) => {
-              const totalReturned = Math.max(index + 1, images.length + 1);
-              await persistAndSendImage(image, index, totalReturned, sequenceStatus(totalReturned, maxImages));
-            },
-            signal: cancelController.signal,
-          },
-        );
-      }
+          signal: cancelController.signal,
+        },
+      );
       throwIfJobCanceled(requestId);
       latestUsage = generated.usage || null;
       latestWebSearchCalls = generated.webSearchCalls || 0;

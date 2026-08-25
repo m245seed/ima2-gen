@@ -1,6 +1,6 @@
 # CLI参考
 
-大多数服务器路由`/api/*`有一个CLI包装纸；代理模式（`/api/agent/*`) 是网络-UI-只有并且没有`ima2`子命令。提示生成器HTTP路线 （`POST /api/prompt-builder/chat`）可通过`ima2 prompt build`。这CLI是本地服务器上的一个薄壳，因此大多数命令都需要运行`ima2 serve`（少数例外——`serve`, `setup`, `doctor`, `status`, `open`, `reset`, `config`, `grok`, `skill`, `capabilities`, `backfill-thumbs`，以及本地的`defaults`检查——无需实时服务器即可工作）。
+大多数服务器路由`/api/*`有一个CLI包装纸；代理模式（`/api/agent/*`) 是网络-UI-只有并且没有`ima2`子命令。提示生成器HTTP路线 （`POST /api/prompt-builder/chat`）可通过`ima2 prompt build`。这CLI是本地服务器上的一个薄壳，因此大多数命令都需要运行`ima2 serve`（少数例外——`serve`, `setup`, `doctor`, `status`, `open`, `reset`, `config`, `skill`, `capabilities`, `backfill-thumbs`，以及本地的`defaults`检查——无需实时服务器即可工作）。
 
 要快速开始，请参阅[主要自述文件](../README.md)。对于端点映射，请参见[API.md](API.md).
 
@@ -14,7 +14,6 @@
 | `ima2 doctor` |诊断节点、包、配置和身份验证|
 | `ima2 doctor image-probe [--json]` |运行实时清理的响应图像探针`EMPTY_RESPONSE`支持|
 | `ima2 open` |打开网络UI在浏览器中|
-| `ima2 grok login/status/models/proxy` |管理捆绑的progrok使用的运行时Grok提供者|
 | `ima2 reset` |删除保存的配置|
 | `ima2 backfill-thumbs` |生成图像和视频缺失的图库缩略图（离线，无需运行服务器）|
 
@@ -65,56 +64,27 @@
 | `ima2 gen <prompt>` |生成自CLI |
 | `ima2 edit <file> --prompt <text>` |编辑现有图像|
 | `ima2 multimode <prompt>` |多图像SSE生成（流`phase` / `partial` / `image`事件）|
-| `ima2 video <prompt>` |视频生成通过Grok (SSE流式传输有进度）|
 | `ima2 node generate` |节点模式生成（SSE;支持`--no-stream`) |
 | `ima2 node show <nodeId>` |读取节点元数据|
 
-从3.0.0开始，`ima2 gen`和生成模式`ima2 video`是**故障关闭**: 他们解决了他们的
-通过车道目录的目标（`GET /api/models`) 并退出 2`NO_DEFAULT_MODEL`当没有
-`--model <lane>/<model>`, `--provider <lane>`，或坚持`ima2 defaults set image|video`
-目标适用。他们的`--provider`仅接受明确的车道
-(`oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax|runway|higgsfield`); `--provider auto`退出 2
-`PROVIDER_AUTO_REMOVED`。检查车道和模型`ima2 models [--kind image|video] [--lane <lane>] [--json]`.
+从3.0.0开始，`ima2 gen`是**故障关闭**: 它通过车道目录的目标（`GET /api/models`) 并退出 2`NO_DEFAULT_MODEL`当没有
+`--model <lane>/<model>`, `--provider <lane>`，或坚持`ima2 defaults set image`
+目标适用。它的`--provider`仅接受明确的车道
+(`oauth|api`); `--provider auto`退出 2
+`PROVIDER_AUTO_REMOVED`。检查车道和模型`ima2 models [--kind image] [--lane <lane>] [--json]`.
 
-`edit`, `multimode`， 和`node generate`暂时保留旧表面：`--provider <auto|oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax>`, `--reasoning-effort {none\|low\|medium\|high\|xhigh\|max}`, `--web-search` / `--no-web-search`, `--model`, `--mode`, `--moderation`, `--ref <file>`（可重复，支持时最多 5 个），`-q low|medium|high`, `-n <count>`, `-o <file>`.
+`edit`, `multimode`， 和`node generate`暂时保留旧表面：`--provider <auto|oauth|api>`, `--reasoning-effort {none\|low\|medium\|high\|xhigh\|max}`, `--web-search` / `--no-web-search`, `--model`, `--mode`, `--moderation`, `--ref <file>`（可重复，支持时最多 5 个），`-q low|medium|high`, `-n <count>`, `-o <file>`.
 
 提供者覆盖语义：
 
 - `api`迫使API-key 响应路径并需要配置API钥匙。
 - `oauth`迫使当地OAuth代理路径。
-- `grok`使用捆绑的progrok xAI代理人 （`127.0.0.1:18645`）。经典一代首次运行强制xAI通过响应进行网络搜索API，然后询问`grok-4.5`打电话ima2是当地的`generate_image`工具，那么ima2执行xAI `/v1/images/generations`. `grok-4.3`仍然可以作为显式兼容性覆盖使用。如果`--ref`附加图像，最后一步使用xAI `/v1/images/edits`相反，图像到图像/参考上下文被保留。型号：`grok-imagine-image`, `grok-imagine-image-quality`。大小映射到xAI `aspect_ratio`和`resolution`;这UI网络搜索切换是OpenAI-仅提供者因为Grok搜索始终在此路径中进行。
-- `agy`产生Antigravity CLI通过Google生成Gemini (`nano-banana-2`）。固定1024×1024JPEG输出，最多 3 个参考值没有网络搜索、质量、尺寸或遮罩控制。如果`agy`不在服务器进程 PATH 上，ima2还检查常见的用户本地安装，例如`~/.local/bin/agy`;放`IMA2_AGY_BIN=/absolute/path/to/agy`强制使用特定的二进制文件。
-- `gemini-api`调用 Google 生成语言API直接地。型号：`nano-banana-2` (Gemini3.1 Flash 图像）和`nano-banana-pro` (Gemini3 专业图像）。使用`--model nano-banana-2`或者`--model nano-banana-pro`来选择。支持`--size`对于直接的宽高比和分辨率 (512px–4K)API小路;Vertex AI忽略方面/大小。需要`GEMINI_API_KEY`或一个Vertex AI服务帐户（`VERTEX_SERVICE_ACCOUNT_JSON`）。切换自`agy`或者`gemini-api`提供商自动选择相应的Gemini模型;切换离开重置为GPT默认。
-- `atlascloud`致电 Atlas Cloud 媒体API直接地。型号：`openai/gpt-image-2/text-to-image`用于文本到图像和`openai/gpt-image-2/edit`当附有参考文献时。需要`ATLASCLOUD_API_KEY`;网络搜索、推理、掩码和视频控制将被忽略。
-- `minimax`称为MiniMax图像生成API直接在`POST /v1/image_generation`。型号：`image-01`用于文本到图像和`image-01-live`当附加参考图像时（映射到`subject_reference`场地）。区域选择全局（`https://api.minimax.io/v1`，默认）或中国（`https://api.minimaxi.com/v1`, `IMA2_MINIMAX_REGION=cn_zh`） 根据URL. `--size`映射到最接近的支持`aspect_ratio`;响应以 URL 或 base64 形式返回。需要`MINIMAX_API_KEY`;网络搜索、推理、蒙版和视频控制被忽略，图像到图像最多支持一个主题参考。
-- `runway` / `higgsfield`（仅限生成/视频）路线MCP异步管道（`POST /api/mcp/generate` + SSE等待）。Runway需要一个MCP联系;Higgsfield仅保留目录（`locked`）直到付费计划。MCP车道接受`-n 1`仅，画廊文件名`--ref`，并拒绝仅核心标志`FLAG_NOT_SUPPORTED`.
-- `auto`保留路由默认行为并当前解析为GPT OAuth除非服务器路由发生变化（仅限编辑/多模式/节点；在 3.0.0 中从 gen/video 中删除）。
-
-`ima2 serve`开始捆绑Grok自动代理。没有单独的`progrok`
-需要安装。使用`ima2 grok login`一次授权xAI OAuth。登录
-默认为`--manual-paste`所以 PowerShell、终端和远程 shell 都使用
-相同的复制/粘贴流程。放`IMA2_NO_GROK_PROXY=1`仅当您想管理时
-代理自己。
-
-Grok尺寸映射如下xAI的形象API， 不是OpenAI's `size`场地。ima2
-将请求的大小保留在本地元数据中，但发送`aspect_ratio`例如
-`1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`， 或者`2:3`，加上`分辨率：
-"1k"` or `"2k"` where applicable. The 3840 presets map to `分辨率：“2k”`
-因为xAI目前曝光`1k`和`2k`分辨率控制。
-
-为了Grok经典一代与`--ref`, ima2最多发送三个引用到
-这`grok-4.5`planner作为图像输入，向planner询问英语期末考试
-图像提示，然后将相同的引用发送到xAI图像编辑。多于
-三Grok引用被拒绝`GROK_REF_TOO_MANY`, 匹配xAI's
-记录多图像编辑限制。
+- `auto`保留路由默认行为并当前解析为GPT OAuth除非服务器路由发生变化（仅限编辑/多模式/节点；在 3.0.0 中从 gen 中删除）。
 
 ```bash
 ima2 models --kind image
 ima2 defaults set image oauth/gpt-5.6-luna
 ima2 gen "a poster of a samurai cat" --model api/gpt-5.4 --reasoning-effort high
-ima2 grok login
-ima2 gen "a cinematic neon city" --model grok/grok-imagine-image-quality
-ima2 gen "campaign still" --model runway/gen-4 --ref 1780000000000_abcd.png
 ima2 edit input.png --prompt "make it rainy" --provider oauth --web-search
 ima2 multimode "two cats playing" --max-images 2 --ref cat.png --mode direct
 ima2 node generate --node n_abc --prompt "add neon lights" --no-stream
@@ -136,104 +106,7 @@ GPT Image 2可以在生成的图像中呈现可见文本。如果输出需要
 对于密集或关键的文本，请保持文本大而明确。准确放置，
 小文本和像素完美的排版仍然需要迭代或后期编辑。
 
-多模式特定标志包括`--max-images <1..24>`默认情况下（可通过配置`IMA2_MAX_GENERATED_IMAGES`), `--ref <file>`（可重复，最多 5 个），`--mode <auto|direct>`, `--provider <auto|oauth|api|grok|grok-api|agy|gemini-api|atlascloud|minimax>`， 和`--show-partial`. `ima2 edit --mask`仍然故意推迟到#31，因为当前的掩码管道是引导编辑而不是保证真正的掩码/修复语义。
-
-## 视频
-
-|命令|描述|
-|---|---|
-| `ima2 video <prompt>` |通过生成视频Grok (SSE流式传输有进度）|
-| `ima2 video edit <prompt> --video <value>` |编辑现有视频（V2V）；将结果保存为生成的视频工件|
-| `ima2 video extend <prompt> --video <value> [--duration 6]` |从最后一帧开始扩展现有视频|
-| `ima2 video continue <prompt> --video <generated-file>` |使用分支本地从生成的视频的最后一帧生成新剪辑`revisedPrompt`血统|
-| `ima2 video frame <generated-file> [--last] [-o frame.png]` |提取一个PNG生成的帧`.mp4` |
-| `ima2 video analyze <generated-file>` |使用配置的规划器模型分析第一帧/最后一帧（Grok默认4.5）|
-
-视频生成标志：
-
-|旗帜|意义|
-|---|---|
-| `--duration <1..15>` |持续时间（以秒为单位）（默认值：5）|
-| `--resolution <480p\|720p\|1080p>` |视频分辨率（默认：480p）。 1080p 需要`--model grok-imagine-video-1.5`;仅提示 1.5 使用内部白色画布 I2V 垫片|
-| `--aspect-ratio <ratio\|auto>` |1:1、16:9、9:16、4:3、3:4、3:2、2:3、自动（默认：自动）|
-| `--model <name>` | `grok-imagine-video`或者`grok-imagine-video-1.5`; `grok-imagine-video-1.5-preview`被接受为兼容性别名|
-| `--planner-model <name>` | Grok规划器覆盖（默认：`grok-4.5`; `grok-4.3`保持兼容；也在设置中UI和`IMA2_GROK_PLANNER_MODEL`) |
-| `--storyboard` |启用故事板模式 - 保持连续剪辑中的角色/场景连续性|
-| `--ref <file>` |附加源/参考图像（可重复，最多 7 个）|
-| `-o, --out <file>` |输出文件路径|
-| `-d, --out-dir <dir>` |输出目录|
-| `--timeout <sec>` |超时以秒为单位（默认值：600）|
-| `--session <id>` |会话ID|
-
-空白视频提示被拒绝。提示应包括视觉流、摄像头或
-主题运动、声音/非音乐意图、对话/非对话意图、结束
-帧和持续时间节奏。选定的秒数应该感觉自然地填充：
-开头的构图，相连的动作/情感变化，然后是一个稳定的结局
-最后一帧。示例：`from the last frame, she turns toward camera, rain grows
-louder, no background music, says "기다려", use the full duration for the turn
-and rain build, end on a still close-up after the line finishes`。
-
-视频编辑/扩展标志：
-
-|旗帜|意义|
-|---|---|
-| `--video <value>` |源视频HTTPS URL, xAI `file_id`， 数据URL，或生成的文件名|
-| `--duration <2..10>` |仅延长持续时间（默认值：6）|
-| `-o, --out <file>` |将编辑或扩展的视频下载到文件中|
-| `--json` |打印JSON结果|
-| `--timeout <sec>` |超时以秒为单位（默认值：600）|
-
-视频继续标志：
-
-|旗帜|意义|
-|---|---|
-| `--video <generated-file>` |父级生成`.mp4`;服务器提取最后一帧|
-| `--duration <1..15>` |新剪辑持续时间（默认值：5）|
-| `--resolution <480p\|720p\|1080p>` |新的剪辑分辨率（默认值：720p）。 1080p 需要`--model grok-imagine-video-1.5` |
-| `--aspect-ratio <ratio\|auto>` |新的剪辑长宽比|
-| `--model <name>` |可选的视频生成模型|
-
-视频继续也接受`--planner-model`和`--storyboard`.
-
-自动检测视频模式`--ref`数数：
-
-|参考文献|模式|
-|---|---|
-| 0 |文本转视频|
-| 1 |图像到视频|
-| 2–7 |参考视频（最长 10 秒持续时间）|
-
-`grok-imagine-video-1.5`支持 1080p 仅提示文本到视频和单图像/帧图像到视频。仅提示 1.5 文本到视频通过内部白色画布图像到视频 shim 提交，因为上游 1.5 拒绝原始 T2V。旧的`grok-imagine-video-1.5-preview`name 在上游请求之前被接受为别名并进行规范化。 1.5 不支持`reference_images`视频参考、V2V 编辑或视频扩展。对于 2 个以上参考，请使用`grok-imagine-video`;如果ima2自动重试向基本模型发出 1.5 Ref2V 请求，读取`video.effectiveModel`和`video.modelFallback`从CLI `--json`， 或者`effectiveModel`和`modelFallback`从SSE.
-
-SSE事件：`planning` → `submitted` → `progress` (0–100%) → `done`或者`error`.
-
-```bash
-ima2 defaults set video grok/grok-imagine-video-1.5   # once; bare calls fail closed without it
-ima2 video "a cat playing piano"
-ima2 video "animate this" --ref photo.png --duration 10
-ima2 video "animate this in high detail" --ref photo.png --model grok-imagine-video-1.5 --resolution 1080p
-ima2 video "cinematic" --model grok/grok-imagine-video-1.5 --resolution 720p --aspect-ratio 16:9 -o out.mp4
-ima2 video "product reveal, slow dolly-in" --model runway/veo-3.1 --duration 8
-ima2 video "style transfer" --ref a.png --ref b.png --ref c.png --model grok-imagine-video
-ima2 video edit "make the lighting warm sunset" --video 1780226256355_50252101.mp4 -o edited.mp4
-ima2 video extend "camera slowly pulls back" --video 1780226256355_50252101.mp4 --duration 6
-ima2 video continue "from the last frame, the actor crosses the room, footsteps only, no dialogue, end on the door closing" --video 1780226256355_50252101.mp4
-ima2 video frame 1780226256355_50252101.mp4 --last -o lastframe.png
-ima2 video analyze 1780226256355_50252101.mp4 --json
-```
-
-编辑/扩展接受HTTPS网址，xAI `file_id`, `data:video/*`URL，或生成的`.mp4`文件名。生成的文件输入仅限于真实的`.mp4`生成的目录下的文件。`ima2 video continue`, `ima2 video analyze`， 和`ima2 video frame`有意接受生成的`.mp4`仅文件；远程分析 URL 被拒绝，因此服务器不会通过以下方式获取任意 URL`ffmpeg`.
-
-`ima2 video continue`不同于`ima2 video extend`: `extend`来电xAI's
-本机扩展端点并返回组合的原始+扩展视频。
-`continue`来电ima2最后生成服务器提取的父视频
-框架并坚持`videoContinuity`最多可堆叠四个`revisedPrompt`
-条目（`keep-start-plus-latest-3`）以便将来继续。
-
-JSON输出注释：`ima2 video --json`用 local 包裹最终结果
-下载字段，例如`ok`, `path`， 和`filename`. `ima2视频继续
---json` prints the server SSE `完毕` payload directly, including `文件名`,
-`url`, `video`, `revisedPrompt`， 和`videoContinuity`.
+多模式特定标志包括`--max-images <1..24>`默认情况下（可通过配置`IMA2_MAX_GENERATED_IMAGES`), `--ref <file>`（可重复，最多 5 个），`--mode <auto|direct>`, `--provider <auto|oauth|api>`， 和`--show-partial`. `ima2 edit --mask`仍然故意推迟到#31，因为当前的掩码管道是引导编辑而不是保证真正的掩码/修复语义。
 
 ## 诊断
 
@@ -349,10 +222,9 @@ Windows DNS/碎片绕过工具（例如 SecretDNS）正在使用。
 | `ima2 inflight rm <requestId>` |强制删除卡住的作业|
 | `ima2 storage status` |入库检查（丰富于`doctor`) |
 | `ima2 storage open` |在操作系统文件管理器（POST）中打开生成的目录|
-| `ima2 billing` | API使用探针通过`/api/billing` (OpenAI/API- 配置后的密钥积分）。Grok配额是网络-UI仅通过`GET /api/quota`：当前的每周百分比/重置Grok建造xAIauth，每月遗留`usedUsd`/`limitUsd`倒退。|
+| `ima2 billing` | API使用探针通过`/api/billing` (OpenAI/API- 配置后的密钥积分）。|
 | `ima2 providers` |配置的提供商|
 | `ima2 oauth status` | OAuth代理状态|
-| `ima2 grok status` |捆绑式progrok / xAI图像模型探测状态|
 | `ima2 ping` |健康检查正在运行的服务器|
 
 ## 配置
@@ -378,18 +250,15 @@ Windows DNS/碎片绕过工具（例如 SecretDNS）正在使用。
 | `ima2 defaults set model <model>` |写`imageModels.default`和`apiProvider.defaultImageModel` |
 | `ima2 defaults set reasoning <effort>` |写`imageModels.reasoningEffort`和`apiProvider.defaultReasoningEffort` |
 | `ima2 defaults set image <lane>/<model>` |坚持失败关闭CLI图像目标（`defaults.image`）；验证针对`ima2 models`, 锁定车道被拒绝|
-| `ima2 defaults set video <lane>/<model>` |坚持失败关闭CLI视频目标（`defaults.video`) |
 | `ima2 defaults reset model` |删除保留的模型默认值|
 | `ima2 defaults reset reasoning` |删除持久的推理默认值|
-| `ima2 defaults reset image` / `reset video` |删除保留的CLI发电目标|
+| `ima2 defaults reset image` |删除保留的CLI发电目标|
 
 允许的键（白名单）：
 
 ```
 imageModels.default          imageModels.reasoningEffort
 apiProvider.defaultImageModel apiProvider.defaultReasoningEffort
-grokProvider.plannerModel     grokProvider.plannerTimeoutMs
-grokProvider.defaultImageModel
 log.level                    features.cardNews
 cardNewsPlanner.{enabled,model,timeoutMs,deterministicFallback}
 comfy.{defaultUrl,uploadTimeoutMs,maxUploadBytes}

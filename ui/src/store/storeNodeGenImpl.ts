@@ -133,17 +133,12 @@ export async function runGenerateNodeInPlaceImpl(
     return null;
   }
   const s = get();
-  // Branch variants carry per-node provider/model/size (settingsPatch) —
-  // prefer them over global settings (higgsfield 120 NB).
+  // Branch variants carry per-node provider/model/size (settingsPatch).
+  // Prefer them over global settings.
   const nodeProvider = (typeof node.data.provider === "string" && node.data.provider ? node.data.provider : s.provider) as AppState["provider"];
-  // Reference capacity follows the VARIANT's provider, not the global one
-  // (Socrates round 3): a grok variant must not hit oauth's smaller limit
-  // (or vice versa).
   const variantRefLimit = effectiveReferenceLimit({
     provider: nodeProvider,
     serverLimit: s.referenceLimit,
-    videoModelSelected: Boolean(s.videoModelSelected),
-    mcpProvider: s.mcpProvider ?? null,
   });
   const nodeRefs = mergeRunReferences(node.data.referenceImages ?? [], elementResolution.referenceDataUrls, variantRefLimit);
   const nodeModel = (typeof node.data.model === "string" && node.data.model ? node.data.model : s.imageModel) as AppState["imageModel"];
@@ -433,15 +428,10 @@ export async function runNodeBatchImpl(
           ?? get().graphNodes.find((n) => n.id === candidateId)?.data.parentServerNodeId
           ?? null
         : null;
-      const nodeId = get().videoModelSelected
-        ? await get().runVideoGenerate(candidateId as ClientNodeId).then(() => {
-            const n = get().graphNodes.find((nd) => nd.id === candidateId);
-            return n?.data.serverNodeId ?? null;
-          })
-        : await get().runGenerateNodeInPlace(candidateId as ClientNodeId, {
-            parentServerNodeIdOverride: parentOverride,
-            suppressToast: true,
-          });
+      const nodeId = await get().runGenerateNodeInPlace(candidateId as ClientNodeId, {
+        parentServerNodeIdOverride: parentOverride,
+        suppressToast: true,
+      });
       if (!nodeId) {
         // Partial failure (020, wp2): skip everything downstream of the
         // failed node but keep independent candidates running.
