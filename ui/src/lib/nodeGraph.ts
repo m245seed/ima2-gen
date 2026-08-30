@@ -4,15 +4,6 @@ export function getIncomingEdge(edges: GraphEdge[], targetId: string): GraphEdge
   return edges.find((edge) => edge.target === targetId) ?? null;
 }
 
-export function hasMultipleIncomingEdges(edges: GraphEdge[], targetId: string): boolean {
-  let count = 0;
-  for (const edge of edges) {
-    if (edge.target !== targetId) continue;
-    count += 1;
-    if (count > 1) return true;
-  }
-  return false;
-}
 
 export function wouldCreateMultipleIncomingEdge(
   edges: GraphEdge[],

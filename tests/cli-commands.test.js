@@ -151,7 +151,7 @@ describe("ima2 CLI commands (live server)", () => {
       if (req.url === "/api/health") { res.end('{"ok":true}'); return; }
       if (req.url === "/api/models") {
         res.end(JSON.stringify({ ok: true, lanes: { oauth: { status: "ready", defaults: { image: "gpt-5.6-luna" },
-          models: { image: [{ id: "gpt-5.6-luna" }], video: [] } } } })); return;
+          models: { image: [{ id: "gpt-5.6-luna" }] } } } })); return;
       }
       if (req.url === "/api/generate" && req.method === "POST") {
         let raw = ""; req.on("data", (chunk) => { raw += chunk; }); req.on("end", () => {

@@ -1,5 +1,0 @@
-import type { SpriteRecipeDefinition, SpriteStateRecipe } from "./spriteRecipeSchema.js";
-export function buildSpriteRowPrompt(input: { recipe: SpriteRecipeDefinition; state: SpriteStateRecipe; anchorMode: "base-idle-candidate" | "approved-anchor" }): string {
-  const { recipe, state } = input; const identity = input.anchorMode === "approved-anchor" ? "Use the approved anchor only for character identity; this row owns motion only. Do not reinterpret identity." : "Create the idle identity candidate from the base character reference.";
-  return [`Sprite row for state ${state.key}: ${state.action}.`, identity, `Produce exactly ${state.frames} poses, one pose per slot, at ${state.fps} fps; loop=${state.loop}.`, `Each cell is ${recipe.cell.width}x${recipe.cell.height}px with safe margins ${recipe.cell.safeMarginX}px horizontal and ${recipe.cell.safeMarginY}px vertical.`, `Use chroma ${recipe.chromaKey.name} ${recipe.chromaKey.hex} rgb(${recipe.chromaKey.rgb.join(",")}).`, `Style: ${recipe.style}. Do not cross slot boundaries. Do not render guide lines.`].join("\n");
-}

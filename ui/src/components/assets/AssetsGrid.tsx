@@ -22,22 +22,13 @@ function AssetTile({ item, selected, onSelect, onPreview }: { item: AssetItem; s
   const showToast = useAppStore((s) => s.showToast);
   const [armed, setArmed] = useState(false);
   const [starPending, setStarPending] = useState(false);
-  const [near, setNear] = useState(false);
   const tileRef = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    const node = tileRef.current;
-    if (!node || item.kind !== "video" || typeof IntersectionObserver === "undefined") { setNear(true); return; }
-    const observer = new IntersectionObserver(([entry]) => { if (entry?.isIntersecting) setNear(true); }, { rootMargin: "300px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [item.kind]);
   const thumbPath = item.kind === "element" && !item.filePath
     ? elementPreviewPath(item as AssetItem)
     : item.filePath;
   const url = thumbPath ? mediaUrl(thumbPath) : null;
-  const isVideo = item.kind === "video";
-  const fallback = t(isVideo ? "assetGen.videoFallback" : "assetGen.imageFallback");
-  const previewLabel = t(isVideo ? "assetGen.previewVideo" : "assetGen.previewImage", { prompt: item.name.trim() || fallback });
+  const fallback = t("assetGen.imageFallback");
+  const previewLabel = t("assetGen.previewImage", { prompt: item.name.trim() || fallback });
   async function remove() {
     if (!armed) { setArmed(true); return; }
     if (!await deleteItem(item.id)) showToast(t("assets.actionFailed"), true);
@@ -61,9 +52,8 @@ function AssetTile({ item, selected, onSelect, onPreview }: { item: AssetItem; s
       {url ? <button type="button" className="assets-tile__preview" aria-label={previewLabel}
         onClick={(event) => { event.stopPropagation(); onSelect?.(item.id); onPreview?.(item); }}
         onKeyDown={(event) => event.stopPropagation()}>
-        {isVideo ? (near ? <video src={url} preload="metadata" muted playsInline aria-hidden="true" /> : null)
-          : <img src={url} alt="" loading="lazy" decoding="async" />}
-        <span className="assets-tile__preview-hint" aria-hidden="true">{t(isVideo ? "assetGen.openHintVideo" : "assetGen.openHintImage")}</span>
+        <img src={url} alt="" loading="lazy" decoding="async" />
+        <span className="assets-tile__preview-hint" aria-hidden="true">{t("assetGen.openHintImage")}</span>
       </button> : <span className="assets-tile__glyph" aria-hidden="true">{item.kind.slice(0, 1).toUpperCase()}</span>}
       <FavoriteStarButton
         variant="asset"

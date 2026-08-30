@@ -17,7 +17,6 @@
     "continuity": "連續性",
     "activePrompt": "主動提示",
     "elementUnavailable": "元素不可用",
-    "spritePreview": "精靈動畫預覽",
     "canvasMemo": "畫布備忘錄",
     "cardDeck": "卡牌組"
   },
@@ -63,10 +62,6 @@
     "missingElements": "缺少選定的元素。在生成之前將其刪除或重新添加元素。",
     "nodeCreated": "Node {id} 建立 ({elapsed}s)",
     "nodeRootCreated": "從該映像建立第一個 node 。",
-    "animateStarted": "將圖像動畫化為影片...",
-    "animateProgress": "渲染影片…{n}%",
-    "animateDone": "影片準備好了。檢查你的歷史記錄。",
-    "animateFailed": "視訊生成失敗。",
     "nodeCreateFailed": "Node 產生失敗。",
     "generatedBatch": "在 {elapsed}s 中產生 {count} 影像。",
     "generatedSingle": "在 {elapsed}s 中產生。",
@@ -114,7 +109,6 @@
     "inlineCollapse": "崩潰飛行中的 {n} 代",
     "footerHint": "您可以關閉此面板——生成會繼續。",
     "kindImage": "影像",
-    "kindVideo": "影片",
     "kindNode": "節點",
     "kindMcp": "MCP",
     "progressAria": "產生進度：{n}%"
@@ -248,8 +242,6 @@
       "settings": "產生設定",
       "usage": "用量與時間",
       "lineage": "來源鏈",
-      "video": "影片",
-      "videoContinuity": "視訊連續性",
       "prompts": "提示"
     },
     "fields": {
@@ -285,13 +277,6 @@
       "sequence": "順序",
       "setId": "批次",
       "cardId": "卡片",
-      "videoDuration": "影片時長",
-      "videoResolution": "影片解析度",
-      "videoAspectRatio": "縱橫比",
-      "videoRequestedModel": "要求的型號",
-      "videoEffectiveModel": "有效模式",
-      "videoModelFallback": "模型後備",
-      "xaiVideoRequestId": "xAI 視訊請求",
       "sourceImageFilename": "來源圖片",
       "lineageId": "來源鏈 ID",
       "parentFilename": "父項檔案",
@@ -408,7 +393,6 @@
     "savePrompt": "節省",
     "storyboard": "故事板",
     "storyboardTitle": "啟用故事板模式 - 在連續幀之間保持角色和場景的連續性",
-    "videoToggleTitle": "切換視訊模式 (Grok 1.5)",
     "directMode": "直接的",
     "directModeActive": "1:1直接上",
     "directModeTitle": "逐字傳遞提示（直接模式）",
@@ -722,9 +706,6 @@
     "continueHereTitle": "導入此圖像的提示並繼續工作",
     "continueAsUrl": "URL 繼續",
     "continueAsUrlTitle": "繼續使用原始提供者URL（1小時後過期）",
-    "animate": "動畫",
-    "animating": "動畫…",
-    "animateTitle": "從此影像產生 Grok 影片（影像到影片）",
     "firstNode": "第一 node",
     "firstNodeTitle": "將此圖像傳送至 Node 模式作為首先準備好的 node",
     "info": "資訊",
@@ -877,7 +858,7 @@
     "attachReference": "附上參考資料",
     "send": "傳送",
     "webSearch": "使用搜尋",
-    "emptyChat": "輸入訊息以開始圖像或視訊工作。",
+    "emptyChat": "輸入訊息以開始圖像工作。",
     "emptyJumpLatest": "跳轉至最新",
     "queueSummary": "{active} 有效 · {failed} 失敗",
     "queuePlanSummary": "變異 {variants} · 並行 {parallel}",
@@ -896,14 +877,10 @@
     "progressFailed": "運行失敗",
     "progressJob": "{kind} · {count} 變體",
     "mediaKind": {
-      "image": "影像",
-      "video": "影片"
+      "image": "影像"
     },
     "mediaSelect": "分眾媒體",
-    "mediaLoading": "載入影片",
-    "mediaLoadFailed": "影片無法載入。",
     "mediaRetry": "重試",
-    "mediaVideoLabel": "生成的視頻",
     "mediaDuration": "持續時間 {duration}",
     "mediaDurationUnknown": "持續時間不可用",
     "mediaDownload": "下載",
@@ -1050,43 +1027,16 @@
       "error": "草稿失敗"
     }
   },
-  "video": {
-    "selectedCameraPresets": "選定的攝影機運動預設",
-    "plannerModelTitle": "規劃模型",
-    "reasoningEffortTitle": "推理努力",
-    "modeLabel": "視訊模式",
-    "mode": {
-      "text-to-video": "文字→影片（無參考圖）",
-      "image-to-video": "圖片 → 影片（1 篇參考）",
-      "reference-to-video": "參考 → 影片（{n} 參考）"
-    },
-    "seriesTopicTitle": "系列專題",
-    "seriesTopicPlaceholder": "例如韓國旅遊視訊博客",
-    "durationTitle": "長度",
-    "resolutionTitle": "解析度",
-    "resolution1080Help": "1080p 使用 Grok V1.5 進行僅提示或單一影像/幀影片。它不適用於 2 個以上的參考文獻。",
-    "aspectTitle": "縱橫比",
-    "plannerUpdateFailed": "無法更新規劃器模型。之前的設定已恢復。",
-    "continuationFallbackT2V": "無法提取連續幀。生成將繼續以文字到影片的形式進行。",
-    "singleRefTitle": "單張參考的用法",
-    "singleRefHelp": "選擇將該圖片作為首格，還是僅作參考。兩張以上一律作為參考。",
-    "singleRef": {
-      "source": "以此圖開場",
-      "reference": "僅作參考"
-    }
-  },
   "sidebar": {
     "appName": "影像生成器",
     "imageModelLabel": "模型",
     "imageSectionLabel": "影像",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "videoSectionLabel": "影片",
     "imageModelAria": "選擇圖像模型",
     "quickSettingsAria": "選擇模型和推理工作。當前模型{model}，推理{effort}",
     "quickSettingsModelOnlyAria": "選擇圖像模型。目前型號 {model}",
     "quickSettingsMenu": "模型和推理快速設置",
     "reasoningLabel": "推理",
-    "videoModelLabel": "影片",
     "nodeModeHint": "在 node 模式下，按一下 node 編輯其提示並產生。右側面板上的設定（品質/尺寸）適用於每個新結果。"
   },
   "settings": {
@@ -1516,6 +1466,7 @@
   },
   "assetGen": {
     "title": "資產生成",
+    "imageFallback": "生成的圖像",
     "lede": "建立圖片或短片，然後一鍵移除背景。",
     "prompt": "提示詞",
     "promptPlaceholder": "一個紅蘋果，工作室產品拍攝",
@@ -1531,12 +1482,6 @@
     "modelGpt": "GPT",
     "kind": "輸出",
     "kindImage": "影像",
-    "kindVideo": "影片",
-    "videoSoon": "影片功能稍後推出",
-    "videoOptions": "影片選項",
-    "videoDuration": "影片時長",
-    "videoResolution": "影片解析度",
-    "videoAspect": "縱橫比",
     "generate": "產生資產",
     "generating": "生成…",
     "emptyTitle": "還沒有資產",
@@ -1546,15 +1491,11 @@
     "emptySessionCta": "瀏覽專案資產",
     "generateHint": "先輸入提示詞，按鈕會自動啟用。",
     "previewImage": "開啟影像預覽：{prompt}",
-    "previewVideo": "開啟影片預覽：{prompt}",
     "previewDialogTitle": "預覽：{prompt}",
     "closePreview": "關閉預覽",
     "zoomIn": "放大",
     "zoomOut": "符合螢幕大小",
     "openHintImage": "放大",
-    "openHintVideo": "播放",
-    "imageFallback": "生成的圖像",
-    "videoFallback": "生成的視頻",
     "emptyCta": "寫下你的第一個提示",
     "errorTitle": "生成失敗",
     "errorHint": "請檢查模型與 API 金鑰設定後再試一次。",
@@ -1582,50 +1523,6 @@
     "close": "關閉",
     "saveRetry": "重試保存"
   },
-  "spriteCurator": {
-    "title": "角色表",
-    "open": "開啟角色表",
-    "close": "關閉角色表",
-    "state": "動畫狀態",
-    "unsaved": "未儲存的更改",
-    "discardConfirm": "放棄未儲存的精靈變更嗎？",
-    "loadError": "無法載入此精靈運行。",
-    "saveError": "無法保存策展。",
-    "bakeError": "無法製作角色圖集。",
-    "exportError": "無法匯出精靈動畫。",
-    "previous": "上一幀",
-    "play": "播放",
-    "pause": "暫停",
-    "next": "下一幀",
-    "speed": "速度",
-    "grid": "網格",
-    "transform": "影格變換",
-    "rotate": "旋轉",
-    "scale": "縮放",
-    "dx": "移動 X",
-    "dy": "移動 Y",
-    "shx": "剪切X",
-    "shy": "剪切Y",
-    "flipX": "水平翻轉",
-    "sequence": "影格序列——播放與製作順序",
-    "candidates": "候選影格庫",
-    "frameAria": "第 {n} 格，{rail}",
-    "addFrame": "加入",
-    "removeFrame": "移除",
-    "deleteFrame": "刪除第 {n} 格",
-    "save": "儲存角色表",
-    "bake": "製作角色圖集",
-    "contactSheet": "縮圖總覽",
-    "gif": "匯出 GIF",
-    "status": {
-      "loading": "載入中…",
-      "ready": "已儲存",
-      "saving": "儲存中…",
-      "baking": "製作中…",
-      "exporting": "匯出中…",
-      "error": "操作失敗"
-    }
-  },
   "keying": {
     "title": "刪除背景",
     "open": "刪除背景",
@@ -1651,9 +1548,6 @@
     "download": "下載透明 PNG",
     "save": "儲存到項目",
     "saving": "儲存中…",
-    "videoSave": "建立 alpha WebM",
-    "videoKeying": "鍵控影片... {seconds}s",
-    "videoSaved": "Alpha WebM 儲存到項目",
     "saved": "Alpha PNG 儲存到專案中",
     "saveError": "無法保存摳像影像",
     "loadError": "無法載入此圖片進行摳像。關閉並重試。",
@@ -1661,7 +1555,6 @@
   },
   "chain": {
     "ariaLabel": "快速行動",
-    "animate": "動畫",
     "edit": "在畫布中編輯",
     "useAsRef": "用作參考",
     "rebake": "再生",
@@ -1689,7 +1582,6 @@
     "newFolder": "新建資料夾",
     "kindAll": "所有類型",
     "kindImage": "圖片",
-    "kindVideo": "影片",
     "kindElement": "元素",
     "kindPreset": "預設",
     "kindTemplate": "範本",
@@ -1858,7 +1750,6 @@
       "prompt": "提示詞",
       "image": "影像",
       "images": "圖片",
-      "video": "影片",
       "mask": "面具",
       "element-refs": "元素參考",
       "element-notes": "元素註釋",
@@ -1875,107 +1766,13 @@
       "cycle": "該連接會形成一個循環。"
     }
   },
-  "sprite": {
-    "tabs": {
-      "label": "資產工作流程",
-      "generate": "產生",
-      "sprite": "角色表"
-    },
-    "title": "角色表",
-    "lede": "鎖定角色設定，然後產生動作一致的角色影格。",
-    "loading": "正在載入角色表…",
-    "loadError": "無法載入角色表。",
-    "retry": "重試",
-    "empty": {
-      "title": "建立角色表",
-      "body": "設定角色、影格尺寸與動畫狀態。",
-      "create": "建立角色表"
-    },
-    "recipe": {
-      "select": "角色表",
-      "new": "新增角色表",
-      "name": "角色表名稱",
-      "characterId": "角色ID",
-      "description": "描述",
-      "style": "風格",
-      "baseAssetId": "基礎圖像資源",
-      "baseAsset": "基礎圖像資源",
-      "save": "儲存角色表",
-      "saving": "儲存中…",
-      "unsaved": "生成前儲存變更。"
-    },
-    "cell": {
-      "title": "影格尺寸",
-      "width": "寬度",
-      "height": "高度",
-      "safeMarginX": "水平邊界",
-      "safeMarginY": "垂直邊界"
-    },
-    "chroma": {
-      "title": "綠幕去背",
-      "hex": "去背顏色"
-    },
-    "states": {
-      "title": "動畫狀態",
-      "add": "新增狀態",
-      "remove": "移除",
-      "key": "狀態名稱",
-      "frames": "影格數",
-      "fps": "FPS",
-      "loop": "環形",
-      "action": "動作"
-    },
-    "anchor": {
-      "title": "身分錨",
-      "missing": "在行前產生並批准一個空閒姿勢。",
-      "generate": "生成空閒候選人",
-      "generating": "生成…",
-      "candidate": "候選人準備接受審查。",
-      "regenerate": "雷根",
-      "approve": "批准錨點",
-      "approved": "錨定批准",
-      "replace": "更換錨",
-      "confirmTitle": "批准這個身分錨？",
-      "confirmBody": "未來的行將重複使用此標識；基本影像將不會再次附加。",
-      "confirm": "核准",
-      "cancel": "取消"
-    },
-    "rows": {
-      "title": "精靈行",
-      "generateAll": "產生全部",
-      "generateSelected": "產生選定的",
-      "regenerate": "重試行",
-      "cancel": "取消",
-      "preview": "預覽",
-      "anchorRequired": "首先批准錨點。",
-      "saveRequired": "首先儲存配方更改。",
-      "status": {
-        "pending": "待辦的",
-        "queued": "排隊",
-        "running": "跑步",
-        "complete": "完全的",
-        "error": "錯誤",
-        "canceled": "取消"
-      }
-    },
-    "error": {
-      "INVALID_SPRITE_RECIPE": "填寫所需的配方欄位。",
-      "ANCHOR_NOT_APPROVED": "首先批准身分錨。",
-      "BASE_REFERENCE_FORBIDDEN": "基礎鏡像審核通過後不可重複使用。",
-      "GENERATION_CANCELED": "一代被取消。",
-      "generic": "精靈生成失敗。"
-    }
-  },
   "graph": {
     "undone": "撤銷最後的圖形變更。",
     "redone": "重新繪製圖形變更。"
   },
   "provenance": {
     "t2i": "文字 → 圖片",
-    "i2i": "圖片編輯",
-    "t2v": "文字 → 視頻",
-    "i2v": "圖片 → 影片",
-    "v2v": "影片延續"
+    "i2i": "圖片編輯"
   },
   "element": {
     "title": "元素",

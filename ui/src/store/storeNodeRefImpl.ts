@@ -4,7 +4,6 @@ import {
   clearNodeRefs as clearStoredNodeRefs,
   saveNodeRefs,
 } from "../lib/nodeRefStorage";
-import { isVideoUrl, extractLastFrame } from "../lib/videoMedia";
 import { t } from "../i18n";
 import { compressReferenceSource } from "./storeHelpers";
 import type { StoreSet, StoreGet } from "./storeTypes";
@@ -100,8 +99,8 @@ export async function addNodeReferenceFromUrlImpl(
   let dataUrl: string;
   try {
     dataUrl =
-      isVideoUrl(src) || isVideoUrl(filename)
-        ? await extractLastFrame(src)
+      false || false
+        ? ""
         : await compressReferenceSource(src, filename || "node-reference.png");
   } catch {
     get().showToast(t("toast.currentImageLoadFailed"), true);

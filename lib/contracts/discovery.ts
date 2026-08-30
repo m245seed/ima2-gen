@@ -87,11 +87,10 @@ const GENERATE_INPUT: JsonSchema = {
   type: "object",
   properties: {
     provider: { type: "string" },
-    kind: { type: "string", enum: ["image", "video"] },
+    kind: { type: "string", enum: ["image"] },
     prompt: { type: "string" },
     model: { type: "string" },
     ratio: { type: "string" },
-    startFrameFilename: { type: "string", description: "existing generated-library image used as I2V start frame" },
   },
   required: ["provider", "kind", "prompt"],
   additionalProperties: false,
@@ -100,7 +99,7 @@ const GENERATE_INPUT: JsonSchema = {
 const MEDIA_ACTION_INPUT: JsonSchema = {
   type: "object",
   properties: {
-    action: { type: "string", enum: ["stitch", "extend", "upscale-video", "upscale-image", "edit-video", "reframe"] },
+    action: { type: "string", enum: ["upscale-image", "reframe"] },
     files: { type: "array", items: { type: "string" }, description: "generated-library filenames" },
     prompt: { type: "string" },
     provider: { type: "string" },
@@ -110,7 +109,7 @@ const MEDIA_ACTION_INPUT: JsonSchema = {
 };
 
 const GENERATE_TOOLS = new Set(["generate_image"]);
-const ACTION_TOOLS = new Set(["upscale_image", "upscale_video", "edit_video"]);
+const ACTION_TOOLS = new Set(["upscale_image"]);
 
 /** Raw upstream schemas are reference material; execution flows through these
  *  normalized bindings only (WP7 audit blocker 1). */

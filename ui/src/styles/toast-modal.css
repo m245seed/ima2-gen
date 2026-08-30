@@ -127,39 +127,6 @@
   padding: 4px 0;
 }
 
-/* Grok Mode Toggle (Image / Video) */
-.grok-mode-toggle {
-  margin-bottom: 4px;
-}
-.grok-mode-toggle .option-row {
-  display: flex;
-  gap: 6px;
-}
-.grok-mode-toggle .option-btn {
-  flex: 1;
-  font-weight: 600;
-}
-
-/* Grok Size Picker */
-.grok-size-picker__aspects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.grok-size-picker__aspect {
-  min-width: 48px;
-  font-size: 12px;
-  padding: 6px 8px;
-}
-.grok-size-picker__resolutions {
-  display: flex;
-  gap: 6px;
-}
-.grok-size-picker__res {
-  flex: 1;
-  font-size: 13px;
-  padding: 8px;
-}
 .status-dot {
   width: 8px;
   height: 8px;

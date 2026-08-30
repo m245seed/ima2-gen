@@ -204,19 +204,18 @@ describe("prompt studio UI contract", () => {
     assert.match(css, /\.classic-workspace__stage \.result-img\s*\{[\s\S]*?max-height:\s*100%/);
   });
 
-  it("renders video items with thumbnail img + play badge in sidebar history cards and supports drag", () => {
+  it("renders image thumbnails and drag payloads in sidebar history cards", () => {
     const imageCard = readSource("ui/src/components/history/SidebarHistoryImageCard.tsx");
     const sequenceCard = readSource("ui/src/components/history/SidebarHistorySequenceCard.tsx");
 
-    assert.match(imageCard, /isVideoItem/);
-    assert.match(imageCard, /buildVideoDragPayload/);
-    assert.match(imageCard, /play-badge/);
+    assert.doesNotMatch(imageCard, /isVideoItem/);
+    assert.doesNotMatch(imageCard, /buildVideoDragPayload/);
+    assert.doesNotMatch(imageCard, /play-badge/);
     assert.match(imageCard, /item\.thumb/);
     assert.match(imageCard, /draggable/);
     assert.match(imageCard, /onDragStart/);
     assert.match(imageCard, /application\/ima2-ref/);
     assert.match(imageCard, /title=\{item\.prompt/);
-
     assert.match(sequenceCard, /item\.thumb/);
   });
 

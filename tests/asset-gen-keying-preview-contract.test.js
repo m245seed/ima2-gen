@@ -19,21 +19,20 @@ describe("Asset Gen keyed preview contract", () => {
     assert.match(panel, /role="status">\{t\("keying\.previewLoading"\)\}/);
   });
 
-  it("offers click-to-erase with undo, scoped to images and reset-safe", () => {
+  it("offers click-to-erase with undo and reset-safe image handling", () => {
     const panel = read("ui/src/components/assetgen/KeyingPanel.tsx");
 
     assert.match(panel, /eraseSeedRegions\(/);
-    assert.match(panel, /clickMode === "erase" && !isVideo/);
+    assert.match(panel, /if \(clickMode === "erase"\)/);
     assert.match(panel, /setEraseSeeds\(\(seeds\) => \[\.\.\.seeds, \{ x: nx, y: ny \}\]\)/);
     assert.match(panel, /setEraseSeeds\(\(seeds\) => seeds\.slice\(0, -1\)\)/);
-    assert.match(panel, /t\("keying\.modeErase"\)/);
-    assert.match(panel, /t\("keying\.modePick"\)/);
+    assert.match(panel, /t\("keying\.eraseHint"\)/);
+    assert.match(panel, /t\("keying\.pickHint"\)/);
     assert.match(panel, /aria-pressed=\{clickMode === "erase"\}/);
-    // New image loads and Reset both clear accumulated wand clicks.
     assert.equal((panel.match(/setEraseSeeds\(\[\]\)/g) ?? []).length, 2);
   });
 
-  it("turns image and video save completions into unique derived result items", () => {
+  it("turns image save completions into unique derived result items", () => {
     const panel = read("ui/src/components/assetgen/KeyingPanel.tsx");
     const store = readSourceTree("ui/src/store/useAppStore.ts");
 
@@ -41,28 +40,28 @@ describe("Asset Gen keyed preview contract", () => {
     assert.match(panel, /requestId: `derived:\$\{filePath\}`/);
     assert.match(panel, /kind: "edit"/);
     assert.match(panel, /makeDerivedItem\(item, filePath\.trim\(\), "image"\)/);
-    assert.match(panel, /makeDerivedItem\(item, filePath\.trim\(\), "video"\)/);
-    assert.match(panel, /typeof filePath === "string" && filePath\.trim\(\)/);
-    assert.match(panel, /showToast\(t\("keying\.videoSaved"\)\);\s*close\(null\);\s*return;/s);
-    assert.match(panel, /setKeyingProgress\(null\);\s*setSaveError\(t\("keying\.saveError"\)\)/s);
+    assert.doesNotMatch(panel, /makeDerivedItem\(item, filePath\.trim\(\), "video"\)/);
+    assert.match(panel, /typeof filePath !== "string" \|\| !filePath\.trim\(\)/);
+    assert.doesNotMatch(panel, /keying\.videoSaved/);
+    assert.match(panel, /setSaveError\(t\("keying\.saveError"\)\)/);
     assert.match(store, /addAssetGenDerivedItem: \(item\) => set\(\(state\) =>/);
     assert.match(store, /state\.assetGenItems\.some\(\(entry\) => entry\.filename === item\.filename\)/);
   });
 
-  it("cleans up async work and validates runtime payloads", () => {
+  it("guards image-only saves against stale targets and invalid payloads", () => {
     const panel = read("ui/src/components/assetgen/KeyingPanel.tsx");
 
     assert.match(panel, /let active = true/);
     assert.match(panel, /active = false/);
     assert.match(panel, /img\.onload = null/);
-    assert.match(panel, /keyingUnsubRef = useRef/);
+    assert.match(panel, /img\.onerror = null/);
     assert.match(panel, /targetFilenameRef = useRef/);
-    assert.match(panel, /clearKeyingSubscription\(\);\s*setSaving\(false\)/s);
-    assert.equal((panel.match(/targetFilenameRef\.current !== item\.filename/g) ?? []).length, 5);
+    assert.match(panel, /targetFilenameRef\.current = item\?\.filename \?\? null/);
+    assert.match(panel, /targetFilenameRef\.current !== item\.filename/);
     assert.match(panel, /targetFilenameRef\.current === item\.filename\) setSaving\(false\)/);
-    assert.match(panel, /typeof rawMs === "number" && Number\.isFinite\(rawMs\)/);
-    assert.match(panel, /typeof payload\.error === "string"/);
     assert.match(panel, /typeof filePath !== "string" \|\| !filePath\.trim\(\)/);
+    assert.match(panel, /uploadDerivedAsset\(blob/);
+    assert.doesNotMatch(panel, /keyingUnsubRef|clearKeyingSubscription|setKeyingProgress|rawMs|payload\.error/);
   });
 
   it("marks derived cards and prevents recursive keying or source-save retries", () => {
@@ -94,22 +93,6 @@ describe("Asset Gen keyed preview contract", () => {
     assert.match(css, /\.assetgen-form h1\s*\{[^}]*text-wrap:\s*balance/s);
     assert.match(css, /\.assetgen-form__lede\s*\{[^}]*text-wrap:\s*balance/s);
     assert.match(css, /\.assetgen-empty p\s*\{[^}]*max-width:\s*40ch[^}]*text-wrap:\s*balance/s);
-  });
-
-  it("keeps workflow tabs separated, touch-safe, and keyboard reachable", () => {
-    const workspace = read("ui/src/components/assetgen/AssetGenWorkspace.tsx");
-    const css = read("ui/src/styles/sprite-recipe.css");
-
-    assert.match(workspace, /styles\/sprite-recipe\.css/);
-    assert.match(workspace, /useTablistKeys<HTMLDivElement>\(\)/);
-    assert.match(workspace, /onKeyDown=\{onWorkflowTabKeyDown\}/);
-    assert.equal((workspace.match(/tabIndex=\{workflow ===/g) ?? []).length, 2);
-    assert.match(css, /\.assetgen-workflow-tabs\s*\{[^}]*gap:\s*6px/s);
-    assert.match(css, /\.assetgen-workflow-tabs button,[\s\S]*?min-height:\s*44px/);
-    assert.match(css, /\.assetgen-workflow-tabs button\[aria-selected="true"\]/);
-    assert.match(css, /\.assetgen-workflow-tabs button:focus-visible/);
-    assert.match(css, /@media \(max-width: 480px\)[\s\S]*?width:\s*100%;/);
-    assert.match(css, /@media \(max-width: 480px\)[\s\S]*?flex:\s*1 1 0;/);
   });
 
   it("carries comparison labels in both locales", () => {

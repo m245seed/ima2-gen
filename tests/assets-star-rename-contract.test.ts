@@ -79,22 +79,6 @@ describe("star-to-assets and asset rename contract", () => {
     assert.equal(mock.updateCalls.length, 0);
   });
 
-  it("classifies video gallery items as video assets", async () => {
-    const mock = makeApi();
-    const result = await syncStarredAsset(
-      { filename: "clip.mp4", prompt: "Orbit shot", mediaType: "video" },
-      mock.api,
-    );
-
-    assert.equal(result, "created");
-    assert.deepEqual(mock.createCalls, [{
-      filePath: "clip.mp4",
-      kind: "video",
-      name: "Orbit shot",
-      tags: ["starred"],
-      metadata: { origin: "star", mediaType: "video" },
-    }]);
-  });
 
   it("commits the favorite state before sync and never rolls it back on sync failure", () => {
     const favoriteCommit = promptStore.indexOf("const next = new Set(s.galleryFavorites)");

@@ -17,11 +17,6 @@ export async function fetchAsDataUrl(url: string): Promise<string> {
   return readFileAsDataURL(new File([blob], "reference.png", { type: blob.type || "image/png" }));
 }
 
-export function dataUrlToBase64(dataUrl: string): string {
-  const comma = dataUrl.indexOf(",");
-  return comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
-}
-
 export function compressImage(dataUrl: string, maxW = 256): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();

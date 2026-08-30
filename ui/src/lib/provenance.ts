@@ -19,7 +19,6 @@ export type ProvenanceInput = {
 };
 
 function deriveKind(item: ProvenanceInput): ProvenanceDerivation | null {
-  // video handling removed (image-only)
   if (item.canvasSourceFilename || item.sourceImageFilename) return "i2i";
   return item.model ? "t2i" : null;
 }

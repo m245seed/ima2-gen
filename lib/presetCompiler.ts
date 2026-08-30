@@ -1,4 +1,4 @@
-export type PresetCategory = "camera-motion" | "style" | "lighting";
+export type PresetCategory = "style" | "lighting";
 export type PresetMode = "image" | "both";
 export type PresetProvider = "gpt";
 
@@ -13,7 +13,6 @@ export interface PresetDefinition {
   }>>;
   modes: PresetMode[];
   thumb?: string;
-  previewVideo?: string;
 }
 
 export interface CompiledPresetResult {

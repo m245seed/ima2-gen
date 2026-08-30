@@ -273,7 +273,7 @@ export async function trashHistorySequenceImpl(
   }
   const ok = window.confirm(t("history.deleteSequenceConfirm", { count: targets.length }));
   if (!ok) return;
-  const filenames = new Set(
+  const filenames = new Set<string>(
     targets.map((item) => item.filename).filter((filename): filename is string => Boolean(filename)),
   );
   const current = get().currentImage;

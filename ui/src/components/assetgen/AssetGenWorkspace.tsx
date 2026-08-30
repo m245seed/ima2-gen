@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useI18n } from "../../i18n";
 import { useAppStore } from "../../store/useAppStore";
 import type { GenerateItem } from "../../types";
@@ -9,10 +9,6 @@ import { BackgroundPresetPicker } from "./BackgroundPresetPicker";
 import { AssetGenModelPicker } from "./AssetGenModelPicker";
 import { ProjectSelect } from "./ProjectSelect";
 import { KeyingPanel } from "./KeyingPanel";
-import { useTablistKeys } from "../../hooks/useTablistKeys";
-import "../../styles/sprite-recipe.css";
-
-const SpriteRecipeWorkspace = lazy(() => import("./SpriteRecipeWorkspace").then((module) => ({ default: module.SpriteRecipeWorkspace })));
 
 export function AssetGenWorkspace() {
   const { t } = useI18n();
@@ -27,9 +23,6 @@ export function AssetGenWorkspace() {
   const lastError = useAppStore((s) => s.assetGenLastError);
   const setLastError = useAppStore((s) => s.setAssetGenLastError);
   const setUIMode = useAppStore((s) => s.setUIMode);
-  const workflow = useAppStore((s) => s.assetGenWorkflow);
-  const setWorkflow = useAppStore((s) => s.setAssetGenWorkflow);
-  const onWorkflowTabKeyDown = useTablistKeys<HTMLDivElement>();
   const [previewItem, setPreviewItem] = useState<GenerateItem | null>(null);
   const [railSelectedId, setRailSelectedId] = useState<string | null>(null);
   const [projectAssetCount, setProjectAssetCount] = useState(0);
@@ -45,50 +38,6 @@ export function AssetGenWorkspace() {
     document.getElementById("assetgen-prompt")?.focus();
   }, []);
 
-  const workflowTabs = (
-    <div
-      className="assetgen-workflow-tabs"
-      role="tablist"
-      aria-label={t("sprite.tabs.label")}
-      onKeyDown={onWorkflowTabKeyDown}
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={workflow === "generate"}
-        tabIndex={workflow === "generate" ? 0 : -1}
-        onClick={() => setWorkflow("generate")}
-      >
-        {t("sprite.tabs.generate")}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={workflow === "sprite"}
-        tabIndex={workflow === "sprite" ? 0 : -1}
-        onClick={() => setWorkflow("sprite")}
-      >
-        {t("sprite.tabs.sprite")}
-      </button>
-    </div>
-  );
-
-  if (workflow === "sprite") {
-    return (
-      <section className="assetgen-workspace" aria-labelledby="assetgen-title">
-        <aside className="assetgen-form">
-          <h1 id="assetgen-title">{t("sprite.title")}</h1>
-          <p className="assetgen-form__lede">{t("sprite.lede")}</p>
-          {workflowTabs}
-        </aside>
-        <main className="assetgen-results">
-          <Suspense fallback={<p role="status">{t("sprite.loading")}</p>}>
-            <SpriteRecipeWorkspace />
-          </Suspense>
-        </main>
-      </section>
-    );
-  }
 
   const canGenerate = prompt.trim().length > 0;
   return (
@@ -96,7 +45,6 @@ export function AssetGenWorkspace() {
       <aside className="assetgen-form">
         <h1 id="assetgen-title">{t("assetGen.title")}</h1>
         <p className="assetgen-form__lede">{t("assetGen.lede")}</p>
-        {workflowTabs}
         <ProjectSelect />
         <div className="assetgen-field">
           <label className="assetgen-field__label" htmlFor="assetgen-prompt">{t("assetGen.prompt")}</label>

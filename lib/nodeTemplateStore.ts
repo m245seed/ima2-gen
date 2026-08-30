@@ -14,7 +14,7 @@ export interface NodeTemplateStore { list(): Promise<NodeTemplateRecord[]>; get(
 
 const SECRET_KEY = /secret|api[_-]?key|authorization|token|password/i;
 const REMOVE_KEY = /^(url|output(path)?|thumbnail|progress|error|requestid|sessionid|parentid|lineage(id)?|result|results)$/i;
-const MEDIA_KEY = /^(media|src|file(path)?|upload|reference|image(url)?|video(url)?)$/i;
+const MEDIA_KEY = /^(media|src|file(path)?|upload|reference|image(url)?)$/i;
 const PROMPT_KEY = /prompt/i;
 const PROVIDER_KEY = /provider|model/i;
 

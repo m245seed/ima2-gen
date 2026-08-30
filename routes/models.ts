@@ -32,13 +32,12 @@ type ModelEntry = {
 
 type ModelCatalog = {
   image: ModelEntry[];
-  video: ModelEntry[];
 };
 
 export interface ModelLaneDto {
   status: ModelLaneStatus;
   reason?: string;
-  defaults: { image?: string; video?: string };
+  defaults: { image?: string };
   models: ModelCatalog;
 }
 
@@ -69,7 +68,7 @@ function lane(
     status,
     ...(reason ? { reason } : {}),
     defaults,
-    models: { image, video: [] },
+    models: { image },
   };
 }
 

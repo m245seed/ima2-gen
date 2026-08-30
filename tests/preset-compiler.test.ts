@@ -11,7 +11,7 @@ const catalog: PresetDefinition[] = [
   {
     id: "camera",
     name: "Camera",
-    category: "camera-motion",
+    category: "style",
     promptFragment: "default camera",
     perProvider: {
       gpt: { fragment: "gpt camera: orbit", params: { strength: 1, camera: true } },

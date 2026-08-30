@@ -205,11 +205,6 @@
   stroke-linejoin: round;
 }
 
-.in-flight-placeholder--video svg path {
-  fill: currentColor;
-  stroke: none;
-}
-
 .in-flight-rich-copy,
 .in-flight-rich-status {
   min-width: 0;

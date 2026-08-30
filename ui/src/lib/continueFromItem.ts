@@ -10,7 +10,6 @@ export type ContinueableItem = Pick<GenerateItem, "image"> & {
 
 export type ContinueResult = {
   ok: boolean;
-  isVideo: false;
   hasPrompt: boolean;
 };
 
@@ -20,7 +19,7 @@ export async function continueFromItem(item: ContinueableItem): Promise<Continue
   store.clearReferences();
   store.setPrompt(hasPrompt ? item.prompt ?? "" : "");
   await store.useImageAsReference(item as GenerateItem);
-  return { ok: true, isVideo: false, hasPrompt };
+  return { ok: true, hasPrompt };
 }
 
 export async function continueFromItemAsUrl(

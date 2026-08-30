@@ -17,7 +17,6 @@
     "continuity": "连续性",
     "activePrompt": "主动提示",
     "elementUnavailable": "元素不可用",
-    "spritePreview": "精灵动画预览",
     "canvasMemo": "画布备忘录",
     "cardDeck": "卡牌组"
   },
@@ -63,10 +62,6 @@
     "missingElements": "缺少选定的元素。在生成之前将其删除或重新添加元素。",
     "nodeCreated": "Node {id} 创建 ({elapsed}s)",
     "nodeRootCreated": "从该图像创建第一个 node 。",
-    "animateStarted": "将图像动画化为视频...",
-    "animateProgress": "渲染视频…{n}%",
-    "animateDone": "视频准备好了。检查你的历史记录。",
-    "animateFailed": "视频生成失败。",
     "nodeCreateFailed": "Node 生成失败。",
     "generatedBatch": "在 {elapsed}s 中生成 {count} 图像。",
     "generatedSingle": "在 {elapsed}s 中生成。",
@@ -114,7 +109,6 @@
     "inlineCollapse": "崩溃飞行中的 {n} 代",
     "footerHint": "您可以关闭此面板——生成会继续。",
     "kindImage": "图像",
-    "kindVideo": "视频",
     "kindNode": "节点",
     "kindMcp": "MCP",
     "progressAria": "生成进度：{n}%"
@@ -248,8 +242,6 @@
       "settings": "生成设置",
       "usage": "用量与时间",
       "lineage": "来源链",
-      "video": "视频",
-      "videoContinuity": "视频连续性",
       "prompts": "提示"
     },
     "fields": {
@@ -285,13 +277,6 @@
       "sequence": "顺序",
       "setId": "批次",
       "cardId": "卡片",
-      "videoDuration": "视频时长",
-      "videoResolution": "视频分辨率",
-      "videoAspectRatio": "纵横比",
-      "videoRequestedModel": "要求的型号",
-      "videoEffectiveModel": "有效模式",
-      "videoModelFallback": "模型后备",
-      "xaiVideoRequestId": "xAI 视频请求",
       "sourceImageFilename": "源图片",
       "lineageId": "来源链 ID",
       "parentFilename": "父项文件",
@@ -408,7 +393,6 @@
     "savePrompt": "节省",
     "storyboard": "故事板",
     "storyboardTitle": "启用故事板模式 - 在连续帧之间保持角色和场景的连续性",
-    "videoToggleTitle": "切换视频模式 (Grok 1.5)",
     "directMode": "直接的",
     "directModeActive": "1:1直接上",
     "directModeTitle": "逐字传递提示（直接模式）",
@@ -722,9 +706,6 @@
     "continueHereTitle": "导入此图像的提示并继续工作",
     "continueAsUrl": "URL 继续",
     "continueAsUrlTitle": "继续使用原始提供商URL（1小时后过期）",
-    "animate": "动画",
-    "animating": "动画…",
-    "animateTitle": "从此图像生成 Grok 视频（图像到视频）",
     "firstNode": "第一个 node",
     "firstNodeTitle": "将此图像发送到 Node 模式作为首先准备好的 node",
     "info": "信息",
@@ -877,7 +858,7 @@
     "attachReference": "附上参考资料",
     "send": "发送",
     "webSearch": "使用搜索",
-    "emptyChat": "输入消息以开始图像或视频工作。",
+    "emptyChat": "输入消息以开始图像工作。",
     "emptyJumpLatest": "跳转至最新",
     "queueSummary": "{active} 有效 · {failed} 失败",
     "queuePlanSummary": "变体 {variants} · 并行 {parallel}",
@@ -896,14 +877,10 @@
     "progressFailed": "运行失败",
     "progressJob": "{kind} · {count} 变体",
     "mediaKind": {
-      "image": "图像",
-      "video": "视频"
+      "image": "图像"
     },
     "mediaSelect": "分众媒体",
-    "mediaLoading": "加载视频",
-    "mediaLoadFailed": "视频无法加载。",
     "mediaRetry": "重试",
-    "mediaVideoLabel": "生成的视频",
     "mediaDuration": "持续时间 {duration}",
     "mediaDurationUnknown": "持续时间不可用",
     "mediaDownload": "下载",
@@ -1050,43 +1027,16 @@
       "error": "草稿失败"
     }
   },
-  "video": {
-    "selectedCameraPresets": "选定的摄像机运动预设",
-    "plannerModelTitle": "规划模型",
-    "reasoningEffortTitle": "推理努力",
-    "modeLabel": "视频模式",
-    "mode": {
-      "text-to-video": "文字→视频（无参考图片）",
-      "image-to-video": "图片 → 视频（1 个参考）",
-      "reference-to-video": "参考 → 视频（{n} 参考）"
-    },
-    "seriesTopicTitle": "系列专题",
-    "seriesTopicPlaceholder": "例如韩国旅游视频博客",
-    "durationTitle": "长度",
-    "resolutionTitle": "分辨率",
-    "resolution1080Help": "1080p 使用 Grok V1.5 进行仅提示或单图像/帧视频。它不适用于 2 个以上的参考文献。",
-    "aspectTitle": "纵横比",
-    "plannerUpdateFailed": "无法更新规划器模型。之前的设置已恢复。",
-    "continuationFallbackT2V": "无法提取连续帧。生成将继续以文本到视频的形式进行。",
-    "singleRefTitle": "单张参考的用法",
-    "singleRefHelp": "选择将该图片作为首帧，还是仅作参考。两张及以上始终作为参考。",
-    "singleRef": {
-      "source": "以此图开场",
-      "reference": "仅作参考"
-    }
-  },
   "sidebar": {
     "appName": "图像生成器",
     "imageModelLabel": "模型",
     "imageSectionLabel": "图像",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "videoSectionLabel": "视频",
     "imageModelAria": "选择图像模型",
     "quickSettingsAria": "选择模型和推理工作。当前模型{model}，推理{effort}",
     "quickSettingsModelOnlyAria": "选择图像模型。当前型号 {model}",
     "quickSettingsMenu": "模型和推理快速设置",
     "reasoningLabel": "推理",
-    "videoModelLabel": "视频",
     "nodeModeHint": "在 node 模式下，单击 node 编辑其提示并生成。右侧面板上的设置（质量/尺寸）适用于每个新结果。"
   },
   "settings": {
@@ -1516,6 +1466,7 @@
   },
   "assetGen": {
     "title": "资产生成",
+    "imageFallback": "生成的图像",
     "lede": "创建图像或短片，然后一键移除背景。",
     "prompt": "提示词",
     "promptPlaceholder": "一个红苹果，工作室产品拍摄",
@@ -1531,12 +1482,6 @@
     "modelGpt": "GPT",
     "kind": "输出",
     "kindImage": "图像",
-    "kindVideo": "视频",
-    "videoSoon": "视频功能稍后推出",
-    "videoOptions": "视频选项",
-    "videoDuration": "视频时长",
-    "videoResolution": "视频分辨率",
-    "videoAspect": "纵横比",
     "generate": "生成资产",
     "generating": "生成…",
     "emptyTitle": "还没有资产",
@@ -1546,15 +1491,11 @@
     "emptySessionCta": "浏览项目资产",
     "generateHint": "先输入提示词，按钮会自动启用。",
     "previewImage": "打开图像预览：{prompt}",
-    "previewVideo": "打开视频预览：{prompt}",
     "previewDialogTitle": "预览：{prompt}",
     "closePreview": "关闭预览",
     "zoomIn": "放大",
     "zoomOut": "适合屏幕大小",
     "openHintImage": "放大",
-    "openHintVideo": "播放",
-    "imageFallback": "生成的图像",
-    "videoFallback": "生成的视频",
     "emptyCta": "写下你的第一个提示",
     "errorTitle": "生成失败",
     "errorHint": "请检查模型和 API 密钥设置后重试。",
@@ -1582,50 +1523,6 @@
     "close": "关闭",
     "saveRetry": "重试保存"
   },
-  "spriteCurator": {
-    "title": "角色表",
-    "open": "打开角色表",
-    "close": "关闭角色表",
-    "state": "动画状态",
-    "unsaved": "未保存的更改",
-    "discardConfirm": "放弃未保存的精灵更改吗？",
-    "loadError": "无法加载此精灵运行。",
-    "saveError": "无法保存策展。",
-    "bakeError": "无法制作角色图集。",
-    "exportError": "无法导出精灵动画。",
-    "previous": "上一帧",
-    "play": "播放",
-    "pause": "暂停",
-    "next": "下一帧",
-    "speed": "速度",
-    "grid": "网格",
-    "transform": "帧变换",
-    "rotate": "旋转",
-    "scale": "缩放",
-    "dx": "移动 X",
-    "dy": "移动 Y",
-    "shx": "剪切X",
-    "shy": "剪切Y",
-    "flipX": "水平翻转",
-    "sequence": "帧序列——播放和制作顺序",
-    "candidates": "候选帧库",
-    "frameAria": "第 {n} 帧，{rail}",
-    "addFrame": "添加",
-    "removeFrame": "移除",
-    "deleteFrame": "删除第 {n} 帧",
-    "save": "保存角色表",
-    "bake": "制作角色图集",
-    "contactSheet": "缩略图总览",
-    "gif": "导出 GIF",
-    "status": {
-      "loading": "加载中…",
-      "ready": "已保存",
-      "saving": "保存中…",
-      "baking": "制作中…",
-      "exporting": "导出中…",
-      "error": "操作失败"
-    }
-  },
   "keying": {
     "title": "删除背景",
     "open": "删除背景",
@@ -1651,9 +1548,6 @@
     "download": "下载透明 PNG",
     "save": "保存到项目",
     "saving": "保存中…",
-    "videoSave": "创建 alpha WebM",
-    "videoKeying": "键控视频... {seconds}s",
-    "videoSaved": "Alpha WebM 保存到项目",
     "saved": "Alpha PNG 保存到项目中",
     "saveError": "无法保存抠像图像",
     "loadError": "无法加载此图像进行抠像。关闭并重试。",
@@ -1661,7 +1555,6 @@
   },
   "chain": {
     "ariaLabel": "快速行动",
-    "animate": "动画",
     "edit": "在画布中编辑",
     "useAsRef": "用作参考",
     "rebake": "再生",
@@ -1689,7 +1582,6 @@
     "newFolder": "新建文件夹",
     "kindAll": "所有类型",
     "kindImage": "图片",
-    "kindVideo": "视频",
     "kindElement": "元素",
     "kindPreset": "预设",
     "kindTemplate": "模板",
@@ -1858,7 +1750,6 @@
       "prompt": "提示词",
       "image": "图像",
       "images": "图片",
-      "video": "视频",
       "mask": "面具",
       "element-refs": "元素参考",
       "element-notes": "元素注释",
@@ -1875,107 +1766,13 @@
       "cycle": "该连接会形成一个循环。"
     }
   },
-  "sprite": {
-    "tabs": {
-      "label": "资产工作流程",
-      "generate": "产生",
-      "sprite": "角色表"
-    },
-    "title": "角色表",
-    "lede": "锁定角色设定，然后生成动作一致的角色帧。",
-    "loading": "正在加载精灵配方...",
-    "loadError": "无法加载角色表。",
-    "retry": "重试",
-    "empty": {
-      "title": "创建角色表",
-      "body": "设置角色、帧尺寸与动画状态。",
-      "create": "创建角色表"
-    },
-    "recipe": {
-      "select": "角色表",
-      "new": "新建角色表",
-      "name": "角色表名称",
-      "characterId": "角色ID",
-      "description": "描述",
-      "style": "风格",
-      "baseAssetId": "基础图像资源",
-      "baseAsset": "基础图像资源",
-      "save": "保存角色表",
-      "saving": "保存中…",
-      "unsaved": "生成前保存更改。"
-    },
-    "cell": {
-      "title": "帧尺寸",
-      "width": "宽度",
-      "height": "高度",
-      "safeMarginX": "水平边界",
-      "safeMarginY": "垂直边界"
-    },
-    "chroma": {
-      "title": "绿幕去背",
-      "hex": "去背颜色"
-    },
-    "states": {
-      "title": "动画状态",
-      "add": "添加状态",
-      "remove": "移除",
-      "key": "状态密钥",
-      "frames": "帧数",
-      "fps": "FPS",
-      "loop": "环形",
-      "action": "动作"
-    },
-    "anchor": {
-      "title": "身份锚",
-      "missing": "在行前生成并批准一个空闲姿势。",
-      "generate": "生成空闲候选人",
-      "generating": "生成…",
-      "candidate": "候选人准备接受审查。",
-      "regenerate": "雷根",
-      "approve": "批准锚点",
-      "approved": "锚定批准",
-      "replace": "更换锚",
-      "confirmTitle": "批准这个身份锚？",
-      "confirmBody": "未来的行将重用此标识；基本图像将不会再次附加。",
-      "confirm": "批准",
-      "cancel": "取消"
-    },
-    "rows": {
-      "title": "精灵行",
-      "generateAll": "生成全部",
-      "generateSelected": "生成选定的",
-      "regenerate": "重试行",
-      "cancel": "取消",
-      "preview": "预览",
-      "anchorRequired": "首先批准锚点。",
-      "saveRequired": "首先保存配方更改。",
-      "status": {
-        "pending": "待办的",
-        "queued": "排队",
-        "running": "跑步",
-        "complete": "完全的",
-        "error": "错误",
-        "canceled": "取消"
-      }
-    },
-    "error": {
-      "INVALID_SPRITE_RECIPE": "填写所需的配方字段。",
-      "ANCHOR_NOT_APPROVED": "首先批准身份锚。",
-      "BASE_REFERENCE_FORBIDDEN": "基础镜像审核通过后不可重复使用。",
-      "GENERATION_CANCELED": "一代被取消。",
-      "generic": "精灵生成失败。"
-    }
-  },
   "graph": {
     "undone": "撤消最后的图形更改。",
     "redone": "重新绘制图形更改。"
   },
   "provenance": {
     "t2i": "文字 → 图片",
-    "i2i": "图片编辑",
-    "t2v": "文字 → 视频",
-    "i2v": "图片 → 视频",
-    "v2v": "视频延续"
+    "i2i": "图片编辑"
   },
   "element": {
     "title": "元素",

@@ -339,24 +339,6 @@ function migrate(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_assets_created ON assets(created_at DESC, id DESC);
     CREATE INDEX IF NOT EXISTS idx_asset_tags_tag ON asset_tags(tag);
 
-    CREATE TABLE IF NOT EXISTS sprite_recipes (
-      id TEXT PRIMARY KEY, name TEXT NOT NULL, recipe TEXT NOT NULL,
-      anchor_asset_id TEXT, anchor_status TEXT NOT NULL DEFAULT 'missing'
-        CHECK (anchor_status IN ('missing','candidate','approved')),
-      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
-      FOREIGN KEY (anchor_asset_id) REFERENCES assets(id) ON DELETE SET NULL
-    );
-    CREATE TABLE IF NOT EXISTS sprite_recipe_rows (
-      recipe_id TEXT NOT NULL, state_key TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending','queued','running','complete','error','canceled')),
-      request_id TEXT, result_asset_id TEXT, error_code TEXT, updated_at INTEGER NOT NULL,
-      PRIMARY KEY (recipe_id, state_key),
-      FOREIGN KEY (recipe_id) REFERENCES sprite_recipes(id) ON DELETE CASCADE,
-      FOREIGN KEY (result_asset_id) REFERENCES assets(id) ON DELETE SET NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_sprite_recipes_updated ON sprite_recipes(updated_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_sprite_rows_request ON sprite_recipe_rows(request_id);
   `);
 
   const row = database.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").get() as { value?: string } | undefined;

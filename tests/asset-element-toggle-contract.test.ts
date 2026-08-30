@@ -43,11 +43,11 @@ describe("asset Element quick-register contract", () => {
     assert.equal(elementPreviewPath(linked), "hero.png");
   });
 
-  it("renders an isolated pressed-state button only for file-backed image/video sources", () => {
+  it("renders an isolated pressed-state button only for file-backed image sources", () => {
     const control = read("ui/src/components/assets/AssetElementToggle.tsx");
     const grid = read("ui/src/components/assets/AssetsGrid.tsx");
     const css = read("ui/src/styles/assets-workspace.css");
-    assert.match(control, /item\.kind === "image" \|\| item\.kind === "video"/);
+    assert.match(control, /item\.kind === "image"/);
     assert.match(control, /if \(!supported\) return null/);
     assert.match(control, /aria-pressed=\{active\}/);
     assert.match(control, /sourceAssetId: item\.id/);

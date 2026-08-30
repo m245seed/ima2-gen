@@ -165,18 +165,12 @@ export function narrowGenerateKind(k?: string | null): GenerateItem["kind"] {
 
 export function mapHistoryItem(it: Awaited<ReturnType<typeof getHistory>>["items"][number]): GenerateItem {
   const composerInsertedPrompts = normalizeInsertedPromptArray(it.composerInsertedPrompts);
-  const isVideo = it.mediaType === "video" || /\.(mp4|webm|mov)$/i.test(it.filename ?? "");
   return {
     image: it.url,
     url: it.url,
     providerUrl: it.providerUrl ?? null,
-    mediaType: it.mediaType,
-    video: it.video ?? null,
-    videoSeries: it.videoSeries ?? null,
-    videoContinuity: it.videoContinuity ?? null,
-    videoLineage: it.videoLineage ?? null,
-    filename: it.filename,
-    thumb: it.thumb ?? (isVideo ? undefined : it.url),
+    mediaType: it.mediaType,    filename: it.filename,
+    thumb: it.thumb ?? it.url,
     prompt: it.prompt ?? undefined,
     userPrompt: it.userPrompt ?? null,
     revisedPrompt: it.revisedPrompt ?? null,

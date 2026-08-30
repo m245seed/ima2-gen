@@ -54,21 +54,16 @@ function CollectionThumb({
       onClick={() => showHistorySequence(sequenceId)}
       aria-label={t("common.imageCollection", { n: images.length })}
     >
-      {slots.map((img, i) => {
-        const isVid = false;
-        return isVid ? (
-          <div className="history-thumb__placeholder" />
-        ) : (
-          <img
-            key={i}
-            className="collection-mini"
-            src={img.thumb || img.url || img.image}
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
-        );
-      })}
+      {slots.map((img, i) => (
+        <img
+          key={i}
+          className="collection-mini"
+          src={img.thumb || img.url || img.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+      ))}
     </button>
   );
 }
@@ -233,26 +228,6 @@ export function HistoryStrip() {
             ...seqImages.map((seqItem) => {
               const seqKey = getGalleryItemKey(seqItem);
               const seqActive = activeKey === seqKey;
-              if (false) {
-                return renderLazyThumb(seqKey, (
-                  <div
-                    className={`history-thumb history-thumb--video history-thumb--fade-in${seqActive ? " active" : ""}`}
-                    onClick={() => selectHistory(seqItem)}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: item.url || item.image, filename: item.filename }));
-                      e.dataTransfer.effectAllowed = "copy";
-                    }}
-                  >
-                    {seqItem.thumb ? (
-                      <img src={seqItem.thumb} alt="" loading="lazy" decoding="async" />
-                    ) : (
-                      <div className="history-thumb__placeholder" />
-                    )}
-                    <span className="history-thumb__play-badge" aria-hidden="true">▶</span>
-                  </div>
-                ));
-              }
               return renderLazyThumb(seqKey, (
                 <img
                   src={seqItem.thumb || seqItem.url || seqItem.image}
@@ -271,30 +246,8 @@ export function HistoryStrip() {
             }),
           ];
         }
-
         if (item.sequenceId && completedSequences.has(item.sequenceId) && !sequenceFirstKeys.has(key)) {
           return null;
-        }
-
-        if (false) {
-          return renderLazyThumb(key, (
-            <div
-              className={`history-thumb history-thumb--video${active ? " active" : ""}`}
-              onClick={() => selectHistory(item)}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: item.url || item.image, filename: item.filename }));
-                e.dataTransfer.effectAllowed = "copy";
-              }}
-            >
-              {item.thumb ? (
-                <img src={item.thumb} alt="" loading="lazy" decoding="async" />
-              ) : (
-                <div className="history-thumb__placeholder" />
-              )}
-              <span className="history-thumb__play-badge" aria-hidden="true">▶</span>
-            </div>
-          ));
         }
         return renderLazyThumb(key, (
           <img

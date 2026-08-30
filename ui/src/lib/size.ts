@@ -16,7 +16,6 @@ export const IMAGE_SIZE_MAX_SQUARE =
 export const CUSTOM_SIZE_MIN = IMAGE_SIZE_STEP;
 export const CUSTOM_SIZE_MAX = IMAGE_SIZE_MAX_EDGE;
 export const CUSTOM_SIZE_MAX_RATIO = IMAGE_SIZE_MAX_RATIO;
-export const CUSTOM_SIZE_MAX_PIXELS = IMAGE_SIZE_MAX_PIXELS;
 
 export type CustomSizeAdjustmentReason =
   | "min"
@@ -172,13 +171,6 @@ export const CUSTOM_RATIO_PRESETS: readonly CustomRatioPreset[] = [
 
 export function formatSize(w: number, h: number): string {
   return `${w}x${h}`;
-}
-
-export function describeAspect(w: number, h: number): string {
-  if (w <= 0 || h <= 0) return "free";
-  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const d = gcd(w, h);
-  return `${Math.round(w / d)}:${Math.round(h / d)}`;
 }
 
 export function sizeFromRatioPreset(

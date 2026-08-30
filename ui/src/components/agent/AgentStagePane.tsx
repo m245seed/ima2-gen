@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { useI18n } from "../../i18n";
-import { isVideoUrl } from "../../lib/videoMedia";
 import { ImageIcon, SlidersIcon } from "./AgentIcons";
-import { AgentVideoPreview } from "./AgentImagePane";
 import { AgentResultThumb } from "./AgentResultThumb";
 import { AgentSafeImage } from "./AgentSafeImage";
 import type { AgentImageHandle } from "./agentTypes";
@@ -23,9 +21,9 @@ export function AgentStagePane({ currentImage, images, onImageSelect, onOpenPane
   );
 
   useEffect(() => {
-    if (!currentImage?.id) return;
+    if (!currentImage) return;
     thumbRefs.current[currentImage.id]?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [currentImage?.id]);
+  }, [currentImage]);
 
   const selectByIndex = useCallback((index: number) => {
     const image = images[index];
@@ -63,9 +61,7 @@ export function AgentStagePane({ currentImage, images, onImageSelect, onOpenPane
         aria-label={images.length > 1 ? t("agent.variants") : undefined}
       >
         {currentImage ? (
-          isVideoUrl(currentImage.url)
-            ? <AgentVideoPreview key={currentImage.id} image={currentImage} />
-            : <AgentSafeImage src={currentImage.url} alt={currentImage.prompt ?? t("agent.imageAlt")} fallbackClassName="agent-stage__empty" iconSize={34} />
+          <AgentSafeImage src={currentImage.url} alt={currentImage.prompt ?? t("agent.imageAlt")} fallbackClassName="agent-stage__empty" iconSize={34} />
         ) : (
           <div className="agent-stage__empty">
             <ImageIcon size={34} />

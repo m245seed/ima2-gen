@@ -17,7 +17,6 @@
     "continuity": "이어가기",
     "activePrompt": "현재 프롬프트",
     "elementUnavailable": "요소를 찾을 수 없어요",
-    "spritePreview": "스프라이트 애니메이션 미리보기",
     "canvasMemo": "캔버스 메모",
     "cardDeck": "카드 덱"
   },
@@ -63,10 +62,6 @@
     "missingElements": "선택한 엘리먼트를 찾을 수 없습니다. 제거하거나 다시 추가한 뒤 생성하세요.",
     "nodeCreated": "노드 {id} 생성 완료 ({elapsed}초)",
     "nodeRootCreated": "이 이미지를 첫 노드로 만들었습니다.",
-    "animateStarted": "이미지를 비디오로 변환 중…",
-    "animateProgress": "비디오 렌더링 중… {n}%",
-    "animateDone": "비디오가 준비됐어요. 히스토리를 확인하세요.",
-    "animateFailed": "비디오 생성에 실패했습니다.",
     "nodeCreateFailed": "노드 생성에 실패했습니다.",
     "generatedBatch": "{count}장을 {elapsed}초 만에 생성했습니다.",
     "generatedSingle": "{elapsed}초 만에 생성했습니다.",
@@ -114,7 +109,6 @@
     "inlineCollapse": "진행 중인 생성 {n}건 접기",
     "footerHint": "이 패널을 닫아도 생성은 계속됩니다.",
     "kindImage": "이미지",
-    "kindVideo": "비디오",
     "kindNode": "노드",
     "kindMcp": "MCP",
     "progressAria": "생성 진행률: {n}%"
@@ -248,8 +242,6 @@
       "settings": "생성 설정",
       "usage": "사용량 및 시간",
       "lineage": "출처",
-      "video": "비디오",
-      "videoContinuity": "비디오 연속성",
       "prompts": "프롬프트"
     },
     "fields": {
@@ -285,13 +277,6 @@
       "sequence": "시퀀스",
       "setId": "세트",
       "cardId": "카드",
-      "videoDuration": "길이",
-      "videoResolution": "해상도",
-      "videoAspectRatio": "화면비",
-      "videoRequestedModel": "요청 모델",
-      "videoEffectiveModel": "실제 모델",
-      "videoModelFallback": "모델 대체",
-      "xaiVideoRequestId": "xAI 비디오 요청",
       "sourceImageFilename": "소스 이미지",
       "lineageId": "Lineage",
       "parentFilename": "부모 파일",
@@ -408,7 +393,6 @@
     "savePrompt": "저장",
     "storyboard": "스토리보드",
     "storyboardTitle": "스토리보드 모드 — 인물과 장면의 연속성을 유지하며 순차 프레임 생성",
-    "videoToggleTitle": "비디오 모드 전환 (Grok 1.5)",
     "directMode": "Direct",
     "directModeActive": "1:1 Direct 켜짐",
     "directModeTitle": "프롬프트를 원문 그대로 전달 (Direct 모드)",
@@ -722,9 +706,6 @@
     "continueHereTitle": "이 이미지의 프롬프트를 가져와 이어서 작업",
     "continueAsUrl": "URL로 이어서",
     "continueAsUrlTitle": "원본 URL을 사용해 이어서 생성 (1시간 내 만료)",
-    "animate": "애니메이트",
-    "animating": "애니메이트 중…",
-    "animateTitle": "이 이미지로 Grok 비디오 생성 (이미지→비디오)",
     "firstNode": "첫 노드",
     "firstNodeTitle": "이 이미지를 Node Mode의 준비된 첫 노드로 보냅니다",
     "info": "정보",
@@ -877,7 +858,7 @@
     "attachReference": "참조 첨부",
     "send": "전송",
     "webSearch": "검색 사용",
-    "emptyChat": "메시지를 입력하면 이미지 또는 비디오 작업이 시작됩니다.",
+    "emptyChat": "메시지를 입력하면 이미지 작업이 시작됩니다.",
     "emptyJumpLatest": "최신 메시지로 이동",
     "queueSummary": "활성 {active} · 실패 {failed}",
     "queuePlanSummary": "변형 {variants}개 · 병렬 {parallel}",
@@ -896,14 +877,10 @@
     "progressFailed": "실행 실패",
     "progressJob": "{kind} · 변형 {count}개",
     "mediaKind": {
-      "image": "이미지",
-      "video": "비디오"
+      "image": "이미지"
     },
     "mediaSelect": "미디어 포커스",
-    "mediaLoading": "비디오 불러오는 중",
-    "mediaLoadFailed": "비디오를 불러오지 못했습니다.",
     "mediaRetry": "재시도",
-    "mediaVideoLabel": "생성된 비디오",
     "mediaDuration": "길이 {duration}",
     "mediaDurationUnknown": "길이 정보 없음",
     "mediaDownload": "다운로드",
@@ -1050,43 +1027,16 @@
       "error": "초안 생성 실패"
     }
   },
-  "video": {
-    "selectedCameraPresets": "선택한 카메라 모션 프리셋",
-    "plannerModelTitle": "플래너 모델",
-    "reasoningEffortTitle": "추론 강도",
-    "modeLabel": "비디오 모드",
-    "mode": {
-      "text-to-video": "텍스트 → 비디오 (참조 이미지 없음)",
-      "image-to-video": "이미지 → 비디오 (참조 1장)",
-      "reference-to-video": "레퍼런스 → 비디오 (참조 {n}장)"
-    },
-    "seriesTopicTitle": "시리즈 주제",
-    "seriesTopicPlaceholder": "예: 한국 여행 브이로그",
-    "durationTitle": "길이",
-    "resolutionTitle": "해상도",
-    "resolution1080Help": "1080p는 Grok V1.5의 프롬프트 전용 또는 단일 이미지/프레임 영상에서 사용합니다. 참조 2장 이상에서는 사용할 수 없습니다.",
-    "aspectTitle": "비율",
-    "plannerUpdateFailed": "플래너 모델을 변경하지 못해 이전 설정으로 되돌렸습니다.",
-    "continuationFallbackT2V": "이어갈 영상의 마지막 프레임을 추출하지 못했습니다. 텍스트-비디오 방식으로 계속 생성합니다.",
-    "singleRefTitle": "참조 1장 사용법",
-    "singleRefHelp": "이 이미지를 첫 프레임으로 쓸지, 참고만 할지 고릅니다. 2장부터는 항상 참고로 쓰입니다.",
-    "singleRef": {
-      "source": "이 이미지로 시작",
-      "reference": "참고만 하기"
-    }
-  },
   "sidebar": {
     "appName": "이미지 생성기",
     "imageModelLabel": "모델",
     "imageSectionLabel": "이미지",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "videoSectionLabel": "비디오",
     "imageModelAria": "이미지 모델 선택",
     "quickSettingsAria": "모델과 추론 강도 선택. 현재 모델 {model}, 추론 {effort}",
     "quickSettingsModelOnlyAria": "이미지 모델 선택. 현재 모델 {model}",
     "quickSettingsMenu": "모델 및 추론 빠른 설정",
     "reasoningLabel": "추론",
-    "videoModelLabel": "비디오",
     "nodeModeHint": "노드 모드에서는 노드를 눌러 프롬프트를 수정한 뒤 생성하세요. 오른쪽 패널의 설정 (품질/크기)은 새로 만드는 모든 결과에 적용됩니다."
   },
   "settings": {
@@ -1516,6 +1466,7 @@
   },
   "assetGen": {
     "title": "에셋 생성",
+    "imageFallback": "생성된 이미지",
     "lede": "이미지를 만들고 클릭 한 번으로 배경까지 지워 보세요.",
     "prompt": "프롬프트",
     "promptPlaceholder": "빨간 사과 하나, 스튜디오 제품 촬영",
@@ -1531,12 +1482,6 @@
     "modelGpt": "GPT",
     "kind": "출력",
     "kindImage": "이미지",
-    "kindVideo": "비디오",
-    "videoSoon": "비디오 에셋은 다음 단계에서 열립니다",
-    "videoOptions": "비디오 옵션",
-    "videoDuration": "길이",
-    "videoResolution": "해상도",
-    "videoAspect": "화면 비율",
     "generate": "에셋 생성",
     "generating": "생성 중…",
     "emptyTitle": "아직 에셋이 없습니다",
@@ -1546,15 +1491,11 @@
     "emptySessionCta": "프로젝트 에셋 보기",
     "generateHint": "프롬프트를 입력하면 버튼이 자동으로 활성화됩니다.",
     "previewImage": "이미지 미리보기 열기: {prompt}",
-    "previewVideo": "비디오 미리보기 열기: {prompt}",
     "previewDialogTitle": "미리보기: {prompt}",
     "closePreview": "미리보기 닫기",
     "zoomIn": "확대",
     "zoomOut": "화면에 맞춤",
     "openHintImage": "크게 보기",
-    "openHintVideo": "재생",
-    "imageFallback": "생성된 이미지",
-    "videoFallback": "생성된 비디오",
     "emptyCta": "첫 프롬프트 쓰기",
     "errorTitle": "생성에 실패했습니다",
     "errorHint": "모델과 API 키 설정을 확인하고 다시 시도해 주세요.",
@@ -1582,50 +1523,6 @@
     "close": "닫기",
     "saveRetry": "저장 다시 시도"
   },
-  "spriteCurator": {
-    "title": "스프라이트 큐레이터",
-    "open": "큐레이션",
-    "close": "큐레이터 닫기",
-    "state": "애니메이션 상태",
-    "unsaved": "저장하지 않은 변경",
-    "discardConfirm": "저장하지 않은 스프라이트 변경을 버릴까요?",
-    "loadError": "스프라이트 실행 결과를 불러오지 못했습니다.",
-    "saveError": "큐레이션을 저장하지 못했습니다.",
-    "bakeError": "스프라이트 아틀라스를 굽지 못했습니다.",
-    "exportError": "스프라이트 애니메이션을 내보내지 못했습니다.",
-    "previous": "이전 프레임",
-    "play": "재생",
-    "pause": "일시 정지",
-    "next": "다음 프레임",
-    "speed": "속도",
-    "grid": "격자",
-    "transform": "프레임 변형",
-    "rotate": "회전",
-    "scale": "크기",
-    "dx": "가로 이동",
-    "dy": "세로 이동",
-    "shx": "가로 기울기",
-    "shy": "세로 기울기",
-    "flipX": "좌우 뒤집기",
-    "sequence": "시퀀스 — 재생·굽기 순서",
-    "candidates": "후보 보관함",
-    "frameAria": "{rail}의 {n}번 프레임",
-    "addFrame": "추가",
-    "removeFrame": "빼기",
-    "deleteFrame": "{n}번 프레임 삭제",
-    "save": "큐레이션 저장",
-    "bake": "아틀라스 굽기",
-    "contactSheet": "콘택트 시트",
-    "gif": "GIF 내보내기",
-    "status": {
-      "loading": "불러오는 중…",
-      "ready": "저장됨",
-      "saving": "저장 중…",
-      "baking": "굽는 중…",
-      "exporting": "내보내는 중…",
-      "error": "작업 실패"
-    }
-  },
   "keying": {
     "title": "배경 제거",
     "open": "배경 제거",
@@ -1651,9 +1548,6 @@
     "download": "알파 PNG 내려받기",
     "save": "프로젝트에 저장",
     "saving": "저장 중…",
-    "videoSave": "알파 WebM 생성",
-    "videoKeying": "비디오 키잉 중… {seconds}s",
-    "videoSaved": "알파 WebM을 프로젝트에 저장했습니다",
     "saved": "알파 PNG를 프로젝트에 저장했습니다",
     "saveError": "키잉 결과를 저장하지 못했습니다",
     "loadError": "이미지를 불러오지 못했습니다. 닫고 다시 시도해 주세요.",
@@ -1661,7 +1555,6 @@
   },
   "chain": {
     "ariaLabel": "빠른 작업",
-    "animate": "영상으로",
     "edit": "캔버스에서 편집",
     "useAsRef": "참조로 사용",
     "rebake": "다시 굽기",
@@ -1689,7 +1582,6 @@
     "newFolder": "새 폴더",
     "kindAll": "모든 유형",
     "kindImage": "이미지",
-    "kindVideo": "비디오",
     "kindElement": "요소",
     "kindPreset": "프리셋",
     "kindTemplate": "템플릿",
@@ -1858,7 +1750,6 @@
       "prompt": "프롬프트",
       "image": "이미지",
       "images": "이미지 모음",
-      "video": "비디오",
       "mask": "마스크",
       "element-refs": "요소 참조",
       "element-notes": "요소 메모",
@@ -1875,107 +1766,13 @@
       "cycle": "이 연결은 순환 고리를 만들기 때문에 연결할 수 없습니다."
     }
   },
-  "sprite": {
-    "tabs": {
-      "label": "에셋 작업 방식",
-      "generate": "일반 생성",
-      "sprite": "스프라이트"
-    },
-    "title": "스프라이트 레시피",
-    "lede": "캐릭터 기준 앵커를 확정한 뒤 일관된 애니메이션 행을 생성합니다.",
-    "loading": "스프라이트 레시피를 불러오는 중…",
-    "loadError": "레시피를 불러오지 못했습니다.",
-    "retry": "다시 시도",
-    "empty": {
-      "title": "스프라이트 레시피 만들기",
-      "body": "캐릭터, 셀 크기, 애니메이션 상태를 정의하세요.",
-      "create": "레시피 만들기"
-    },
-    "recipe": {
-      "select": "레시피",
-      "new": "새 레시피",
-      "name": "레시피 이름",
-      "characterId": "캐릭터 ID",
-      "description": "설명",
-      "style": "스타일",
-      "baseAssetId": "기준 이미지 에셋",
-      "baseAsset": "기준 이미지 에셋",
-      "save": "레시피 저장",
-      "saving": "저장 중…",
-      "unsaved": "생성 전에 변경 내용을 저장하세요."
-    },
-    "cell": {
-      "title": "셀 크기",
-      "width": "너비",
-      "height": "높이",
-      "safeMarginX": "가로 여백",
-      "safeMarginY": "세로 여백"
-    },
-    "chroma": {
-      "title": "크로마키",
-      "hex": "크로마 색상"
-    },
-    "states": {
-      "title": "애니메이션 상태",
-      "add": "상태 추가",
-      "remove": "삭제",
-      "key": "상태 키",
-      "frames": "프레임",
-      "fps": "FPS",
-      "loop": "반복",
-      "action": "동작"
-    },
-    "anchor": {
-      "title": "아이덴티티 앵커",
-      "missing": "행 생성 전에 idle 포즈를 생성하고 승인하세요.",
-      "generate": "idle 후보 생성",
-      "generating": "생성 중…",
-      "candidate": "검토할 후보가 준비되었습니다.",
-      "regenerate": "다시 생성",
-      "approve": "앵커 승인",
-      "approved": "앵커 승인됨",
-      "replace": "앵커 교체",
-      "confirmTitle": "이 아이덴티티 앵커를 승인할까요?",
-      "confirmBody": "이후 행은 이 아이덴티티를 재사용하며 기준 이미지는 다시 첨부되지 않습니다.",
-      "confirm": "승인",
-      "cancel": "취소"
-    },
-    "rows": {
-      "title": "스프라이트 행",
-      "generateAll": "전체 생성",
-      "generateSelected": "선택 생성",
-      "regenerate": "행 다시 생성",
-      "cancel": "취소",
-      "preview": "미리보기",
-      "anchorRequired": "먼저 앵커를 승인하세요.",
-      "saveRequired": "먼저 레시피 변경 내용을 저장하세요.",
-      "status": {
-        "pending": "대기",
-        "queued": "예약됨",
-        "running": "생성 중",
-        "complete": "완료",
-        "error": "오류",
-        "canceled": "취소됨"
-      }
-    },
-    "error": {
-      "INVALID_SPRITE_RECIPE": "필수 레시피 항목을 입력하세요.",
-      "ANCHOR_NOT_APPROVED": "먼저 아이덴티티 앵커를 승인하세요.",
-      "BASE_REFERENCE_FORBIDDEN": "승인 후에는 기준 이미지를 다시 사용할 수 없습니다.",
-      "GENERATION_CANCELED": "생성이 취소되었습니다.",
-      "generic": "스프라이트 생성에 실패했습니다."
-    }
-  },
   "graph": {
     "undone": "마지막 그래프 변경을 되돌렸습니다.",
     "redone": "그래프 변경을 다시 적용했습니다."
   },
   "provenance": {
     "t2i": "텍스트→이미지",
-    "i2i": "이미지 편집",
-    "t2v": "텍스트→영상",
-    "i2v": "이미지→영상",
-    "v2v": "영상 이어가기"
+    "i2i": "이미지 편집"
   },
   "element": {
     "title": "요소",

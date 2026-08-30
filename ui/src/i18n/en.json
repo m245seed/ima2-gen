@@ -17,7 +17,6 @@
     "continuity": "Continuity",
     "activePrompt": "Active prompt",
     "elementUnavailable": "Element unavailable",
-    "spritePreview": "Sprite animation preview",
     "canvasMemo": "Canvas memo",
     "cardDeck": "Card deck"
   },
@@ -63,10 +62,6 @@
     "missingElements": "A selected element is missing. Remove it or re-add the element before generating.",
     "nodeCreated": "Node {id} created ({elapsed}s)",
     "nodeRootCreated": "Created a first node from this image.",
-    "animateStarted": "Animating image to video…",
-    "animateProgress": "Rendering video… {n}%",
-    "animateDone": "Video ready. Check your history.",
-    "animateFailed": "Video generation failed.",
     "nodeCreateFailed": "Node generation failed.",
     "generatedBatch": "Generated {count} images in {elapsed}s.",
     "generatedSingle": "Generated in {elapsed}s.",
@@ -114,7 +109,6 @@
     "inlineCollapse": "Collapse {n} generations in flight",
     "footerHint": "You can close this panel — generations will continue.",
     "kindImage": "Image",
-    "kindVideo": "Video",
     "kindNode": "Node",
     "kindMcp": "MCP",
     "progressAria": "Generation progress: {n}%"
@@ -248,8 +242,6 @@
       "settings": "Generation Settings",
       "usage": "Usage & Timing",
       "lineage": "Lineage",
-      "video": "Video",
-      "videoContinuity": "Video Continuity",
       "prompts": "Prompts"
     },
     "fields": {
@@ -285,13 +277,6 @@
       "sequence": "Sequence",
       "setId": "Set",
       "cardId": "Card",
-      "videoDuration": "Duration",
-      "videoResolution": "Resolution",
-      "videoAspectRatio": "Aspect ratio",
-      "videoRequestedModel": "Requested model",
-      "videoEffectiveModel": "Effective model",
-      "videoModelFallback": "Model fallback",
-      "xaiVideoRequestId": "xAI video request",
       "sourceImageFilename": "Source image",
       "lineageId": "Lineage",
       "parentFilename": "Parent file",
@@ -408,7 +393,6 @@
     "savePrompt": "Save",
     "storyboard": "Storyboard",
     "storyboardTitle": "Enable storyboard mode — maintains character and scene continuity across sequential frames",
-    "videoToggleTitle": "Toggle video mode (Grok 1.5)",
     "directMode": "Direct",
     "directModeActive": "1:1 Direct on",
     "directModeTitle": "Pass prompt through verbatim (Direct mode)",
@@ -722,9 +706,6 @@
     "continueHereTitle": "Import this image's prompt and keep working",
     "continueAsUrl": "URL continue",
     "continueAsUrlTitle": "Continue using the original provider URL (expires in 1 hour)",
-    "animate": "Animate",
-    "animating": "Animating…",
-    "animateTitle": "Generate a Grok video from this image (image-to-video)",
     "firstNode": "First node",
     "firstNodeTitle": "Send this image to Node Mode as a ready first node",
     "info": "Info",
@@ -877,7 +858,7 @@
     "attachReference": "Attach reference",
     "send": "Send",
     "webSearch": "Use search",
-    "emptyChat": "Enter a message to start image or video work.",
+    "emptyChat": "Enter a message to start image work.",
     "emptyJumpLatest": "Jump to latest",
     "queueSummary": "{active} active · {failed} failed",
     "queuePlanSummary": "variants {variants} · parallel {parallel}",
@@ -896,14 +877,10 @@
     "progressFailed": "Run failed",
     "progressJob": "{kind} · {count} variants",
     "mediaKind": {
-      "image": "Image",
-      "video": "Video"
+      "image": "Image"
     },
     "mediaSelect": "Focus media",
-    "mediaLoading": "Loading video",
-    "mediaLoadFailed": "Video could not be loaded.",
     "mediaRetry": "Retry",
-    "mediaVideoLabel": "Generated video",
     "mediaDuration": "Duration {duration}",
     "mediaDurationUnknown": "Duration unavailable",
     "mediaDownload": "Download",
@@ -1050,43 +1027,16 @@
       "error": "Draft failed"
     }
   },
-  "video": {
-    "selectedCameraPresets": "Selected camera motion presets",
-    "plannerModelTitle": "Planner Model",
-    "reasoningEffortTitle": "Reasoning Effort",
-    "modeLabel": "Video mode",
-    "mode": {
-      "text-to-video": "Text → video (no reference images)",
-      "image-to-video": "Image → video (1 reference)",
-      "reference-to-video": "Reference → video ({n} references)"
-    },
-    "seriesTopicTitle": "Series topic",
-    "seriesTopicPlaceholder": "e.g. Korean travel vlog",
-    "durationTitle": "Length",
-    "resolutionTitle": "Resolution",
-    "resolution1080Help": "1080p uses Grok V1.5 for prompt-only or single image/frame video. It is not available with 2+ references.",
-    "aspectTitle": "Aspect ratio",
-    "plannerUpdateFailed": "Could not update the planner model. The previous setting was restored.",
-    "continuationFallbackT2V": "The continuation frame could not be extracted. Generation will continue as text-to-video.",
-    "singleRefTitle": "One reference",
-    "singleRefHelp": "Use this image as the opening frame, or only as a guide. Two or more are always guides.",
-    "singleRef": {
-      "source": "Start from it",
-      "reference": "Use as guide"
-    }
-  },
   "sidebar": {
     "appName": "Image Generator",
     "imageModelLabel": "Model",
     "imageSectionLabel": "Image",
     "gptImageSubLabel": "GPT-IMAGE-2",
-    "videoSectionLabel": "Video",
     "imageModelAria": "Choose image model",
     "quickSettingsAria": "Choose model and reasoning effort. Current model {model}, reasoning {effort}",
     "quickSettingsModelOnlyAria": "Choose image model. Current model {model}",
     "quickSettingsMenu": "Model and reasoning quick settings",
     "reasoningLabel": "Reasoning",
-    "videoModelLabel": "Video",
     "nodeModeHint": "In node mode, click a node to edit its prompt and generate. Settings on the right panel (quality/size) apply to every new result."
   },
   "settings": {
@@ -1516,6 +1466,7 @@
   },
   "assetGen": {
     "title": "Asset generation",
+    "imageFallback": "Generated image",
     "lede": "Create images or clips, then remove their backgrounds in one click.",
     "prompt": "Prompt",
     "promptPlaceholder": "A single red apple, studio product shot",
@@ -1531,12 +1482,6 @@
     "modelGpt": "GPT",
     "kind": "Output",
     "kindImage": "Image",
-    "kindVideo": "Video",
-    "videoSoon": "Video assets arrive in a later phase",
-    "videoOptions": "Video options",
-    "videoDuration": "Duration",
-    "videoResolution": "Resolution",
-    "videoAspect": "Aspect ratio",
     "generate": "Generate asset",
     "generating": "Generating…",
     "emptyTitle": "No assets yet",
@@ -1546,15 +1491,11 @@
     "emptySessionCta": "Browse project assets",
     "generateHint": "Write a prompt first — the button enables automatically.",
     "previewImage": "Open image preview: {prompt}",
-    "previewVideo": "Open video preview: {prompt}",
     "previewDialogTitle": "Preview: {prompt}",
     "closePreview": "Close preview",
     "zoomIn": "Zoom in",
     "zoomOut": "Fit to screen",
     "openHintImage": "Enlarge",
-    "openHintVideo": "Play",
-    "imageFallback": "Generated image",
-    "videoFallback": "Generated video",
     "emptyCta": "Write your first prompt",
     "errorTitle": "Generation failed",
     "errorHint": "Check the model and API key settings, then try again.",
@@ -1582,50 +1523,6 @@
     "close": "Close",
     "saveRetry": "Retry save"
   },
-  "spriteCurator": {
-    "title": "Sprite curator",
-    "open": "Curate",
-    "close": "Close curator",
-    "state": "Animation state",
-    "unsaved": "Unsaved changes",
-    "discardConfirm": "Discard your unsaved sprite changes?",
-    "loadError": "Could not load this sprite run.",
-    "saveError": "Could not save the curation.",
-    "bakeError": "Could not bake the sprite atlas.",
-    "exportError": "Could not export the sprite animation.",
-    "previous": "Previous frame",
-    "play": "Play",
-    "pause": "Pause",
-    "next": "Next frame",
-    "speed": "Speed",
-    "grid": "Grid",
-    "transform": "Frame transform",
-    "rotate": "Rotate",
-    "scale": "Scale",
-    "dx": "Move X",
-    "dy": "Move Y",
-    "shx": "Shear X",
-    "shy": "Shear Y",
-    "flipX": "Flip horizontally",
-    "sequence": "Sequence — play and bake order",
-    "candidates": "Candidate pool",
-    "frameAria": "Frame {n}, {rail}",
-    "addFrame": "Add",
-    "removeFrame": "Remove",
-    "deleteFrame": "Delete frame {n}",
-    "save": "Save curation",
-    "bake": "Bake atlas",
-    "contactSheet": "Contact sheet",
-    "gif": "Export GIF",
-    "status": {
-      "loading": "Loading…",
-      "ready": "Saved",
-      "saving": "Saving…",
-      "baking": "Baking…",
-      "exporting": "Exporting…",
-      "error": "Action failed"
-    }
-  },
   "keying": {
     "title": "Remove background",
     "open": "Remove background",
@@ -1651,9 +1548,6 @@
     "download": "Download alpha PNG",
     "save": "Save to project",
     "saving": "Saving…",
-    "videoSave": "Create alpha WebM",
-    "videoKeying": "Keying video… {seconds}s",
-    "videoSaved": "Alpha WebM saved to the project",
     "saved": "Alpha PNG saved to the project",
     "saveError": "Could not save the keyed image",
     "loadError": "Could not load this image for keying. Close and try again.",
@@ -1661,7 +1555,6 @@
   },
   "chain": {
     "ariaLabel": "Quick actions",
-    "animate": "Animate",
     "edit": "Edit in canvas",
     "useAsRef": "Use as reference",
     "rebake": "Re-generate",
@@ -1689,7 +1582,6 @@
     "newFolder": "New folder",
     "kindAll": "All types",
     "kindImage": "Images",
-    "kindVideo": "Videos",
     "kindElement": "Elements",
     "kindPreset": "Presets",
     "kindTemplate": "Templates",
@@ -1858,7 +1750,6 @@
       "prompt": "prompt",
       "image": "image",
       "images": "images",
-      "video": "video",
       "mask": "mask",
       "element-refs": "element references",
       "element-notes": "element notes",
@@ -1875,107 +1766,13 @@
       "cycle": "That connection would create a loop."
     }
   },
-  "sprite": {
-    "tabs": {
-      "label": "Asset workflow",
-      "generate": "Generate",
-      "sprite": "Sprites"
-    },
-    "title": "Sprite recipes",
-    "lede": "Lock one character anchor, then generate consistent animation rows.",
-    "loading": "Loading sprite recipes…",
-    "loadError": "Could not load recipes.",
-    "retry": "Retry",
-    "empty": {
-      "title": "Create a sprite recipe",
-      "body": "Define the character, cell geometry, and animation states.",
-      "create": "Create recipe"
-    },
-    "recipe": {
-      "select": "Recipe",
-      "new": "New recipe",
-      "name": "Recipe name",
-      "characterId": "Character ID",
-      "description": "Description",
-      "style": "Style",
-      "baseAssetId": "Base image asset",
-      "baseAsset": "Base image asset",
-      "save": "Save recipe",
-      "saving": "Saving…",
-      "unsaved": "Save changes before generating."
-    },
-    "cell": {
-      "title": "Cell geometry",
-      "width": "Width",
-      "height": "Height",
-      "safeMarginX": "Horizontal margin",
-      "safeMarginY": "Vertical margin"
-    },
-    "chroma": {
-      "title": "Chroma key",
-      "hex": "Chroma color"
-    },
-    "states": {
-      "title": "Animation states",
-      "add": "Add state",
-      "remove": "Remove",
-      "key": "State key",
-      "frames": "Frames",
-      "fps": "FPS",
-      "loop": "Loop",
-      "action": "Action"
-    },
-    "anchor": {
-      "title": "Identity anchor",
-      "missing": "Generate and approve an idle pose before rows.",
-      "generate": "Generate idle candidate",
-      "generating": "Generating…",
-      "candidate": "Candidate ready for review.",
-      "regenerate": "Regen",
-      "approve": "Approve anchor",
-      "approved": "Anchor approved",
-      "replace": "Replace anchor",
-      "confirmTitle": "Approve this identity anchor?",
-      "confirmBody": "Future rows will reuse this identity; the base image will not be attached again.",
-      "confirm": "Approve",
-      "cancel": "Cancel"
-    },
-    "rows": {
-      "title": "Sprite rows",
-      "generateAll": "Generate all",
-      "generateSelected": "Generate selected",
-      "regenerate": "Retry row",
-      "cancel": "Cancel",
-      "preview": "Preview",
-      "anchorRequired": "Approve the anchor first.",
-      "saveRequired": "Save recipe changes first.",
-      "status": {
-        "pending": "Pending",
-        "queued": "Queued",
-        "running": "Running",
-        "complete": "Complete",
-        "error": "Error",
-        "canceled": "Canceled"
-      }
-    },
-    "error": {
-      "INVALID_SPRITE_RECIPE": "Complete the required recipe fields.",
-      "ANCHOR_NOT_APPROVED": "Approve the identity anchor first.",
-      "BASE_REFERENCE_FORBIDDEN": "The base image cannot be reused after approval.",
-      "GENERATION_CANCELED": "Generation was canceled.",
-      "generic": "Sprite generation failed."
-    }
-  },
   "graph": {
     "undone": "Undid the last graph change.",
     "redone": "Redid the graph change."
   },
   "provenance": {
     "t2i": "Text → Image",
-    "i2i": "Image edit",
-    "t2v": "Text → Video",
-    "i2v": "Image → Video",
-    "v2v": "Video continuation"
+    "i2i": "Image edit"
   },
   "element": {
     "title": "Element",

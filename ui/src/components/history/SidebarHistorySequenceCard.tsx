@@ -1,6 +1,4 @@
 import { getGalleryItemKey } from "../../lib/galleryNavigation";
-import { isVideoItem } from "../../lib/videoMedia";
-import { VideoThumbPlaceholder } from "../VideoThumbPlaceholder";
 import {
   getSequenceThumbSlotCount,
   type SidebarHistoryEntry,
@@ -44,9 +42,9 @@ export function SidebarHistorySequenceCard({
         >
           {Array.from({ length: slotCount }).map((_, index) => {
             const item = entry.items[index];
-            if (item && isVideoItem(item) && !item.thumb) {
+            if (item && false && !item.thumb) {
               return (
-                <VideoThumbPlaceholder key={getGalleryItemKey(item)} />
+                <div className="image__placeholder" />
               );
             }
             return item ? (

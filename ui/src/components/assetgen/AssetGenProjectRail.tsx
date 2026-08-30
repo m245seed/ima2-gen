@@ -27,7 +27,7 @@ export function AssetGenProjectRail({ selectedAssetId, onPreview, onAssetsLoaded
     getAssets({ kind: null, folderId: selectedProjectId, tag: null, q: "", limit: RAIL_LIMIT })
       .then((page) => {
         if (stale) return;
-        const usable = page.assets.filter((asset) => asset.filePath && (asset.kind === "image" || asset.kind === "video"));
+        const usable = page.assets.filter((asset) => asset.filePath && asset.kind === "image");
         setAssets(usable);
         onAssetsLoaded?.(usable.length);
         setFailed(false);
@@ -69,11 +69,7 @@ export function AssetGenProjectRail({ selectedAssetId, onPreview, onAssetsLoaded
                 title={displayName}
                 onClick={() => onPreview(assetToPreviewItem(asset), asset.id)}
               >
-                {asset.kind === "video" ? (
-                  <video src={url} muted playsInline preload="metadata" aria-hidden="true" />
-                ) : (
-                  <img src={url} alt="" loading="lazy" decoding="async" />
-                )}
+                <img src={url} alt="" loading="lazy" decoding="async" />
                 <span className="assetgen-rail__name">{displayName}</span>
               </button>
             );

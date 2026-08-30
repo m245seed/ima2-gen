@@ -1,6 +1,6 @@
 import { ulid } from "ulid";
 import { config } from "../config.js";
-import { generateAgentImageWithRetry } from "./agentImageVideoGen.js";
+import { generateAgentImageWithRetry } from "./agentImageGen.js";
 import {
   appendAgentTurn,
   buildImageContextManifest,

@@ -450,15 +450,10 @@
 }
 
 .agent-result-thumb img,
-.agent-result-thumb video,
 .agent-result-thumb .agent-image-fallback {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.agent-result-thumb video {
-  pointer-events: none;
 }
 
 .agent-result-thumb--compact {

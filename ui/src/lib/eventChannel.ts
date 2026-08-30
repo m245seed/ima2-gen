@@ -127,31 +127,3 @@ export function disconnect() {
 export function ensureConnected() {
   if (!source || source.readyState === EventSource.CLOSED) connect();
 }
-
-/**
- * Resolve once the SSE transport is OPEN (immediately if already open).
- * Subscribers that submit a job right after subscribing must await this —
- * otherwise a terminal event emitted before the server-side subscription is
- * installed is lost on a fresh connection (no Last-Event-ID replay exists).
- */
-export function whenConnected(timeoutMs = 10_000): Promise<void> {
-  ensureConnected();
-  if (source && source.readyState === EventSource.OPEN) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const startedAt = Date.now();
-    // Poll readyState instead of onConnectionStateChange — that callback is a
-    // singleton owned by the store and must not be clobbered.
-    const tick = () => {
-      if (source && source.readyState === EventSource.OPEN) {
-        resolve();
-        return;
-      }
-      if (Date.now() - startedAt >= timeoutMs) {
-        reject(new Error("SSE channel open timed out"));
-        return;
-      }
-      setTimeout(tick, 50);
-    };
-    tick();
-  });
-}

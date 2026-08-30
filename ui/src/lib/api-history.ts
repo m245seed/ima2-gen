@@ -5,11 +5,7 @@ export type HistoryItem = {
   url: string;
   providerUrl?: string | null;
   thumb?: string | null;
-  mediaType?: "image" | "video" | string;
-  video?: Record<string, unknown> | null;
-  videoSeries?: { topic?: string; chainIndex?: number } | null;
-  videoContinuity?: import("../types").VideoContinuityLineage | null;
-  videoLineage?: import("../types").VideoLineage | null;
+  mediaType?: "image" | string;
   createdAt: number;
   prompt: string | null;
   userPrompt?: string | null;

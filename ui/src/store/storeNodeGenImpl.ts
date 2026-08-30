@@ -442,7 +442,7 @@ export async function runNodeBatchImpl(
       completed += 1;
       latestServerNodeIdByClientId.set(candidateId, nodeId);
       const directChildren = getDirectUnselectedChildren(get().graphEdges, candidateId, selectedSet);
-      // Selected direct children too (020, wp2 audit blocker #2): the video
+      // Selected direct children too (020, wp2 audit blocker #2): the
       // batch path resolves lineage from the stored parentServerNodeId, so
       // propagate the fresh server id to every direct child.
       const selectedDirectChildren = get().graphEdges

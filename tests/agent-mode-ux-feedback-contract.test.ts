@@ -93,15 +93,15 @@ async function waitFor<T>(probe: () => Promise<T | undefined | false>, label: st
 }
 
 describe("Agent Mode UX feedback contract", () => {
-  it("keeps question-mode plans intact instead of re-deriving a regex video plan", () => {
+  it("keeps question-mode plans intact instead of re-deriving an image plan", () => {
     const plan = normalizeAgentGenerationPlan(
-      "영상 생성가능하니",
-      { mode: "question", prompts: [], source: "llm-planner", assistantText: "네, 영상 생성이 가능해요." },
+      "이미지 생성가능하니",
+      { mode: "question", prompts: [], source: "llm-planner", assistantText: "네, 이미지 생성이 가능해요." },
       DEFAULT_AGENT_GENERATION_SETTINGS,
     );
     assert.equal(plan.mode, "question");
     assert.deepEqual(plan.prompts, []);
-    assert.equal(plan.assistantText, "네, 영상 생성이 가능해요.");
+    assert.equal(plan.assistantText, "네, 이미지 생성이 가능해요.");
     assert.equal(plan.source, "llm-planner");
   });
 
@@ -174,7 +174,7 @@ describe("Agent Mode UX feedback contract", () => {
     }, { enabled: true, timeoutMs: 5_000 });
   });
 
-  it("surfaces video-path queue failures as an assistant error turn in the chat", async () => {
+  it("surfaces image-generation queue failures as an assistant error turn in the chat", async () => {
     globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
       const target = String(url);
       if (target.includes("/api/agent/")) return originalFetch(url, init);
@@ -185,13 +185,13 @@ describe("Agent Mode UX feedback contract", () => {
       const res = await fetch(`${baseUrl}/api/agent/sessions/${sessionId}/queue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: "고양이 영상 만들어줘" }),
+        body: JSON.stringify({ prompt: "고양이 이미지 만들어줘" }),
       });
       assert.equal(res.status, 202);
       const errorTurn = await waitFor(async () => {
         const turns = await turnsFor(baseUrl, sessionId);
         return turns.find((turn) => turn.role === "assistant" && turn.status === "error");
-      }, "assistant error turn after video failure");
+      }, "assistant error turn after image failure");
       assert.ok(errorTurn.text.length > 0);
     });
   });

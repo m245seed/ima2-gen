@@ -169,8 +169,7 @@
 }
 
 .agent-session-drawer,
-.agent-image-sheet,
-.agent-model-sheet {
+.agent-image-sheet {
   position: relative;
   z-index: 1;
   min-width: 0;
@@ -189,8 +188,7 @@
 }
 
 .agent-session-drawer header,
-.agent-image-sheet header,
-.agent-model-sheet header {
+.agent-image-sheet header {
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -199,24 +197,11 @@
 }
 
 .agent-session-drawer header button,
-.agent-image-sheet header button,
-.agent-model-sheet header button {
+.agent-image-sheet header button {
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
-}
-
-.agent-model-sheet {
-  align-self: end;
-  width: 100%;
-  max-height: min(70dvh, 520px);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
-  border-radius: 12px 12px 0 0;
-  padding: 14px;
-  overflow-y: auto;
 }
 
 .agent-image-sheet {

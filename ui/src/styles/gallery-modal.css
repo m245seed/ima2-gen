@@ -306,67 +306,6 @@
   object-fit: cover;
   display: block;
 }
-.gallery__tile-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.gallery__tile-video-wrap {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-.gallery__play-badge {
-  position: absolute;
-  bottom: 4px;
-  left: 4px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  pointer-events: none;
-}
-.history-thumb__play-badge,
-.sidebar-history__play-badge {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 8px;
-  padding: 1px 4px;
-  border-radius: 2px;
-  pointer-events: none;
-}
-.history-thumb--video {
-  position: relative;
-}
-.history-thumb--video img,
-.history-thumb--video video,
-.history-thumb--video .video-thumb-placeholder {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-/* Static stand-in for thumbnail-less videos — no live <video> element, so it
-   cannot consume a media-decoder slot or open an MP4 fetch (RCA 01 Defect E). */
-.video-thumb-placeholder {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: var(--surface-2);
-  border-radius: inherit;
-}
-.sidebar-history__thumb--video {
-  position: relative;
-}
-.gallery__tile--active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
 .gallery__caption {
   position: absolute;
   left: 0;

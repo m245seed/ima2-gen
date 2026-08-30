@@ -187,20 +187,6 @@
   background: var(--info, #3b82f6);
 }
 
-.mcp-catalog-state {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--text-dim);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.mcp-catalog-state .settings-action-btn {
-  flex: 0 0 auto;
-}
-
 .settings-action-btn[aria-busy="true"] {
   cursor: progress;
 }

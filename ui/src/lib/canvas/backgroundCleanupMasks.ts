@@ -27,12 +27,6 @@ export function cloneCleanupMask(mask: CleanupMask): CleanupMask {
   return { width: mask.width, height: mask.height, data: new Uint8Array(mask.data) };
 }
 
-export function orMaskInto(target: CleanupMask, addition: CleanupMask): void {
-  assertSameSize(target, addition);
-  for (let index = 0; index < target.data.length; index += 1) {
-    if ((addition.data[index] ?? 0) > 0) target.data[index] = 255;
-  }
-}
 
 export function subtractMaskInto(target: CleanupMask, subtract: CleanupMask): void {
   assertSameSize(target, subtract);

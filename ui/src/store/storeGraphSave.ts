@@ -9,7 +9,6 @@ import { compressImage } from "../lib/image";
 import { type ClientNodeId } from "../lib/graph";
 import { deriveParentServerNodeIds } from "../lib/nodeGraph";
 import { loadNodeRefs, pruneNodeRefs } from "../lib/nodeRefStorage";
-import { isVideoItem } from "../lib/videoMedia";
 import { t } from "../i18n";
 import { GRAPH_TAB_ID_KEY } from "./persistenceRegistry";
 import { saveSelectedFilename } from "./storePersistence";
@@ -68,7 +67,6 @@ export function mapSessionToGraph(session: SessionFull): {
       model: (d.model ?? null) as string | null,
       size: (d.size ?? null) as string | null,
       referenceImages: loadNodeRefs(session.id, n.id),
-      video: (d.video ?? null) as ImageNodeData["video"],
     };
     return {
       id: n.id,
@@ -202,9 +200,7 @@ export async function recoverGraphNodesFromHistory(
         serverNodeId: recovered.nodeId ?? n.data.serverNodeId,
         size: recovered.size ?? n.data.size ?? null,
         elapsed: recovered.elapsed ?? n.data.elapsed,
-        reasoningEffort: (recovered.reasoningEffort as ImageNodeData["reasoningEffort"]) ?? n.data.reasoningEffort,
-        video: (recovered as any).video ?? n.data.video ?? null,
-        pendingRequestId: null,
+        reasoningEffort: (recovered.reasoningEffort as ImageNodeData["reasoningEffort"]) ?? n.data.reasoningEffort,        pendingRequestId: null,
         recoveryRequestId: null,
         pendingPhase: null,
         pendingStartedAt: null,
@@ -389,7 +385,7 @@ export async function addHistory(
   get: () => AppState,
   options: AddHistoryOptions = {},
 ): Promise<void> {
-  const thumb = isVideoItem(item)
+  const thumb = false
     ? undefined
     : await compressImage(item.image).catch(() => item.image);
   const url = item.filename ? `/generated/${item.filename}` : item.image;

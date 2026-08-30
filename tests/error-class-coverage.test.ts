@@ -11,7 +11,7 @@ import {
 
 // Scan the whole server surface, not a hand-listed set of adapters: provider
 // codes are also emitted from routes and pipelines (routes/edit.ts mask
-// rejections, generatePipeline/nodeGeneration reference caps, video routes).
+// rejections and generatePipeline/nodeGeneration reference caps).
 // A curated file list let ten emitted codes stay unmapped while green.
 function serverSourceFiles(): string[] {
   const roots = ["lib", "routes"];

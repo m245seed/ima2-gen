@@ -142,14 +142,12 @@ import {
 import { generateAssetGenImpl, retryAssetGenSaveImpl } from "./storeAssetGenImpl";
 import { refreshFoldersImpl } from "./storeAssetsImpl";
 import { createPresetSlice } from "./storePresetImpl";
-import { createEmptySpriteRecipeDraft } from "../types/spriteRecipe";
-import { approveSpriteAnchorImpl, cancelSpriteJobImpl, generateSpriteAnchorImpl, generateSpriteRowsImpl, loadSpriteRecipesImpl, saveSpriteRecipeImpl, selectSpriteRecipeImpl, updateSpriteRecipeDraftImpl } from "./storeSpriteRecipeImpl";
 
 export type { GalleryScope, ComposeSheetTab, ImageNodeStatus, ImageNodeData, GraphNode, GraphEdge, MultimodeSequenceState, AssetItem, AssetFolder, AssetsFilters } from "./storeTypes";
 export { flushGraphSaveBeacon, selectCurrentSessionId } from "./storeGraphSave";
-import type { AppState } from "./storeTypes";
+import type { AppState, GraphSaveReason } from "./storeTypes";
 import { effectiveReferenceLimit } from "../lib/referenceLimits";
-import { physicalVideoSourceCount as countPhysicalVideoSources } from "../lib/referenceTray";
+import { physicalSourceCount as countPhysicalSources } from "../lib/referenceTray";
 const storedGenerationDefaults = loadGenerationDefaults();
 const storedImageModel = loadImageModel();
 const initialProvider = storedGenerationDefaults.provider ?? "oauth";
@@ -157,20 +155,6 @@ const initialProvider = storedGenerationDefaults.provider ?? "oauth";
 export const useAppStore = create<AppState>((set, get, store) => ({
   ...createPresetSlice(set, get, store),
   assets: [],
-  assetGenWorkflow: "generate",
-  setAssetGenWorkflow: (value) => set({ assetGenWorkflow: value }),
-  spriteRecipes: [], activeSpriteRecipeId: null, activeSpriteRecipe: null,
-  spriteRecipeDraft: createEmptySpriteRecipeDraft(), spriteRecipeDirty: false,
-  spriteRecipeLoading: false, spriteRecipeSaving: false, spriteRecipeGenerating: false,
-  spriteRecipeError: null, spriteSelectedStates: [], spritePartialPreviews: {},
-  loadSpriteRecipes: () => loadSpriteRecipesImpl(set, get),
-  selectSpriteRecipe: (id) => selectSpriteRecipeImpl(id, set, get),
-  updateSpriteRecipeDraft: (patch) => updateSpriteRecipeDraftImpl(patch, set),
-  saveSpriteRecipe: () => saveSpriteRecipeImpl(set, get),
-  generateSpriteAnchor: () => generateSpriteAnchorImpl(set, get),
-  approveSpriteAnchor: (assetId) => approveSpriteAnchorImpl(assetId, set, get),
-  generateSpriteRows: (keys) => generateSpriteRowsImpl(keys, set, get),
-  cancelSpriteJob: (requestId) => cancelSpriteJobImpl(requestId, set, get),
   assetsFolders: [],
   assetsTags: [],
   assetsLoading: false,
@@ -186,8 +170,6 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   setAssetGenLastError: (v) => set({ assetGenLastError: v }),
   keyingTarget: null,
   setKeyingTarget: (item) => set({ keyingTarget: item }),
-  spriteCuratorTarget: null,
-  setCuratorTarget: (target) => set({ spriteCuratorTarget: target }),
   addAssetGenDerivedItem: (item) => set((state) => (
     item.filename && state.assetGenItems.some((entry) => entry.filename === item.filename)
       ? {}
@@ -246,7 +228,7 @@ export const useAppStore = create<AppState>((set, get, store) => ({
   }),
   providerUrlReference: null,
   canvasReferenceImage: null,
-  physicalVideoSourceCount: () => countPhysicalVideoSources(get().trayItems),
+  physicalSourceCount: () => countPhysicalSources(get().trayItems),
 
   // Workspace Profile
   workspaceProfile: ((): import("../lib/workspaceProfile").WorkspaceProfile => {
@@ -452,7 +434,7 @@ scheduleGraphSave() {
     scheduleGraphSaveImpl(get, set);
   },
 
-  async flushGraphSave(reason = "manual") {
+  async flushGraphSave(reason: GraphSaveReason = "manual") {
     await flushGraphSaveImpl(get, set, reason);
   },
 

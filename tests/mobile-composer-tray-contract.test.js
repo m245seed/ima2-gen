@@ -96,9 +96,9 @@ test("home hero shares readiness and keeps mode navigation contract-safe", () =>
   assert.match(homeHero, /MODE_TO_HASH\[mode\]/);
 });
 
-test("home recent media is bounded and fails closed for video and image previews", () => {
+test("home recent media is bounded and fails closed for image previews", () => {
   assert.match(homeRecent, /history\.slice\(0, 5\)/);
-  assert.match(homeRecent, /if \(isVideo\) return item\.thumb/);
+  assert.match(homeRecent, /item\.thumb \|\| item\.url \|\| item\.image/);
   assert.match(homeRecent, /onError=\{\(\) => setFailed\(true\)\}/);
   assert.match(homeRecent, /home-recent-card__fallback/);
   assert.match(homeCss, /\.home-recent-card\.is-featured\s*\{[^}]*grid-row:\s*span 2/);

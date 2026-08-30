@@ -38,7 +38,7 @@ describe("node batch partial-failure contracts", () => {
     assert.match(store, /failedCount > 0/);
   });
 
-  it("BP-04 fresh parent ids propagate to selected direct children for the video path", () => {
+  it("BP-04 fresh parent ids propagate to selected direct children", () => {
     assert.match(store, /selectedDirectChildren/);
     assert.match(store, /selectedSet\.has\(e\.target\)/);
     assert.match(store, /selectedDirectChildren\.includes\(n\.id\)/);

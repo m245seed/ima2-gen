@@ -19,7 +19,7 @@ const NODE_HANDLE_POSITIONS = [
 ] as const;
 
 /**
- * The node status line already carries elapsed time, video params and the model, so
+ * The node status line already carries elapsed time and the model, so
  * provenance contributes just the derivation kind rather than a separate chip.
  */
 function derivationOf(
@@ -192,7 +192,7 @@ function ImageNodeImpl({ id, data, selected }: NodeProps<GraphNode>) {
           // cast here was hiding a type that already existed.
           getImageModelShortLabel(d.model, d.provider),
           // How this node was derived (i2v / v2v / ...). The model label above only
-          // works again because the video path stopped writing `model: null`.
+          // works again because the pipeline stopped writing `model: null`.
           derivationOf(d, t),
         ].filter(Boolean).join(" · ");
       case "stale":
@@ -228,9 +228,7 @@ function ImageNodeImpl({ id, data, selected }: NodeProps<GraphNode>) {
       ))}
       <div className="image-node__preview">
         {d.imageUrl && d.status !== "asset-missing" ? (
-          false ? null : (
-            <img src={d.imageUrl} alt={t("node.nodeImageAlt")} />
-          )
+          <img src={d.imageUrl} alt={t("node.nodeImageAlt")} />
         ) : isBusy && d.partialImageUrl ? (
           <img
             className="image-node__partial"

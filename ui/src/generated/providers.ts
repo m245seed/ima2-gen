@@ -10,31 +10,6 @@ export function isCoreProviderId(value: unknown): value is CoreProviderId {
   return typeof value === "string" && CORE_PROVIDER_ID_SET.has(value);
 }
 
-export const PROVIDER_MODELS = {
-  "oauth": {
-    "image": [
-      "gpt-5.5",
-      "gpt-5.4",
-      "gpt-5.4-mini",
-      "gpt-5.6-sol",
-      "gpt-5.6-terra",
-      "gpt-5.6-luna",
-      "gpt-5.3-codex-spark"
-    ],
-    "video": []
-  },
-  "api": {
-    "image": [
-      "gpt-5.5",
-      "gpt-5.4",
-      "gpt-5.4-mini",
-      "gpt-5.6-sol",
-      "gpt-5.6-terra",
-      "gpt-5.6-luna"
-    ],
-    "video": []
-  }
-} as const;
 export const IMAGE_MODEL_IDS = [
   "gpt-5.5",
   "gpt-5.4",
@@ -48,8 +23,6 @@ export const UNSUPPORTED_IMAGE_MODEL_IDS = [
   "gpt-5.3-codex-spark"
 ] as const;
 export type UnsupportedImageModelId = typeof UNSUPPORTED_IMAGE_MODEL_IDS[number];
-export const VIDEO_MODEL_IDS = [] as const;
-export type VideoModelId = typeof VIDEO_MODEL_IDS[number];
 export const PROVIDER_REFERENCE_LIMITS = {
   "oauth": {},
   "api": {}

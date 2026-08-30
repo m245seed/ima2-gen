@@ -8,7 +8,6 @@ import {
 } from "../lib/nodeGraph";
 import { getNextChildPosition, getNextRootPosition } from "../lib/nodeLayout";
 import { clearNodeRefs as clearStoredNodeRefs } from "../lib/nodeRefStorage";
-import { isVideoUrl, extractLastFrame } from "../lib/videoMedia";
 import { t } from "../i18n";
 import { compressReferenceSource } from "./storeHelpers";
 import type { GraphNode, GraphEdge, StoreSet, StoreGet } from "./storeTypes";
@@ -95,9 +94,7 @@ export function createRootNodeFromHistoryItemImpl(
       pendingPhase: null,
       model: item.model ?? null,
       size: item.size ?? null,
-      elapsed: item.elapsed ?? undefined,
-      video: (item as any).video ?? null,
-    },
+      elapsed: item.elapsed ?? undefined,    },
   };
   set({
     uiMode: "node",
@@ -124,7 +121,7 @@ export function addChildNodeImpl(
       clientId,
       serverNodeId: null,
       parentServerNodeId: parent.data.serverNodeId,
-      prompt: isVideoUrl(parent.data.imageUrl) ? (parent.data.prompt || "") : "",
+      prompt: "",
       imageUrl: null,
       status: "empty",
       pendingRequestId: null,
@@ -144,12 +141,11 @@ export function addChildNodeImpl(
   });
   get().scheduleGraphSave();
 
-  if (parent.data.imageUrl && isVideoUrl(parent.data.imageUrl)) {
-    const videoSrc = parent.data.imageUrl;
+  if (parent.data.imageUrl && false) {
     void (async () => {
       try {
-        const frameDataUrl = await extractLastFrame(videoSrc);
-        set({
+      const frameDataUrl = "";
+set({
           graphNodes: get().graphNodes.map((n) =>
             n.id === clientId
               ? { ...n, data: { ...n.data, referenceImages: [frameDataUrl] } }

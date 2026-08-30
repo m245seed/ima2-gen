@@ -46,7 +46,7 @@ export type ReferenceTraySlice = {
   referenceImages: string[];
   selectedElementIds: string[];
   activeReferenceLimit: () => number;
-  physicalVideoSourceCount: () => number;
+  physicalSourceCount: () => number;
   addTrayAttachments: (inputs: AttachmentInput[]) => Promise<TrayItem[]>;
   addTrayAttachmentDataUrl: (
     dataUrl: string,
@@ -127,17 +127,6 @@ export function materializeLegacyFields(items: TrayItem[]): {
   };
 }
 
-export function serializeCoreTray(items: TrayItem[]): {
-  referenceImages: string[];
-  elementIds: string[];
-} {
-  const materialized = materializeLegacyFields(items);
-  return {
-    referenceImages: materialized.referenceImages,
-    elementIds: materialized.selectedElementIds,
-  };
-}
-
 export function indexTrayTags(items: TrayItem[]): Map<string, TrayItem> {
   return new Map(items.map((item) => [item.tag, item]));
 }
@@ -192,7 +181,7 @@ export function findTrayTagTokens(prompt: string): Array<{
   return tokens;
 }
 
-export function physicalVideoSourceCount(items: TrayItem[]): number {
+export function physicalSourceCount(items: TrayItem[]): number {
   return items.reduce(
     (count, item) => count + (item.kind === "attachment" ? 1 : item.source.referenceFilenames.length),
     0,

@@ -33,58 +33,6 @@
   padding: 8px 0;
 }
 
-/* Gemini auth mode section */
-.gemini-key-section__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0 4px;
-}
-.gemini-key-section__header h5 {
-  margin: 0;
-  font-size: 0.95em;
-  color: var(--text);
-}
-
-/* Vertex JSON textarea */
-.vertex-json-textarea {
-  font-family: var(--mono);
-  font-size: 0.85em;
-  letter-spacing: 0.02em;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px;
-  width: 100%;
-  min-height: 120px;
-  max-height: 300px;
-  resize: vertical;
-  color: var(--text);
-  box-sizing: border-box;
-}
-.vertex-json-textarea:focus {
-  border-color: var(--accent);
-  outline: none;
-  box-shadow: 0 0 0 2px var(--tint-08);
-}
-.vertex-json-textarea.is-invalid {
-  border-color: var(--red);
-}
-.vertex-json-textarea[readonly] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.vertex-json-textarea.is-masked {
-  color: var(--text-muted);
-  cursor: pointer;
-  min-height: 48px;
-}
-.vertex-project-id {
-  font-family: var(--mono);
-  font-size: 0.85em;
-  color: var(--text-muted);
-  margin: 4px 0;
-}
 
 .settings-row h4,
 .settings-note h4 {

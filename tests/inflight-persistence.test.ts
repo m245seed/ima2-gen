@@ -55,9 +55,7 @@ test("stale inflight jobs are purged by ttl", () => {
     meta: {},
   });
 
-  // Derive the advance from the configured TTL rather than a hardcoded window: the TTL now
-  // has to outlive the longest legal Grok video request, so a fixed 20 minutes no longer
-  // reaches past it. devlog/_plan/260817_grok_video_planner_timeout/010_timeout_budgets.md
+  // Derive the advance from the configured TTL rather than a hardcoded window.
   inflight.purgeStaleJobs(Date.now() + config.inflight.ttlMs + 60_000);
 
   assert.equal(inflight.listJobs({ kind: "classic" }).length, 0);

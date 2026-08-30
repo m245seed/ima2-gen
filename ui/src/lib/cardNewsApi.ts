@@ -261,10 +261,6 @@ export async function regenerateCardNewsCard(payload: {
   return { card };
 }
 
-export function listCardNewsSets(): Promise<{ sets: CardNewsSetSummary[] }> {
-  return jsonFetch("/api/cardnews/sets");
-}
-
 export function getCardNewsSet(setId: string): Promise<{ plan: CardNewsPlan }> {
   return jsonFetch<{ plan: CardNewsPlan }>(`/api/cardnews/sets/${encodeURIComponent(setId)}`)
     .then((result) => ({ ...result, plan: normalizeCardNewsPlan(result.plan) }));

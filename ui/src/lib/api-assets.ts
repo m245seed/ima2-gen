@@ -66,12 +66,6 @@ export function updateAsset(id: string, patch: AssetUpdatePatch): Promise<{ asse
   return jsonFetch(`/api/assets/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
 }
 
-export function updateAssetWithMetadata(
-  id: string,
-  patch: Record<string, unknown>,
-): Promise<{ asset: AssetItem }> {
-  return updateAsset(id, { metadata: patch });
-}
 
 export async function uploadDerivedAsset(blob: Blob, input: {
   source: string;
@@ -97,19 +91,6 @@ export async function uploadDerivedAsset(blob: Blob, input: {
   return res.json() as Promise<{ filePath: string; asset: AssetItem }>;
 }
 
-export function requestVideoKeying(input: {
-  source: string;
-  keyParams: { tolerance: number; softness: number; keyColor?: { r: number; g: number; b: number } };
-  projectId?: string | null;
-  name?: string;
-  requestId?: string;
-}): Promise<{ requestId: string; filePath: string }> {
-  return jsonFetch("/api/video/keying", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...input, projectId: input.projectId ?? undefined }),
-  });
-}
 
 export function deleteAsset(id: string): Promise<{ ok: true }> {
   return jsonFetch(`/api/assets/${encodeURIComponent(id)}`, { method: "DELETE" });

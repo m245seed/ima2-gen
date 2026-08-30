@@ -5,8 +5,6 @@ import { createServer, type Server } from "node:http";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { wasFlagPassed } from "../bin/lib/argsExplicit.js";
-
 const HOME = mkdtempSync(join(tmpdir(), "ima2-models-cli-"));
 let server: Server;
 let base = "";
@@ -78,9 +76,4 @@ describe("ima2 models command", () => {
     assert.equal(result.stdout.trim().split("\n").length, 1);
   });
 
-  it("detects explicit long, assigned, and short flags", () => {
-    assert.equal(wasFlagPassed(["--duration=8"], "--duration"), true);
-    assert.equal(wasFlagPassed(["-n", "1"], "--count", "-n"), true);
-    assert.equal(wasFlagPassed(["--model", "x"], "--provider"), false);
-  });
 });

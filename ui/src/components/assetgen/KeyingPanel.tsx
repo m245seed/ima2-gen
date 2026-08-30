@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n";
 import { useAppStore } from "../../store/useAppStore";
-import { uploadDerivedAsset, requestVideoKeying } from "../../lib/api-assets";
-import { subscribe } from "../../lib/eventChannel";
+import { uploadDerivedAsset } from "../../lib/api-assets";
 import type { GenerateItem } from "../../types";
 import type { NormalizedPoint } from "../../types/canvas";
 import {
@@ -21,7 +20,7 @@ import {
 type LoadState = "loading" | "ready" | "error";
 type PreviewClickMode = "erase" | "pick";
 
-function makeDerivedItem(source: GenerateItem, filePath: string, mediaType: "image" | "video"): GenerateItem {
+function makeDerivedItem(source: GenerateItem, filePath: string, mediaType: "image"): GenerateItem {
   const url = `/generated/${encodeURIComponent(filePath)}`;
   return {
     ...source,
@@ -46,7 +45,6 @@ export function KeyingPanel() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [keyingProgress, setKeyingProgress] = useState<number | null>(null);
   const [tolerance, setTolerance] = useState(DEFAULT_COLOR_KEY_PARAMS.tolerance);
   const [softness, setSoftness] = useState(DEFAULT_COLOR_KEY_PARAMS.softness);
   const [spill, setSpill] = useState(DEFAULT_COLOR_KEY_PARAMS.spill);
@@ -57,21 +55,11 @@ export function KeyingPanel() {
   const sourceRef = useRef<ImageData | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
-  const keyingUnsubRef = useRef<null | (() => void)>(null);
   const targetFilenameRef = useRef<string | null>(null);
 
-  const clearKeyingSubscription = useCallback(() => {
-    keyingUnsubRef.current?.();
-    keyingUnsubRef.current = null;
-  }, []);
-
-  const isVideo = item?.mediaType === "video";
   const src = item
-    ? isVideo && item.filename
-      ? `/api/video/frame?file=${encodeURIComponent(item.filename)}&position=0`
-      : item.url || item.image
+    ? item.url || item.image
     : null;
-
   // Load the source image into an offscreen pixel buffer.
   useEffect(() => {
     if (!src) return;
@@ -112,12 +100,9 @@ export function KeyingPanel() {
 
   useEffect(() => {
     targetFilenameRef.current = item?.filename ?? null;
-    clearKeyingSubscription();
     setSaving(false);
-    setKeyingProgress(null);
     setSaveError(null);
-    return clearKeyingSubscription;
-  }, [clearKeyingSubscription, item?.filename]);
+  }, [item?.filename]);
 
   // Re-key on any parameter change (rAF-debounced).
   useEffect(() => {
@@ -170,7 +155,7 @@ export function KeyingPanel() {
     const rect = canvas.getBoundingClientRect();
     const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    if (clickMode === "erase" && !isVideo) {
+    if (clickMode === "erase") {
       setEraseSeeds((seeds) => [...seeds, { x: nx, y: ny }]);
       return;
     }
@@ -178,7 +163,7 @@ export function KeyingPanel() {
     const y = Math.floor(((e.clientY - rect.top) / rect.height) * source.height);
     const i = (Math.max(0, Math.min(source.height - 1, y)) * source.width + Math.max(0, Math.min(source.width - 1, x))) * 4;
     setKeyColor({ r: source.data[i], g: source.data[i + 1], b: source.data[i + 2] });
-  }, [clickMode, isVideo]);
+  }, [clickMode]);
 
   const onDownload = useCallback(() => {
     const canvas = canvasRef.current;
@@ -199,52 +184,6 @@ export function KeyingPanel() {
     if (!canvas || !item?.filename || saving) return;
     setSaving(true);
     setSaveError(null);
-    if (isVideo) {
-      requestVideoKeying({
-        source: item.filename,
-        keyParams: { tolerance, softness, keyColor: keyColor ?? undefined },
-        projectId: selectedProjectId,
-        name: `${(item.prompt || "asset").trim().slice(0, 60)} (keyed)`,
-      })
-        .then(({ requestId }) => {
-          if (targetFilenameRef.current !== item.filename) return;
-          setKeyingProgress(0);
-          clearKeyingSubscription();
-          const unsub = subscribe(requestId, null, (eventType, data) => {
-            const payload = data && typeof data === "object" ? data : {};
-            if (eventType === "keying-progress") {
-              const rawMs = payload.outTimeMs;
-              setKeyingProgress(typeof rawMs === "number" && Number.isFinite(rawMs) ? rawMs : 0);
-            } else if (eventType === "keying-done") {
-              clearKeyingSubscription();
-              const filePath = payload.filePath;
-              if (typeof filePath === "string" && filePath.trim()) {
-                addDerivedItem(makeDerivedItem(item, filePath.trim(), "video"));
-                setSaving(false);
-                setKeyingProgress(null);
-                showToast(t("keying.videoSaved"));
-                close(null);
-                return;
-              }
-              setSaving(false);
-              setKeyingProgress(null);
-              setSaveError(t("keying.saveError"));
-            } else if (eventType === "keying-error") {
-              clearKeyingSubscription();
-              setSaving(false);
-              setKeyingProgress(null);
-              setSaveError(typeof payload.error === "string" && payload.error ? payload.error : t("keying.saveError"));
-            }
-          });
-          keyingUnsubRef.current = unsub;
-        })
-        .catch((err: unknown) => {
-          if (targetFilenameRef.current !== item.filename) return;
-          setSaving(false);
-          setSaveError(err instanceof Error ? err.message : t("keying.saveError"));
-        });
-      return;
-    }
     canvas.toBlob((blob) => {
       if (targetFilenameRef.current !== item.filename) return;
       if (!blob) {
@@ -273,7 +212,7 @@ export function KeyingPanel() {
           if (targetFilenameRef.current === item.filename) setSaving(false);
         });
     }, "image/png");
-  }, [item, saving, isVideo, keyColor, selectedProjectId, tolerance, softness, spill, clearKeyingSubscription, addDerivedItem, showToast, close, t]);
+  }, [item, saving, selectedProjectId, tolerance, softness, spill, addDerivedItem, showToast, close, t]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -292,26 +231,24 @@ export function KeyingPanel() {
           <h2>{t("keying.title")}</h2>
           {keyColor ? (
             <span className="keying-panel__key" title={t("keying.keyColor")}>
-              {!isVideo ? (
-                <span className="keying-panel__modes" role="group" aria-label={t("keying.clickMode")}>
-                  <button
-                    type="button"
-                    className={clickMode === "erase" ? "is-active" : ""}
-                    aria-pressed={clickMode === "erase"}
-                    onClick={() => setClickMode("erase")}
-                  >
-                    {t("keying.modeErase")}
-                  </button>
-                  <button
-                    type="button"
-                    className={clickMode === "pick" ? "is-active" : ""}
-                    aria-pressed={clickMode === "pick"}
-                    onClick={() => setClickMode("pick")}
-                  >
-                    {t("keying.modePick")}
-                  </button>
-                </span>
-              ) : null}
+              <span className="keying-panel__modes" role="group" aria-label={t("keying.clickMode")}>
+                <button
+                  type="button"
+                  className={clickMode === "erase" ? "is-active" : ""}
+                  aria-pressed={clickMode === "erase"}
+                  onClick={() => setClickMode("erase")}
+                >
+                  {t("keying.modeErase")}
+                </button>
+                <button
+                  type="button"
+                  className={clickMode === "pick" ? "is-active" : ""}
+                  aria-pressed={clickMode === "pick"}
+                  onClick={() => setClickMode("pick")}
+                >
+                  {t("keying.modePick")}
+                </button>
+              </span>
               {eraseSeeds.length > 0 ? (
                 <button
                   type="button"
@@ -323,7 +260,7 @@ export function KeyingPanel() {
               ) : null}
               <span className="assetgen-bg-picker__swatch" style={{ background: `rgb(${keyColor.r},${keyColor.g},${keyColor.b})` }} aria-hidden="true" />
               <span className="keying-panel__hint">
-                {clickMode === "erase" && !isVideo ? t("keying.eraseHint") : t("keying.pickHint")}
+                {clickMode === "erase" ? t("keying.eraseHint") : t("keying.pickHint")}
               </span>
             </span>
           ) : null}
@@ -398,17 +335,11 @@ export function KeyingPanel() {
         <footer className="keying-panel__actions">
           {saveError ? <span className="keying-panel__save-error" role="alert">{saveError}</span> : null}
           <button type="button" className="assetgen-generate" disabled={loadState !== "ready" || saving || !item.filename} onClick={onSave}>
-            {saving
-              ? keyingProgress !== null
-                ? t("keying.videoKeying", { seconds: String(Math.round(keyingProgress / 1000)) })
-                : t("keying.saving")
-              : isVideo ? t("keying.videoSave") : t("keying.save")}
+            {saving ? t("keying.saving") : t("keying.save")}
           </button>
-          {!isVideo ? (
-            <button type="button" className="assetgen-popup__close" disabled={loadState !== "ready"} onClick={onDownload}>
-              {t("keying.download")}
-            </button>
-          ) : null}
+          <button type="button" className="assetgen-popup__close" disabled={loadState !== "ready"} onClick={onDownload}>
+            {t("keying.download")}
+          </button>
           <button type="button" className="assetgen-popup__close" onClick={() => close(null)}>{t("project.close")}</button>
         </footer>
       </div>

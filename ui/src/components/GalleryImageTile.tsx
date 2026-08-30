@@ -99,29 +99,12 @@ export function GalleryImageTile({ item, active, itemRef, onSelect, onDelete, on
         draggable
         onDragStart={onDragStart}
       >
-        {false ? (
-          <div className="gallery__tile-video-wrap">
-            {item.thumb ? (
-              <img
-                src={item.thumb}
-                alt={item.prompt ?? t("gallery.imageAltFallback")}
-                loading="lazy"
-                decoding="async"
-                className="gallery__tile-video"
-              />
-            ) : (
-              <div className="gallery__tile-placeholder" />
-            )}
-            <span className="gallery__play-badge" aria-hidden="true">▶</span>
-          </div>
-        ) : (
-          <img
-            src={item.thumb || item.image}
-            alt={item.prompt ?? t("gallery.imageAltFallback")}
-            loading="lazy"
-            decoding="async"
-          />
-        )}
+        <img
+          src={item.thumb || item.image}
+          alt={item.prompt ?? t("gallery.imageAltFallback")}
+          loading="lazy"
+          decoding="async"
+        />
         {item.prompt && (
           <div className="gallery__caption">
             <span className="gallery__caption-text">{item.prompt}</span>

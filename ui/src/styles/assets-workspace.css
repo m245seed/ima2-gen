@@ -38,7 +38,7 @@
 .assets-tile.is-selected .assets-tile__media { box-shadow: 0 0 0 2px var(--accent); }
 .assets-tile__media { position: relative; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: var(--surface-2); }
 .assets-tile__preview { position: relative; width: 100%; height: 100%; padding: 0; overflow: hidden; border-radius: inherit; cursor: zoom-in !important; }
-.assets-tile__media img, .assets-tile__media video { width: 100%; height: 100%; object-fit: cover; }
+.assets-tile__media img { width: 100%; height: 100%; object-fit: cover; }
 .assets-tile__preview-hint { position: absolute; left: 50%; bottom: 10px; translate: -50% 4px; padding: 5px 8px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 82%, transparent); color: var(--text); font-size: 11px; white-space: nowrap; opacity: 0; transition: opacity 140ms ease, translate 140ms ease; pointer-events: none; }
 .assets-tile__preview:hover .assets-tile__preview-hint, .assets-tile__preview:focus-visible .assets-tile__preview-hint { opacity: 1; translate: -50% 0; }
 .assets-tile__preview:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }

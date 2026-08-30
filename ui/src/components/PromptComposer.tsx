@@ -1,8 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { useI18n } from "../i18n";
-import { isVideoItem, extractLastFrame } from "../lib/videoMedia";
-import type { VideoReferenceDragPayload } from "../lib/videoContinuity";
 import { getPresetById } from "../lib/presets";
 import { findMentionAtCaret, type MentionQuery } from "../lib/elementMention";
 import { Chip, ChipRow } from "./controls";
@@ -24,7 +22,7 @@ type ElementSelectionState = {
   elementCatalog?: AssetItem[] | null; missingElementIds?: string[];
   addElementFromMention?: (asset: AssetItem) => TrayItem | null; syncElementCatalog?: (records: AssetItem[]) => void;
 };
-type InternalRefDragItem = VideoReferenceDragPayload;
+type InternalRefDragItem = { image: string; url?: string; filename?: string; prompt?: string | null; userPrompt?: string | null; revisedPrompt?: string | null; createdAt?: number; mediaType?: string; };
 const TRAY_MENTION_PREFIX = "tray:";
 
 function mentionKey(mention: MentionQuery): string { return `${mention.start}:${mention.end}:${mention.query}`; }
@@ -80,7 +78,6 @@ export function PromptComposer({ variant = "sidebar" }: PromptComposerProps) {
   const providerUrlReference = useAppStore((s) => s.providerUrlReference);
   const setProviderUrlReference = useAppStore((s) => s.setProviderUrlReference);
   const addReferences = useAppStore((s) => s.addReferences);
-  const addReferenceDataUrl = useAppStore((s) => s.addReferenceDataUrl);
   const useImageAsReference = useAppStore((s) => s.useImageAsReference);
   const readDroppedImageMetadata = useAppStore((s) => s.readDroppedImageMetadata);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -178,12 +175,7 @@ export function PromptComposer({ variant = "sidebar" }: PromptComposerProps) {
       const src = item.url || item.image;
       if (!src) return;
       const refItem = { image: src, url: item.url, filename: item.filename };
-      if (isVideoItem(refItem)) {
-        const frame = await extractLastFrame(src);
-        if (frame) addReferenceDataUrl(frame);
-      } else {
-        await useImageAsReference(refItem as Parameters<typeof useImageAsReference>[0]);
-      }
+      await useImageAsReference(refItem as Parameters<typeof useImageAsReference>[0]);
       insertAttachmentTags(knownTokenIds, caret);
     } catch { /* non-fatal for drag-drop */ }
   };

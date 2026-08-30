@@ -10,7 +10,7 @@ import {
   indexTrayTags,
   isRetiredTrayTag,
   materializeLegacyFields,
-  physicalVideoSourceCount,
+  physicalSourceCount,
   retireTrayTags,
   reviveTrayTag,
   uniquifyElementTag,
@@ -127,13 +127,13 @@ test("logical N+M capacity blocks additions without truncating an over-limit tra
   assert.equal(items.length, 3);
 });
 
-test("physical video source count expands element reference snapshots", () => {
+test("physical source count expands element reference snapshots", () => {
   const items = [
     attachment("Image_1"),
     element("hero", "element-hero", ["hero-a.png", "hero-b.png", "hero-c.png"]),
     element("empty", "element-empty"),
   ];
-  assert.equal(physicalVideoSourceCount(items), 4);
+  assert.equal(physicalSourceCount(items), 4);
 });
 
 test("store compatibility actions converge on the single tray mutation writer", () => {
@@ -151,6 +151,6 @@ test("store compatibility actions converge on the single tray mutation writer", 
   assert.match(appStore, /addElementId: \(id\) => \{ addTrayElementImpl\(id, set, get\); \}/);
   assert.match(appStore, /removeElementId: \(id\) => removeTrayElementImpl\(id, set, get\)/);
   assert.match(appStore, /clearTray: \(\) => clearTrayImpl\(set, get\)/);
-  assert.match(appStore, /physicalVideoSourceCount: \(\) => countPhysicalVideoSources\(get\(\)\.trayItems\)/);
+  assert.match(appStore, /physicalSourceCount: \(\) => countPhysicalSources\(get\(\)\.trayItems\)/);
   assert.match(referenceStore, /clearTrayImpl[\s\S]*?trayItems: \[\],[\s\S]*?retiredTags: \{\}/);
 });

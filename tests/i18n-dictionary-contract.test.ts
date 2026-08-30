@@ -55,7 +55,7 @@ const DYNAMIC_T_IDENTIFIERS = new Map<string, readonly string[]>([
   ["ui/src/components/node-canvas/NodeCommandPalette.tsx :: key", [
     "nodeStudio.commands.image-generate.label", "nodeStudio.commands.image-generate.description",
     "nodeStudio.portTypes.prompt", "nodeStudio.portTypes.image", "nodeStudio.portTypes.images",
-    "nodeStudio.portTypes.video", "nodeStudio.portTypes.mask", "nodeStudio.portTypes.element-refs",
+    "nodeStudio.portTypes.mask", "nodeStudio.portTypes.element-refs",
     "nodeStudio.portTypes.element-notes", "nodeStudio.portTypes.settings", "nodeStudio.portTypes.any-media",
   ]],
   // NodeCommandPalette CATEGORY_LABEL_KEYS literals (line-level const map).
@@ -376,13 +376,5 @@ test("every t() reference resolves or is an explicit known missing key", () => {
   for (const [locale, dictionary] of dictionaries) {
     const missing = [...collected.keys].filter((key) => typeof getPath(dictionary, key) !== "string").sort();
     assert.deepEqual(missing, [...KNOWN_MISSING].sort(), `${locale}: unexpected or stale KNOWN_MISSING keys`);
-  }
-});
-
-test("sprite remains a top-level object whose tab label participates in parity", () => {
-  for (const [locale, dictionary] of dictionaries) {
-    assert.ok(isDictionary(dictionary.sprite), `${locale}.sprite must be an object`);
-    assert.equal(typeof getPath(dictionary, "sprite.tabs.label"), "string", `${locale} sprite label`);
-    assert.ok(flattenLeafPaths(dictionary).has("sprite.tabs.label"), `${locale} sprite parity`);
   }
 });

@@ -5,7 +5,6 @@ export type NodePortType =
   | "prompt"
   | "image"
   | "images"
-  | "video"
   | "mask"
   | "element-refs"
   | "element-notes"
@@ -34,14 +33,13 @@ export interface GraphSnapshot {
 
 const COMPATIBLE_INPUTS: Readonly<Record<NodePortType, readonly NodePortType[]>> = {
   prompt: ["prompt", "element-notes"],
-  image: ["image", "images", "mask", "element-refs", "any-media"],
+  image: ["image", "images", "element-refs", "any-media"],
   images: ["images", "element-refs", "any-media"],
-  video: ["video", "any-media"],
   mask: ["mask", "any-media"],
   "element-refs": ["image", "images", "element-refs", "any-media"],
   "element-notes": ["prompt", "element-notes"],
   settings: ["settings"],
-  "any-media": ["image", "images", "video", "mask", "any-media"],
+  "any-media": ["image", "images", "mask", "any-media"],
 };
 
 function edgeUsesPort(

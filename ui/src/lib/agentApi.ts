@@ -89,13 +89,6 @@ export async function deleteAgentSession(sessionId: string) {
   });
 }
 
-export async function sendAgentTurn(sessionId: string, prompt: string) {
-  return jsonFetch<AgentWorkspacePayload>(`/api/agent/sessions/${encodeURIComponent(sessionId)}/turns`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-  });
-}
 
 export async function enqueueAgentTurn(sessionId: string, prompt: string, options: AgentGenerationSettings) {
   return jsonFetch<{ queueItem: AgentQueueItem | null; workspace: AgentWorkspacePayload }>(`/api/agent/sessions/${encodeURIComponent(sessionId)}/queue`, {
@@ -113,12 +106,6 @@ export async function cancelAgentQueueItem(itemId: string) {
 
 export async function retryAgentQueueItem(itemId: string) {
   return jsonFetch<AgentWorkspacePayload>(`/api/agent/queue/${encodeURIComponent(itemId)}/retry`, {
-    method: "POST",
-  });
-}
-
-export async function compactAgentSession(sessionId: string) {
-  return jsonFetch<AgentWorkspacePayload>(`/api/agent/sessions/${encodeURIComponent(sessionId)}/compact`, {
     method: "POST",
   });
 }

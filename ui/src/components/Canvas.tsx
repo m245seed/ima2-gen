@@ -18,8 +18,6 @@ import { FavoriteStarButton } from "./controls";
 import { useI18n } from "../i18n";
 import { isEditableTarget } from "../lib/domEvents";
 import { getImageModelShortLabel } from "../lib/imageModels";
-import { isVideoItem } from "../lib/videoMedia";
-import { buildVideoDragPayload, continuitySummary } from "../lib/videoContinuity";
 import { formatReasoningLabel } from "../lib/reasoning";
 import { resolveResultFavorite } from "../lib/favoriteState";
 import type { GenerateItem } from "../types";
@@ -88,7 +86,7 @@ export function Canvas() {
 
   const copyPrompt = (): void => {
     if (!currentImage?.prompt) return;
-    void navigator.clipboard.writeText(currentImage.prompt);
+    void navigator.clipboard.writeText(currentImage!.prompt);
     showToast(t("toast.promptCopied"));
   };
 
@@ -229,64 +227,35 @@ export function Canvas() {
                 onToggle={toggleCurrentFavorite}
               />
             ) : null}
-            {isVideoItem(currentImage) ? (
-              <>
-                <video
-                  className="result-img"
-                  key={imageKey ?? undefined}
-                  src={imageSrc}
-                  controls
-                  autoPlay
-                  loop
-                  playsInline
-                  style={{
-                    transform: `translate(${viewer.pan.x}px, ${viewer.pan.y}px) scale(${viewer.zoom})`,
-                  }}
-                />
-                <div
-                  className="result-drag-handle"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData("application/ima2-ref", JSON.stringify(buildVideoDragPayload(currentImage)));
-                    e.dataTransfer.effectAllowed = "copy";
-                  }}
-                  title={t("canvas.dragToComposer")}
-                  aria-label={t("canvas.dragToComposer")}
-                >
-                  {t("canvas.dragHint")}
-                </div>
-              </>
-            ) : (
-              <>
-                <img
-                  className="result-img"
-                  key={imageKey ?? undefined}
-                  src={imageSrc!}
-                  alt={t("canvas.resultAlt")}
-                  decoding="async"
-                  fetchPriority="high"
-                  style={{
-                    transform: `translate(${viewer.pan.x}px, ${viewer.pan.y}px) scale(${viewer.zoom})`,
-                  }}
-                  onDoubleClick={(event) => {
-                    event.stopPropagation();
-                    openCanvas();
-                  }}
-                />
-                <div
-                  className="result-drag-handle"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: currentImage.url || currentImage.image, filename: currentImage.filename }));
-                    e.dataTransfer.effectAllowed = "copy";
-                  }}
-                  title={t("canvas.dragToComposer")}
-                  aria-label={t("canvas.dragToComposer")}
-                >
-                  {t("canvas.dragHint")}
-                </div>
-              </>
-            )}
+            <>
+              <img
+                className="result-img"
+                key={imageKey ?? undefined}
+                src={imageSrc!}
+                alt={t("canvas.resultAlt")}
+                decoding="async"
+                fetchPriority="high"
+                style={{
+                  transform: `translate(${viewer.pan.x}px, ${viewer.pan.y}px) scale(${viewer.zoom})`,
+                }}
+                onDoubleClick={(event) => {
+                  event.stopPropagation();
+                  openCanvas();
+                }}
+              />
+              <div
+                className="result-drag-handle"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: currentImage!.url || currentImage!.image, filename: currentImage!.filename }));
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                title={t("canvas.dragToComposer")}
+                aria-label={t("canvas.dragToComposer")}
+              >
+                {t("canvas.dragHint")}
+              </div>
+            </>
             <ViewerControls
               zoom={viewer.zoom}
               minZoom={VIEWER_MIN_ZOOM}
@@ -303,16 +272,7 @@ export function Canvas() {
             />
           </div>
           <div className="result-meta">
-            {(isVideoItem(currentImage)
-              ? [
-                  currentImage.elapsed != null ? `${currentImage.elapsed}s` : null,
-                  (currentImage as any).video?.duration ? `${(currentImage as any).video.duration}s clip` : null,
-                  (currentImage as any).video?.resolution ?? null,
-                  (currentImage as any).video?.aspectRatio ?? null,
-                  continuitySummary(currentImage.videoContinuity),
-                  displayModel,
-                ]
-              : [
+            {[
                   currentImage.elapsed != null ? `${currentImage.elapsed}s` : null,
                   currentImage.usage
                     ? t("canvas.tokens", { n: currentImage.usage.total_tokens ?? "?" })
@@ -322,13 +282,12 @@ export function Canvas() {
                   displaySize,
                   displayModel,
                 ]
-            )
               .filter((value): value is string => Boolean(value))
               .join(" · ")}
           </div>
           <ResultActions onAfterDeleteFocus={restoreResultFocus} />
-          {currentImage.prompt ? (
-            <ResultPromptSummary prompt={currentImage.prompt} onCopy={copyPrompt} />
+          {currentImage!.prompt ? (
+            <ResultPromptSummary prompt={currentImage!.prompt} onCopy={copyPrompt} />
           ) : null}
         </div>
       ) : !currentImage ? (

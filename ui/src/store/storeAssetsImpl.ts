@@ -1,6 +1,5 @@
 import type { GenerateItem } from "../types";
 import { createAsset, createAssetFolder, deleteAsset, deleteAssetFolder, getAssetFolders, getAssets, getAssetTags, updateAsset, updateAssetFolder } from "../lib/api-assets";
-import { isVideoItem } from "../lib/videoMedia";
 import type { AssetUpdatePatch } from "../lib/api-assets";
 import type { AssetsFilters, StoreGet, StoreSet } from "./storeTypes";
 
@@ -56,7 +55,7 @@ export async function saveToAssetsImpl(item: GenerateItem, set: StoreSet, get: S
   const metadata = Object.fromEntries(Object.entries({ prompt: item.prompt, provider: item.provider, model: item.model, mediaType: item.mediaType, requestId: item.requestId, sessionId: item.sessionId, createdAt: item.createdAt }).filter(([, value]) => value !== undefined));
   try {
     const folderId = get().selectedProjectId ?? undefined;
-    const { asset } = await createAsset({ filePath: item.filename, kind: isVideoItem(item) ? "video" : "image", name: (item.prompt || "").trim().slice(0, 80) || item.filename, folderId, tags: [], metadata });
+    const { asset } = await createAsset({ filePath: item.filename, kind: "image", name: (item.prompt || "").trim().slice(0, 80) || item.filename, folderId, tags: [], metadata });
     const filters = get().assetsFilters;
     const admitted =
       (!filters.kind || filters.kind === asset.kind) && !filters.tag && !(filters.q || "").trim() && !filters.folderId;

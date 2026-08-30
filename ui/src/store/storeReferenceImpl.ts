@@ -213,7 +213,7 @@ export function applyMetadataRestoreImpl(set: StoreSet, get: StoreGet): void {
 }
 
 function withoutContinuityPrompts(state: AppState): AppState["insertedPrompts"] {
-  return state.insertedPrompts.filter((prompt) => !prompt.id.startsWith("video-continuity:"));
+  return state.insertedPrompts;
 }
 
 function persistContinuityPromptChange(before: AppState["insertedPrompts"], after: AppState["insertedPrompts"]): void {

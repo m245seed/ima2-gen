@@ -13,10 +13,8 @@ import type {
   SettingsSection,
   SizePreset,
   UIMode,
-  VideoContinuityLineage,
   HistoryStripLayout,
 } from "../types";
-import type { SpriteCuratorTarget } from "../types/spriteAtlas";
 import type { HistoryCursor, SessionSummary, PromptItem, PromptFolder } from "../lib/api";
 import type { ClientNodeId } from "../lib/graph";
 import type { NodeBatchMode } from "../lib/nodeBatch";
@@ -26,15 +24,13 @@ import type { ReasoningEffort } from "../lib/reasoning";
 import type { GalleryShortcutAction } from "../lib/galleryShortcuts";
 import type { WorkspaceProfile } from "../lib/workspaceProfile";
 import type { Locale } from "../i18n";
-import type { SpriteRecipeDraft, SpriteRecipeRecord, SpriteRecipeSummary } from "../types/spriteRecipe";
 import type { ReferenceTraySlice, TrayItem } from "../lib/referenceTray";
-export type AssetGenWorkflow = "generate" | "sprite";
 
 export type GalleryScope = "current-session" | "all";
 
 export type AssetItem = {
   id: string;
-  kind: "image" | "video" | "element" | "preset" | "template";
+  kind: "image" | "element" | "preset" | "template";
   name: string;
   filePath: string | null;
   folderId: string | null;
@@ -134,8 +130,6 @@ export type ImageNodeData = {
   /** Per-node provider override written by branch variants (settingsPatch). */
   provider?: string | null;
   referenceImages?: string[];
-  video?: { duration?: number; resolution?: string; aspectRatio?: string; topic?: string } | null;
-  videoContinuity?: VideoContinuityLineage | null;
 };
 
 export type GraphNode = FlowNode<ImageNodeData>;
@@ -227,27 +221,6 @@ export type AppState = PresetState & ReferenceTraySlice & {
    * double-click on the canvas). AssetsWorkspace consumes and clears it. */
   pendingAssetDetailId: string | null;
   openAssetDetail: (assetId: string) => void;
-  assetGenWorkflow: AssetGenWorkflow;
-  setAssetGenWorkflow: (value: AssetGenWorkflow) => void;
-  spriteRecipes: SpriteRecipeSummary[];
-  activeSpriteRecipeId: string | null;
-  activeSpriteRecipe: SpriteRecipeRecord | null;
-  spriteRecipeDraft: SpriteRecipeDraft;
-  spriteRecipeDirty: boolean;
-  spriteRecipeLoading: boolean;
-  spriteRecipeSaving: boolean;
-  spriteRecipeGenerating: boolean;
-  spriteRecipeError: string | null;
-  spriteSelectedStates: string[];
-  spritePartialPreviews: Record<string, string>;
-  loadSpriteRecipes: () => Promise<void>;
-  selectSpriteRecipe: (id: string | null) => Promise<void>;
-  updateSpriteRecipeDraft: (patch: Partial<SpriteRecipeDraft>) => void;
-  saveSpriteRecipe: () => Promise<string | null>;
-  generateSpriteAnchor: () => Promise<void>;
-  approveSpriteAnchor: (assetId: string) => Promise<void>;
-  generateSpriteRows: (stateKeys?: string[]) => Promise<void>;
-  cancelSpriteJob: (requestId: string) => Promise<void>;
   assets: AssetItem[];
   assetsFolders: AssetFolder[];
   addElementId: (id: string) => void;
@@ -266,8 +239,6 @@ export type AppState = PresetState & ReferenceTraySlice & {
   setAssetGenLastError: (v: string | null) => void;
   keyingTarget: GenerateItem | null;
   setKeyingTarget: (item: GenerateItem | null) => void;
-  spriteCuratorTarget: SpriteCuratorTarget | null;
-  setCuratorTarget: (target: SpriteCuratorTarget | null) => void;
   addAssetGenDerivedItem: (item: GenerateItem) => void;
   selectedProjectId: string | null;
   setSelectedProject: (id: string | null) => void;

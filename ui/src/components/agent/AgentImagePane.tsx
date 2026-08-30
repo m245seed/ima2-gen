@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type KeyboardEvent, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode, type KeyboardEvent } from "react";
 import { useI18n } from "../../i18n";
 import { AgentContextTabs } from "./AgentContextTabs";
 import { ImageIcon } from "./AgentIcons";
 import { AgentResultThumb } from "./AgentResultThumb";
 import { AgentSafeImage } from "./AgentSafeImage";
 import type { AgentContextTab, AgentImageHandle } from "./agentTypes";
-import { isVideoUrl } from "../../lib/videoMedia";
 
 type Props = {
   currentImage: AgentImageHandle | null;
@@ -36,56 +35,6 @@ function TabBody({ activeTab, currentImage }: Pick<Props, "activeTab" | "current
   );
 }
 
-function formatDuration(seconds: number): string {
-  const whole = Math.max(0, Math.round(seconds));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
-
-export function AgentVideoPreview({ image }: { image: AgentImageHandle }) {
-  const { t } = useI18n();
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [duration, setDuration] = useState<number | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
-
-  const handleMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
-    const nextDuration = event.currentTarget.duration;
-    setDuration(Number.isFinite(nextDuration) ? nextDuration : null);
-    setState("ready");
-  };
-  const retry = () => {
-    setState("loading");
-    setDuration(null);
-    setRetryKey((value) => value + 1);
-  };
-
-  return (
-    <div className="agent-video-preview">
-      {state === "loading" ? <div className="agent-video-preview__skeleton" role="status">{t("agent.mediaLoading")}</div> : null}
-      {state === "error" ? (
-        <div className="agent-video-preview__error" role="alert">
-          <ImageIcon size={34} />
-          <span>{t("agent.mediaLoadFailed")}</span>
-          <button type="button" onClick={retry}>{t("agent.mediaRetry")}</button>
-        </div>
-      ) : (
-        <video
-          key={retryKey}
-          src={image.url}
-          controls
-          playsInline
-          preload="metadata"
-          aria-label={image.prompt ?? t("agent.mediaVideoLabel")}
-          onLoadedMetadata={handleMetadata}
-          onError={() => setState("error")}
-        />
-      )}
-      <div className="agent-video-preview__toolbar">
-        <span>{duration == null ? t("agent.mediaDurationUnknown") : t("agent.mediaDuration", { duration: formatDuration(duration) })}</span>
-        <a href={image.url} download={image.filename}>{t("agent.mediaDownload")}</a>
-      </div>
-    </div>
-  );
-}
 
 export function AgentImagePane({ currentImage, images, activeTab, onTabChange, onImageSelect, headerAction }: Props) {
   const { t } = useI18n();
@@ -134,14 +83,12 @@ export function AgentImagePane({ currentImage, images, activeTab, onTabChange, o
         aria-label={images.length > 1 ? t("agent.variants") : undefined}
       >
         {currentImage ? (
-          isVideoUrl(currentImage.url) ? <AgentVideoPreview key={currentImage.id} image={currentImage} /> : (
-            <AgentSafeImage
-              src={currentImage.url}
-              alt={currentImage.prompt ?? t("agent.imageAlt")}
-              fallbackClassName="agent-image__empty"
-              iconSize={34}
-            />
-          )
+          <AgentSafeImage
+            src={currentImage.url}
+            alt={currentImage.prompt ?? t("agent.imageAlt")}
+            fallbackClassName="agent-image__empty"
+            iconSize={34}
+          />
         ) : <div className="agent-image__empty"><ImageIcon size={34} /><span>{t("agent.noImage")}</span></div>}
       </div>
       <div className="agent-image__variants" aria-label={t("agent.variants")} onKeyDown={handleImageKeyDown}>

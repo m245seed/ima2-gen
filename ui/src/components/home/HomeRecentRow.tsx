@@ -4,13 +4,7 @@ import { getGalleryItemKey } from "../../lib/galleryNavigation";
 import { useAppStore } from "../../store/useAppStore";
 import type { GenerateItem } from "../../types";
 
-const VIDEO_EXTENSION = /\.(mp4|webm|mov)(?:$|[?#])/i;
-
 function recentMediaSource(item: GenerateItem): string | undefined {
-  const isVideo = item.mediaType === "video"
-    || VIDEO_EXTENSION.test(item.filename ?? "")
-    || VIDEO_EXTENSION.test(item.url ?? item.image);
-  if (isVideo) return item.thumb;
   return item.thumb || item.url || item.image || undefined;
 }
 

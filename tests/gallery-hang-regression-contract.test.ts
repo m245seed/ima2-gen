@@ -50,35 +50,10 @@ test("releaseOrphanedPreview no-ops on null preview or absent key", () => {
   assert.deepEqual(releaseOrphanedPreview(before, "history:missing", false), before);
 });
 
-// --- (E) No live <video> thumbnail fallback survives in gallery surfaces ------
 
-for (const f of [
-  "ui/src/components/HistoryStrip.tsx",
-  "ui/src/components/GalleryImageTile.tsx",
-  "ui/src/components/history/SidebarHistoryImageCard.tsx",
-  "ui/src/components/history/SidebarHistorySequenceCard.tsx",
-]) {
-  test(`${f} mounts no live <video preload> thumbnail and uses the placeholder`, () => {
-    const src = read(f);
-    assert.doesNotMatch(src, /preload="metadata"/, `${f} must not mount a live <video> thumbnail`);
-    assert.match(src, /VideoThumbPlaceholder/, `${f} must use the static placeholder`);
-  });
-}
-
-// --- (E nuance) addHistory must not give videos an <img>-based thumb ----------
-
-test("addHistory leaves video thumb undefined so the placeholder renders", () => {
-  const src = read("ui/src/store/storeGraphSave.ts");
-  assert.match(src, /isVideoItem\(item\)\s*\n?\s*\?\s*undefined/);
-});
-
-// --- (F) Focused media requests high fetch priority ---------------------------
+// --- (F) Focused image requests high fetch priority ----------------------------
 
 test("Canvas focused <img> requests high fetch priority", () => {
-  // Note: fetchPriority is in React's ImgHTMLAttributes but NOT
-  // VideoHTMLAttributes, so it is applied to the focused <img> only. The
-  // focused <video> holds a single decoder and does not contend like the
-  // thumbnail flood does, so image priority is what matters for the hang.
   const src = read("ui/src/components/Canvas.tsx");
   assert.match(src, /fetchPriority="high"/, "focused image must request high fetch priority");
 });

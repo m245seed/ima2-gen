@@ -17,7 +17,7 @@ describe("gallery → node drop contract", () => {
     assert.match(store, /export async function addNodeReferenceFromUrlImpl\(/);
   });
 
-  it("extracts a frame for video sources and compresses image sources", () => {
-    assert.match(store, /isVideoUrl\(src\) \|\| isVideoUrl\(filename\)\s*\? await extractLastFrame\(src\)\s*: await compressReferenceSource\(src, filename \|\| "node-reference\.png"\)/);
+  it("compresses dropped image references before storing them", () => {
+    assert.match(store, /await compressReferenceSource\(src, filename \|\| "node-reference\.png"\)/);
   });
 });
