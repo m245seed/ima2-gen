@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { requireRuntimeContext } from "../lib/runtimeContext.js";
 import type { RouteRuntimeContext } from "../lib/runtimeContext.js";
 
 export interface QuotaWindow {
@@ -26,6 +27,15 @@ function readCodexTokens(): { access_token: string; account_id: string } | null 
     if (j?.tokens?.access_token) {
       return { access_token: j.tokens.access_token, account_id: j.tokens.account_id ?? "" };
     }
+  } catch {}
+  return null;
+}
+
+function readCodexTokensFromFile(authFile: string): { access_token: string; account_id: string } | null {
+  try {
+    const j = JSON.parse(readFileSync(authFile, "utf8"));
+    const tok = j?.tokens?.access_token ?? j?.access_token;
+    if (tok) return { access_token: tok, account_id: j?.tokens?.account_id ?? j?.account_id ?? "" };
   } catch {}
   return null;
 }
@@ -78,12 +88,51 @@ async function fetchCodexUsage(tokens: { access_token: string; account_id: strin
 }
 
 export function registerQuotaRoutes(app: Express, _ctx: RouteRuntimeContext) {
+  const ctx = requireRuntimeContext(_ctx);
   app.get("/api/quota", async (_req, res) => {
     try {
+      const pool = ctx.oauthPool;
+      // Pool mode: fetch quota for each account independently
+      if (pool && pool.size > 1) {
+        const accounts = await Promise.all(
+          pool.all.map(async (acc) => {
+            const tokens = readCodexTokensFromFile(acc.authFile);
+            let quota: QuotaResult;
+            if (tokens) quota = await fetchCodexUsage(tokens);
+            else quota = { provider: "codex", authenticated: false, windows: [] } as QuotaResult;
+            return {
+              id: acc.id,
+              label: acc.label,
+              port: acc.port,
+              url: acc.url,
+              readyState: acc.readyState,
+              healthy: pool.healthy.some((h) => h.id === acc.id),
+              successCount: acc.successCount,
+              failureCount: acc.failureCount,
+              disabledUntil: acc.disabledUntil,
+              quota,
+            };
+          }),
+        );
+        const primaryQuota = accounts[0]?.quota ?? ({ provider: "codex", authenticated: false, windows: [] } as QuotaResult);
+        return res.json({
+          codex: primaryQuota,
+          codexAccounts: accounts,
+          pool: {
+            size: pool.size,
+            strategy: "round-robin",
+            healthy: pool.healthy.length,
+            ready: pool.readyAccounts.length,
+            cursor: (pool as unknown as { cursor?: number }).cursor ?? 0,
+            distribution: "Round-robin across accounts (requests alternate A→B→A…). 429/503 auto-failover to next healthy account.",
+          },
+        });
+      }
+      // Single-account fallback (backward compatible)
       const tokens = readCodexTokens();
       const codex = tokens
         ? await fetchCodexUsage(tokens)
-        : { provider: "codex", authenticated: false, windows: [] } as QuotaResult;
+        : ({ provider: "codex", authenticated: false, windows: [] } as QuotaResult);
       res.json({ codex });
     } catch {
       res.status(500).json({ error: "Failed to fetch quota" });

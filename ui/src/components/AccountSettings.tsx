@@ -47,8 +47,9 @@ export function AccountSettings() {
         <div className="provider-card__head">
           <span className="provider-card__brand"><OpenAIIcon /></span>
           <h4>{t("settings.account.oauthTitle")}</h4>
-          <span className="provider-card__eyebrow">{t("settings.account.primaryEyebrow")}</span>
+          <span className="provider-card__eyebrow">{t("settings.account.primaryEyebrow")}{quota.data?.pool?.size && quota.data.pool.size > 1 ? ` · ${quota.data.pool.size} accounts · round-robin` : ""}</span>
           <span className={`provider-chip provider-chip--${statusTone(oauth?.status)}`}>{statusLabel(t, oauth?.status)}</span>
+          {quota.data?.pool?.size && quota.data.pool.size > 1 ? <span className="provider-chip provider-chip--info" title={quota.data.pool.distribution ?? "Round-robin"}>⚡ pool ×{quota.data.pool.size}</span> : null}
         </div>
         <div className="settings-row__copy"><p>{t("settings.account.oauthBody")}</p></div>
         <CodexQuota data={quota.data} loading={quota.loading} onRefresh={quota.refreshQuota} />

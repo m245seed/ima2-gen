@@ -178,6 +178,15 @@
   background: var(--red);
 }
 
+.provider-chip--info {
+  color: var(--text);
+  background: var(--accent-soft, #e0f2fe);
+  border-color: var(--hairline, #bae6fd);
+}
+.provider-chip--info::before {
+  background: var(--info, #3b82f6);
+}
+
 .mcp-catalog-state {
   display: flex;
   align-items: center;
