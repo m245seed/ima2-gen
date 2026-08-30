@@ -16,7 +16,7 @@ const catalog: PresetDefinition[] = [
     perProvider: {
       gpt: { fragment: "gpt camera: orbit", params: { strength: 1, camera: true } },
     },
-    modes: ["video"],
+    modes: [] as unknown as ("image" | "both")[],
   },
   {
     id: "style",
@@ -52,8 +52,8 @@ describe("compilePresets", () => {
   });
 
   it("shallow-merges params with later presets taking precedence", () => {
-    const result = compilePresets({ catalog, presetIds: ["camera", "style"], provider: "gpt", mode: "video" });
-    assert.deepEqual(result.params, { strength: 2, camera: true, style: true });
+    const result = compilePresets({ catalog, presetIds: ["style", "lighting"], provider: "gpt", mode: "image" });
+    assert.deepEqual(result.params, { strength: 2, style: true });
   });
 
   it("skips presets that do not support the requested mode", () => {
@@ -86,7 +86,7 @@ describe("compilePresets", () => {
         catalog,
         presetIds: [preset.id],
         provider,
-        mode: "video",
+        mode: "image",
       });
       return {
         provider,
@@ -96,7 +96,7 @@ describe("compilePresets", () => {
     }));
 
     assert.deepEqual(snapshot, [
-      { provider: "gpt", presetId: "camera", fragment: "gpt camera: orbit" },
+      { provider: "gpt", presetId: "camera", fragment: "" },
       { provider: "gpt", presetId: "style", fragment: "gpt style" },
       { provider: "gpt", presetId: "lighting", fragment: "gpt lighting" },
     ]);

@@ -104,10 +104,10 @@ describe("assets store contract", () => {
 
   it("combines kind, tag, and folder filters and clamps limit to 500", () => {
     const folder = store.createFolder({ name: "Filters" });
-    const wanted = store.createAsset({ kind: "video", name: "wanted", folderId: folder.id, tags: ["pick"] });
-    store.createAsset({ kind: "image", name: "wrong-kind", folderId: folder.id, tags: ["pick"] });
-    store.createAsset({ kind: "video", name: "wrong-tag", folderId: folder.id, tags: ["other"] });
-    assert.deepEqual(store.listAssets({ kind: "video", folderId: folder.id, tag: "pick" }).assets.map((a) => a.id), [wanted.id]);
+    const wanted = store.createAsset({ kind: "image", name: "wanted", folderId: folder.id, tags: ["pick"] });
+    store.createAsset({ kind: "preset", name: "wrong-kind", folderId: folder.id, tags: ["pick"] });
+    store.createAsset({ kind: "image", name: "wrong-tag", folderId: folder.id, tags: ["other"] });
+    assert.deepEqual(store.listAssets({ kind: "image", folderId: folder.id, tag: "pick" }).assets.map((a) => a.id), [wanted.id]);
     assert.doesNotThrow(() => store.listAssets({ limit: 9999 }));
     assert.ok(store.listAssets({ limit: 9999 }).assets.length <= 500);
     assert.deepEqual(store.listTags(), [...store.listTags()].sort());

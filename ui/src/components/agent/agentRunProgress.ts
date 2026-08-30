@@ -10,7 +10,7 @@ export type AgentRunProgress = {
   failedCount: number;
   startedAt?: number | null;
   progressStage?: AgentQueueItem["progressStage"];
-  jobKind?: "image" | "video";
+  jobKind?: "image";
   variantCount?: number;
   lastError?: string | null;
 };

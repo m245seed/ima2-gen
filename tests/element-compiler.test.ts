@@ -48,10 +48,10 @@ describe("compileElements", () => {
   });
 
 
-  it("preserves continuity references in video mode", () => {
+  it("preserves continuity references in edit mode", () => {
     const result = compile(["hero"], [element("hero", { refs: ["/hero-1.png", "/hero-2.png"] })], {
       existingRefs: [{ source: "continuity", path: "/previous.png" }],
-      provider: "gpt", mode: "video", capacity: { maxTotalRefs: 2, maxRefsPerElement: 6 },
+      provider: "gpt", mode: "edit", capacity: { maxTotalRefs: 2, maxRefsPerElement: 6 },
     });
     // retainedExistingRefs are canonicalized via path.resolve — platform-aware (260719).
     assert.deepEqual(result.retainedExistingRefs, [{ source: "continuity", path: resolve("/previous.png") }]);

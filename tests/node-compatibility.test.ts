@@ -15,8 +15,8 @@ const branch = (count: number) => createBranchGraph({ graph: branchGraph(), sour
 
 describe("node palette compatibility contracts", () => {
   it("NC-04 allows prompt to prompt", () => assert.deepEqual(canConnectPorts(port("a", "prompt", "output"), port("b", "prompt", "input"), emptyGraph), { allowed: true }));
-  it("NC-05 rejects image to video", () => assert.equal(canConnectPorts(port("a", "image", "output"), port("b", "video", "input"), emptyGraph).reason, "TYPE_MISMATCH"));
-  it("NC-06 allows video to any-media", () => assert.equal(canConnectPorts(port("a", "video", "output"), port("b", "any-media", "input"), emptyGraph).allowed, true));
+  it("NC-05 rejects image to mask without proper port", () => assert.equal(canConnectPorts(port("a", "image", "output"), port("b", "mask", "input"), emptyGraph).reason, "TYPE_MISMATCH"));
+  it("NC-06 allows image to any-media", () => assert.equal(canConnectPorts(port("a", "image", "output"), port("b", "any-media", "input"), emptyGraph).allowed, true));
   it("NC-07 rejects same-direction ports", () => assert.equal(canConnectPorts(port("a", "prompt", "output"), port("b", "prompt", "output"), emptyGraph).reason, "SAME_DIRECTION"));
   it("NC-08 rejects self edges", () => assert.equal(canConnectPorts(port("same", "prompt", "output"), port("same", "prompt", "input"), emptyGraph).reason, "SELF_EDGE"));
   it("NC-09 rejects duplicate edges", () => assert.equal(canConnectPorts(port("a", "prompt", "output"), port("b", "prompt", "input"), { ...emptyGraph, edges: [{ source: "a", target: "b", sourceHandle: "a-output", targetHandle: "b-input" }] }).reason, "DUPLICATE_EDGE"));

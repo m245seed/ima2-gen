@@ -1,5 +1,4 @@
 import type { GenerateItem } from "../types";
-import { isVideoItem } from "./videoMedia";
 
 const STARRED_TAG = "starred";
 
@@ -20,7 +19,7 @@ export type StarAssetSyncApi = {
   }) => Promise<{ assets: SyncedAsset[] }>;
   createAsset: (input: {
     filePath: string;
-    kind: "image" | "video";
+    kind: "image";
     name: string;
     tags: string[];
     metadata: Record<string, unknown>;
@@ -47,7 +46,7 @@ export async function syncStarredAsset(
     return "tagged";
   }
 
-  const kind = isVideoItem({ ...item, image: item.image ?? "" }) ? "video" : "image";
+  const kind = "image";
   await api.createAsset({
     filePath: item.filename,
     kind,

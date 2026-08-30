@@ -50,8 +50,7 @@ export const nodeTemplateSeeds: readonly NodeTemplateRecord[] = [
   seed("seed-reference-edit-i2v", "참조→편집→I2V", "참조 이미지를 편집하고 영상으로 확장합니다.", [
     node("reference", "reference", 0, 100, { media: { placeholder: "reference-image", unresolved: true } }),
     node("edit", "edit", 300, 100, { prompt: "" }),
-    node("video", "video", 600, 100, { prompt: "" }),
-  ], [edge("reference-edit", "reference", "edit"), edge("edit-video", "edit", "video")], ["edit", "i2v", "reference"], 1, ["reference-image"]),
+  ], [edge("reference-edit", "reference", "edit")], ["edit", "i2v", "reference"], 1, ["reference-image"]),
   seed("seed-style-ab", "스타일 A/B", "동일한 프롬프트를 두 스타일로 비교합니다.", [
     node("prompt", "prompt", 0, 120, { prompt: "" }),
     node("style-a", "style", 280, 40, { style: "A" }),

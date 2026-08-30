@@ -3,7 +3,7 @@
  *
  * Every generation path in this repo reports progress with its own vocabulary:
  * `streaming` from the classic pipeline, `provider-poll` from MCP recovery,
- * `extracting-frame` from video extension. Consumers that want to ask whether a
+ * `extracting-frame` phase. Consumers that want to ask whether a
  * job is still running have to know all of them. The envelope answers that in
  * one shape while keeping the provider's own word in `providerState`, so
  * nothing is lost in translation.

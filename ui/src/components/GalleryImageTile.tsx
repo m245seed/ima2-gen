@@ -1,9 +1,6 @@
 import type { DragEvent, MouseEvent } from "react";
 import { useCallback, useMemo } from "react";
 import type { GenerateItem } from "../types";
-import { isVideoItem } from "../lib/videoMedia";
-import { buildVideoDragPayload } from "../lib/videoContinuity";
-import { VideoThumbPlaceholder } from "./VideoThumbPlaceholder";
 import { CHAINING_ACTIONS, executeChaining, type ChainingActionId } from "../lib/resultChaining";
 import { useAppStore } from "../store/useAppStore";
 import { FavoriteStarButton } from "./controls";
@@ -85,7 +82,7 @@ export function GalleryImageTile({ item, active, itemRef, onSelect, onDelete, on
   }, [item, t]);
 
   const onDragStart = (event: DragEvent<HTMLButtonElement>) => {
-    event.dataTransfer.setData("application/ima2-ref", JSON.stringify(isVideoItem(item) ? buildVideoDragPayload(item) : { image: item.url || item.image, filename: item.filename }));
+    event.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: item.url || item.image, filename: item.filename }));
     event.dataTransfer.effectAllowed = "copy";
   };
 
@@ -102,7 +99,7 @@ export function GalleryImageTile({ item, active, itemRef, onSelect, onDelete, on
         draggable
         onDragStart={onDragStart}
       >
-        {isVideoItem(item) ? (
+        {false ? (
           <div className="gallery__tile-video-wrap">
             {item.thumb ? (
               <img
@@ -113,7 +110,7 @@ export function GalleryImageTile({ item, active, itemRef, onSelect, onDelete, on
                 className="gallery__tile-video"
               />
             ) : (
-              <VideoThumbPlaceholder className="gallery__tile-video" />
+              <div className="gallery__tile-placeholder" />
             )}
             <span className="gallery__play-badge" aria-hidden="true">▶</span>
           </div>

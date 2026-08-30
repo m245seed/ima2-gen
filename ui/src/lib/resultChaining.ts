@@ -4,7 +4,6 @@
  * and performs a context-move using existing store/lib paths (no new server API).
  */
 import type { GenerateItem } from "../types";
-import { isVideoItem } from "./videoMedia";
 
 /* ── Action definitions ── */
 
@@ -21,7 +20,7 @@ export const CHAINING_ACTIONS: ChainingAction[] = [
   {
     id: "edit",
     labelKey: "chain.edit",
-    available: (item) => Boolean(item.filename) && !isVideoItem(item),
+    available: (item) => Boolean(item.filename),
   },
   {
     id: "useAsRef",
@@ -41,7 +40,7 @@ export const CHAINING_ACTIONS: ChainingAction[] = [
   {
     id: "saveAsElement",
     labelKey: "chain.saveAsElement",
-    available: (item) => Boolean(item.filename) && !isVideoItem(item),
+    available: (item) => Boolean(item.filename),
   },
 ];
 

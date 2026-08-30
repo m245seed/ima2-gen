@@ -105,15 +105,12 @@ describe("node graph history contracts", () => {
   it("GH-08 snapshots are identity-isolated from live state", () => {
     const live = [node("a", {
       referenceImages: ["data:one"],
-      video: { duration: 5 },
       errorInfo: { message: "x", code: "UNKNOWN", retryable: true, action: "retry", occurredAt: 1 },
     })];
     const snap = makeSnapshot(live, [], "iso");
     live[0].data.referenceImages!.push("data:two");
-    (live[0].data.video as { duration?: number }).duration = 9;
     live[0].data.errorInfo!.message = "mutated";
     assert.deepEqual(snap.nodes[0].data.referenceImages, ["data:one"]);
-    assert.equal((snap.nodes[0].data.video as { duration?: number }).duration, 5);
     assert.equal(snap.nodes[0].data.errorInfo!.message, "x");
   });
 

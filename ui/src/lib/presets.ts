@@ -17,7 +17,7 @@ export function getPresetsByCategory(cat: PresetCategory): PresetDefinition[] {
   return ALL_PRESETS.filter((preset) => preset.category === cat);
 }
 
-export function getPresetsForMode(mode: "image" | "video"): PresetDefinition[] {
+export function getPresetsForMode(mode: "image"): PresetDefinition[] {
   return ALL_PRESETS.filter((preset) => preset.modes.includes("both") || preset.modes.includes(mode));
 }
 

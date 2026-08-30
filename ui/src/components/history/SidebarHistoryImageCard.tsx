@@ -1,9 +1,6 @@
 import type { DragEvent } from "react";
 import type { GenerateItem } from "../../types";
 import { getGalleryItemKey } from "../../lib/galleryNavigation";
-import { isVideoItem } from "../../lib/videoMedia";
-import { buildVideoDragPayload } from "../../lib/videoContinuity";
-import { VideoThumbPlaceholder } from "../VideoThumbPlaceholder";
 
 type SidebarHistoryImageCardProps = {
   item: GenerateItem;
@@ -25,12 +22,10 @@ export function SidebarHistoryImageCard({
   onDelete,
 }: SidebarHistoryImageCardProps) {
   const key = getGalleryItemKey(item);
-  const isVideo = isVideoItem(item);
-
   const onDragStart = (event: DragEvent<HTMLButtonElement>) => {
     event.dataTransfer.setData(
       "application/ima2-ref",
-      JSON.stringify(isVideo ? buildVideoDragPayload(item) : { image: item.url || item.image, filename: item.filename }),
+      JSON.stringify({ image: item.url || item.image, filename: item.filename }),
     );
     event.dataTransfer.effectAllowed = "copy";
   };
@@ -40,30 +35,19 @@ export function SidebarHistoryImageCard({
       <button
         ref={(node) => setRef(key, node)}
         type="button"
-        className={`sidebar-history__thumb${active ? " active" : ""}${isVideo ? " sidebar-history__thumb--video" : ""}`}
+        className={`sidebar-history__thumb${active ? " active" : ""}`}
         onClick={() => onSelect(item)}
         aria-label={selectLabel}
         title={item.prompt ?? ""}
         draggable
         onDragStart={onDragStart}
       >
-        {isVideo ? (
-          <>
-            {item.thumb ? (
-              <img src={item.thumb} alt="" loading="lazy" decoding="async" />
-            ) : (
-              <VideoThumbPlaceholder />
-            )}
-            <span className="sidebar-history__play-badge" aria-hidden="true">▶</span>
-          </>
-        ) : (
-          <img
-            src={item.thumb || item.url || item.image}
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
-        )}
+        <img
+          src={item.thumb || item.url || item.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
       </button>
       <button
         type="button"

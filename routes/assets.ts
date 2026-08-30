@@ -67,8 +67,8 @@ function validateElementMetadata(metadata: unknown, notes: unknown) {
 async function resolveValidatedFilePath(kind: string, raw: unknown): Promise<string | null> {
   const rel = typeof raw === "string" ? raw.trim() : "";
   if (!rel) {
-    if (kind === "image" || kind === "video") {
-      throw httpError(400, "INVALID_FILENAME", "filePath required for image/video assets");
+    if (kind === "image") {
+      throw httpError(400, "INVALID_FILENAME", "filePath required for image assets");
     }
     return null;
   }
@@ -197,7 +197,7 @@ export function registerAssetsRoutes(app: Express, ctxRaw: RouteRuntimeContext) 
         throw httpError(404, "SOURCE_ASSET_NOT_FOUND", "source asset not found");
       }
       const canonicalRef = canonicalizeStoredPath(ref);
-      if (source && ((source.kind !== "image" && source.kind !== "video") || source.filePath !== canonicalRef)) {
+      if (source && (source.kind !== "image" || source.filePath !== canonicalRef)) {
         throw httpError(400, "INVALID_ELEMENT_SOURCE", "source asset does not own the promoted file");
       }
       const sourceTag = source ? `element-source:${source.id}` : null;

@@ -1,8 +1,7 @@
 import { getImageModelShortLabel } from "./imageModels";
-import type { VideoContinuityLineage } from "../types";
 
 /** How a result came to exist, as far as the UI can tell from stored metadata. */
-export type ProvenanceDerivation = "t2i" | "i2i" | "t2v" | "i2v" | "v2v";
+export type ProvenanceDerivation = "t2i" | "i2i";
 
 export type ProvenanceView = {
   modelLabel: string | null;
@@ -15,28 +14,19 @@ export type ProvenanceInput = {
   model?: string | null;
   provider?: string | null;
   mediaType?: string | null;
-  videoContinuity?: VideoContinuityLineage | null;
   canvasSourceFilename?: string | null;
   sourceImageFilename?: string | null;
 };
 
 function deriveKind(item: ProvenanceInput): ProvenanceDerivation | null {
-  const isVideo = item.mediaType === "video";
-  if (isVideo) {
-    // A continuity lineage means this clip continues an earlier one; a plain source
-    // image means it was animated from a still.
-    if (item.videoContinuity?.parentFilename) return "v2v";
-    if (item.sourceImageFilename) return "i2v";
-    return "t2v";
-  }
+  // video handling removed (image-only)
   if (item.canvasSourceFilename || item.sourceImageFilename) return "i2i";
   return item.model ? "t2i" : null;
 }
 
 function sourceOf(item: ProvenanceInput): string | null {
   return (
-    item.videoContinuity?.parentFilename
-    ?? item.canvasSourceFilename
+    item.canvasSourceFilename
     ?? item.sourceImageFilename
     ?? null
   );

@@ -24,7 +24,7 @@ export function assetToPreviewItem(asset: AssetItem): GenerateItem {
     url,
     filename: path,
     prompt: asset.name,
-    mediaType: asset.kind === "video" ? "video" : "image",
+    mediaType: "image",
     createdAt: asset.createdAt,
     requestId: `asset:${asset.id}`,
     ...(storedPreset === "transparent" ? { backgroundPreset: "transparent" as const } : {}),

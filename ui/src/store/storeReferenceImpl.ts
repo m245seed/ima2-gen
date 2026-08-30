@@ -261,9 +261,7 @@ export function clearReferencesImpl(set: StoreSet, get: StoreGet): void {
       patch: {
         trayItems,
         retiredTags: retireTrayTags(state.retiredTags, removed),
-        canvasReferenceImage: null,
-        videoContinuityLineage: null,
-        insertedPrompts: withoutContinuityPrompts(state),
+        canvasReferenceImage: null,        insertedPrompts: withoutContinuityPrompts(state),
         providerUrlReference: null,
       },
     };
@@ -278,9 +276,7 @@ export function clearTrayImpl(set: StoreSet, get: StoreGet): void {
     patch: {
       trayItems: [],
       retiredTags: {},
-      canvasReferenceImage: null,
-      videoContinuityLineage: null,
-      insertedPrompts: withoutContinuityPrompts(state),
+      canvasReferenceImage: null,      insertedPrompts: withoutContinuityPrompts(state),
       providerUrlReference: null,
     },
   }));

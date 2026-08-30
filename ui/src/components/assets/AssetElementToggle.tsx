@@ -88,7 +88,7 @@ export function AssetElementToggle({ item }: { item: AssetItem }) {
   const deleteAssetItem = useAppStore((state) => state.deleteAssetItem);
   const [pending, setPending] = useState(false);
   const isElement = item.kind === "element";
-  const supported = isElement || ((item.kind === "image" || item.kind === "video") && Boolean(item.filePath));
+  const supported = isElement || ((item.kind === "image" || false) && Boolean(item.filePath));
   const label = t("assets.elementLibrary");
   const memberships = useSyncExternalStore(subscribeMemberships, () => membershipSnapshot, () => membershipSnapshot);
   const linked = !isElement && supported ? findElementForSource(memberships.elements, item.id) : null;

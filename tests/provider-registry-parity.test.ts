@@ -20,11 +20,11 @@ function provider(id: string) {
   return REGISTRY.find((entry) => entry.id === id)!;
 }
 
-function models(id: string, kind: "image" | "video") {
+function models(id: string, kind: "image") {
   return provider(id).models.filter((model) => model.kind === kind).map((model) => model.id);
 }
 
-function referenceLimits(mode: "image" | "edit" | "video") {
+function referenceLimits(mode: "image" | "edit") {
   return Object.fromEntries(REGISTRY.flatMap((entry) => {
     const limits = entry.referenceLimits as Partial<Record<typeof mode, number>>;
     return limits[mode] === undefined ? [] : [[entry.id, limits[mode]]];
@@ -46,7 +46,7 @@ describe("core provider registry parity", () => {
     assert.equal(config.limits.maxRefCount, 5);
     assert.deepEqual(referenceLimits("image"), {});
     assert.deepEqual(ELEMENT_CAPACITY_DEFAULTS, {
-      gpt: { image: { maxTotalRefs: 6, maxRefsPerElement: 6 }, edit: { maxTotalRefs: 6, maxRefsPerElement: 6 }, video: { maxTotalRefs: 1, maxRefsPerElement: 6 } },
+      gpt: { image: { maxTotalRefs: 6, maxRefsPerElement: 6 }, edit: { maxTotalRefs: 6, maxRefsPerElement: 6 } },
     });
   });
 

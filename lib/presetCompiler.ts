@@ -1,5 +1,5 @@
 export type PresetCategory = "camera-motion" | "style" | "lighting";
-export type PresetMode = "image" | "video" | "both";
+export type PresetMode = "image" | "both";
 export type PresetProvider = "gpt";
 
 export interface PresetDefinition {
@@ -28,7 +28,7 @@ export function normalizePresetIds(value: unknown): string[] {
   return [...new Set(value.filter((id): id is string => typeof id === "string"))];
 }
 
-function supportsMode(preset: PresetDefinition, mode: "image" | "video") {
+function supportsMode(preset: PresetDefinition, mode: "image") {
   return preset.modes.includes("both") || preset.modes.includes(mode);
 }
 
@@ -36,7 +36,7 @@ export function compilePresets(opts: {
   catalog: PresetDefinition[];
   presetIds: string[];
   provider: PresetProvider;
-  mode: "image" | "video";
+  mode: "image";
 }): CompiledPresetResult {
   const byId = new Map(opts.catalog.map((preset) => [preset.id, preset]));
   const fragments: string[] = [];

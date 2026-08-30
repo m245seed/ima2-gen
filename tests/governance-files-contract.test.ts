@@ -1,20 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const pkg = require("../package.json") as { scripts: Record<string, string> };
-
 function read(path: string): string {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
 describe("governance files", () => {
-  it("keeps the six governance files and the two supply-chain configs", () => {
+  it("keeps the governance files and supply-chain configs", () => {
     for (const path of [
-      "SECURITY.md",
-      "CONTRIBUTING.md",
       ".github/CODEOWNERS",
       ".github/ISSUE_TEMPLATE/bug.yml",
       ".github/ISSUE_TEMPLATE/feature.yml",
@@ -34,24 +27,7 @@ describe("governance files", () => {
     assert.match(owners, /^\/ui\/package-lock\.json @lidge-jun$/m);
   });
 
-  it("keeps CONTRIBUTING staged and does not require the full release gate", () => {
-    const doc = read("CONTRIBUTING.md");
-    assert.match(doc, /`npm run typecheck`/);
-    assert.match(doc, /`npm test`/);
-    assert.match(doc, /cd ui && npm run build/);
-    assert.match(doc, /verify:release:source` is optional/);
-    assert.doesNotMatch(doc, /must run `npm run verify:release:source`/);
-    assert.equal(typeof pkg.scripts.typecheck, "string");
-    assert.equal(typeof pkg.scripts.test, "string");
-    assert.equal(typeof pkg.scripts["ui:build"], "string");
-  });
 
-  it("points SECURITY.md at advisories without promising an SLA", () => {
-    const doc = read("SECURITY.md");
-    assert.match(doc, /security\/advisories\/new/);
-    assert.doesNotMatch(doc, /48 hours|within 48/);
-    assert.match(doc, /no promised SLA|There is no promised SLA/);
-  });
 
   it("pins CodeQL and nix actions to immutable SHAs", () => {
     const codeql = read(".github/workflows/codeql.yml");

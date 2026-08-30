@@ -25,7 +25,7 @@ test("thumbnail backfill recursively covers nested media and skips trash", async
     await mkdir(trash, { recursive: true });
 
     const imagePath = join(root, "image.png");
-    const videoPath = join(nested, "clip.mp4");
+    const nestedImagePath = join(nested, "nested.png");
     const trashImagePath = join(trash, "trashed.png");
     await sharp({
       create: {
@@ -35,8 +35,15 @@ test("thumbnail backfill recursively covers nested media and skips trash", async
         background: { r: 10, g: 20, b: 30, alpha: 1 },
       },
     }).png().toFile(imagePath);
-    await writeFile(videoPath, "fake video");
-    await writeFile(`${videoPath}.thumb.jpg`, "existing thumb");
+    await sharp({
+      create: {
+        width: 2,
+        height: 2,
+        channels: 4,
+        background: { r: 10, g: 20, b: 30, alpha: 1 },
+      },
+    }).png().toFile(nestedImagePath);
+    await writeFile(thumbPathForImage(nestedImagePath), "existing thumb");
     await sharp({
       create: {
         width: 2,

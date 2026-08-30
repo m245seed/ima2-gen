@@ -254,7 +254,7 @@ export async function runGeneratePipeline(req: Request, res: Response, ctx: Runt
       const normalizedPromptMode = promptMode === "direct" ? "direct" : "auto";
       const elementSuffix = elementNotesFragment ? `\n${elementNotesFragment}` : "";
       const generationPrompt = storyboardPrefix + prompt + elementSuffix
-        + (backgroundPreset ? ` ${backgroundPromptSuffix(backgroundPreset, "image")}` : "");
+        + (backgroundPreset ? ` ${backgroundPromptSuffix(backgroundPreset)}` : "");
       const moderationCheck = validateModeration(ctx, moderation);
       if (moderationCheck.error) return fail(400, { error: moderationCheck.error });
       const referencePayload = summarizeReferencePayload(mergedReferences as string[]);

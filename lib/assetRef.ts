@@ -29,7 +29,7 @@ export type AssetRefInput = {
  * — without it a dead fallback looks exactly like a live one.
  *
  * This only maps a reference to a NAME. Callers must still run the result through
- * `safeGeneratedFilePath` (lib/videoFrameExtract.ts): an id coming out of the database is
+ * `safeGeneratedFilePath`: an id coming out of the database is
  * not automatically a safe path.
  */
 export function resolveAssetRef(

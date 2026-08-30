@@ -131,14 +131,14 @@ describe("image_generation tool payload wiring", () => {
 
 describe("prompt suffix carries the cutout intent that actually drives alpha", () => {
   it("names transparency and forbids backdrop/shadow", () => {
-    const suffix = backgroundPromptSuffix("transparent", "image");
+    const suffix = backgroundPromptSuffix("transparent");
     assert.match(suffix, /no backdrop/i);
     assert.match(suffix, /no drop shadow/i);
     assert.match(suffix, /checkerboard/i);
   });
 
   it("preserves partial alpha for translucent subjects", () => {
-    assert.match(backgroundPromptSuffix("transparent", "image"), /partial transparency/i);
+    assert.match(backgroundPromptSuffix("transparent"), /partial transparency/i);
   });
 });
 

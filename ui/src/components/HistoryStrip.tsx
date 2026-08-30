@@ -2,14 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useAppStore } from "../store/useAppStore";
 import { useI18n } from "../i18n";
 import { handleHorizontalWheel } from "../lib/horizontalWheel";
-import { isVideoItem, isVideoUrl } from "../lib/videoMedia";
-import { buildVideoDragPayload } from "../lib/videoContinuity";
 import {
   getGalleryItemKey,
   isGalleryVisibleItem,
   uniqueGalleryItems,
 } from "../lib/galleryNavigation";
-import { VideoThumbPlaceholder } from "./VideoThumbPlaceholder";
 
 function SkeletonThumb({ id }: { id: string }) {
   const { t } = useI18n();
@@ -58,9 +55,9 @@ function CollectionThumb({
       aria-label={t("common.imageCollection", { n: images.length })}
     >
       {slots.map((img, i) => {
-        const isVid = !img.thumb && (isVideoUrl(img.url) || isVideoUrl(img.image));
+        const isVid = false;
         return isVid ? (
-          <VideoThumbPlaceholder key={i} className="collection-mini" />
+          <div className="history-thumb__placeholder" />
         ) : (
           <img
             key={i}
@@ -236,21 +233,21 @@ export function HistoryStrip() {
             ...seqImages.map((seqItem) => {
               const seqKey = getGalleryItemKey(seqItem);
               const seqActive = activeKey === seqKey;
-              if (isVideoItem(seqItem)) {
+              if (false) {
                 return renderLazyThumb(seqKey, (
                   <div
                     className={`history-thumb history-thumb--video history-thumb--fade-in${seqActive ? " active" : ""}`}
                     onClick={() => selectHistory(seqItem)}
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("application/ima2-ref", JSON.stringify(buildVideoDragPayload(seqItem)));
+                      e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: item.url || item.image, filename: item.filename }));
                       e.dataTransfer.effectAllowed = "copy";
                     }}
                   >
                     {seqItem.thumb ? (
                       <img src={seqItem.thumb} alt="" loading="lazy" decoding="async" />
                     ) : (
-                      <VideoThumbPlaceholder />
+                      <div className="history-thumb__placeholder" />
                     )}
                     <span className="history-thumb__play-badge" aria-hidden="true">▶</span>
                   </div>
@@ -279,21 +276,21 @@ export function HistoryStrip() {
           return null;
         }
 
-        if (isVideoItem(item)) {
+        if (false) {
           return renderLazyThumb(key, (
             <div
               className={`history-thumb history-thumb--video${active ? " active" : ""}`}
               onClick={() => selectHistory(item)}
               draggable
               onDragStart={(e) => {
-                e.dataTransfer.setData("application/ima2-ref", JSON.stringify(buildVideoDragPayload(item)));
+                e.dataTransfer.setData("application/ima2-ref", JSON.stringify({ image: item.url || item.image, filename: item.filename }));
                 e.dataTransfer.effectAllowed = "copy";
               }}
             >
               {item.thumb ? (
                 <img src={item.thumb} alt="" loading="lazy" decoding="async" />
               ) : (
-                <VideoThumbPlaceholder />
+                <div className="history-thumb__placeholder" />
               )}
               <span className="history-thumb__play-badge" aria-hidden="true">▶</span>
             </div>

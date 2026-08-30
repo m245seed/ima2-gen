@@ -61,11 +61,8 @@ const SUFFIX_BY_PRESET: Record<BackgroundPreset, string> = {
     "The background must be fully transparent with a real alpha channel: an isolated cutout of the subject with no backdrop, no backdrop color, no ground plane, no drop shadow, and no checkerboard pattern drawn into the image. Keep edges cleanly anti-aliased against transparency, and preserve genuine partial transparency in glass, smoke, hair, and other translucent areas.",
 };
 
-export function backgroundPromptSuffix(preset: BackgroundPreset, kind: "image" | "video"): string {
-  const base = SUFFIX_BY_PRESET[preset];
-  return kind === "video"
-    ? `${base} The background must remain static, uniform, and identical in every frame of the video.`
-    : base;
+export function backgroundPromptSuffix(preset: BackgroundPreset): string {
+  return SUFFIX_BY_PRESET[preset];
 }
 
 export function backgroundPlannerConstraint(preset: BackgroundPreset): string {

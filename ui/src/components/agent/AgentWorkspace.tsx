@@ -273,7 +273,7 @@ export function AgentWorkspace() {
 
   useEffect(() => {
     // Drop local pending bubbles only after the session run settles. Planner
-    // prelude replies may arrive while image/video tools are still running.
+    // prelude replies may arrive while image tools are still running.
     setWorkspace((current) => {
       if (pendingTurnsRef.current > 0) return current;
       let changed = false;

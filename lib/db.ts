@@ -316,7 +316,7 @@ function migrate(database: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS assets (
       id         TEXT PRIMARY KEY,
-      kind       TEXT NOT NULL CHECK (kind IN ('image','video','element','preset','template')),
+      kind       TEXT NOT NULL CHECK (kind IN ('image','element','preset','template')),
       name       TEXT NOT NULL,
       file_path  TEXT,
       folder_id  TEXT,

@@ -14,7 +14,7 @@ import { AssetsFolderTree } from "./AssetsFolderTree";
 import { AssetsGrid } from "./AssetsGrid";
 import { ElementDetail, type ElementDefinition, type ElementDraft } from "./ElementDetail";
 
-const kinds = ["image", "video", "element", "preset", "template"] as const;
+const kinds = ["image", "element", "preset", "template"] as const;
 type KindValue = "" | typeof kinds[number];
 const ASSET_DETAIL_FOCUSABLE = 'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
 

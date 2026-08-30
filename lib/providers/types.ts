@@ -1,8 +1,8 @@
 export type KeyProviderId = "openai";
 
 export type ProviderVendor = "openai";
-export type ProviderModelKind = "image" | "video";
-export type ProviderReferenceMode = "image" | "edit" | "video";
+export type ProviderModelKind = "image";
+export type ProviderReferenceMode = "image" | "edit";
 export type ElementTaxonomy = "gpt";
 
 export type ProviderCredential =

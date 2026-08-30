@@ -295,6 +295,7 @@ export const config = {
     ),
     defaultSize: pickStr(env.IMA2_API_IMAGE_SIZE, fileCfg.apiProvider?.defaultSize, "1024x1024"),
     allowWebSearch: pickBool(env.IMA2_API_ALLOW_WEB_SEARCH, fileCfg.apiProvider?.allowWebSearch, true),
+    baseUrl: pickStr(env.IMA2_API_BASE_URL || env.OPENAI_BASE_URL, fileCfg.apiProvider?.baseUrl, "https://api.openai.com/v1"),
   },
   log: {
     level: pickStr(env.IMA2_LOG_LEVEL, fileCfg.log?.level, defaultLogLevelForEnv(env)),

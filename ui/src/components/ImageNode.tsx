@@ -4,7 +4,6 @@ import { useAppStore, type ImageNodeData, type GraphNode } from "../store/useApp
 import { useI18n } from "../i18n";
 import { getImageModelShortLabel } from "../lib/imageModels";
 import { formatReasoningLabel } from "../lib/reasoning";
-import { isVideoUrl } from "../lib/videoMedia";
 import { buildProvenanceView } from "../lib/provenance";
 import { SavePromptPopover } from "./SavePromptPopover";
 
@@ -30,8 +29,7 @@ function derivationOf(
   const view = buildProvenanceView({
     model: d.model,
     provider: d.provider,
-    mediaType: isVideoUrl(d.imageUrl) ? "video" : "image",
-    videoContinuity: d.videoContinuity,
+    mediaType: "image",
   });
   return view.derivation ? t(`provenance.${view.derivation}`) : null;
 }
@@ -189,11 +187,7 @@ function ImageNodeImpl({ id, data, selected }: NodeProps<GraphNode>) {
               elapsed: d.elapsed ?? "?",
               searches: d.webSearchCalls,
             })
-            : t("node.ready", { elapsed: d.elapsed ?? "?" }),
-          d.video?.duration ? `${d.video.duration}s` : null,
-          d.video?.resolution ?? null,
-          d.video?.aspectRatio ?? null,
-          formatReasoningLabel(d.reasoningEffort),
+            : t("node.ready", { elapsed: d.elapsed ?? "?" }),          formatReasoningLabel(d.reasoningEffort),
           // `provider` is a declared field on ImageNodeData, so the old escape-hatch
           // cast here was hiding a type that already existed.
           getImageModelShortLabel(d.model, d.provider),
@@ -234,9 +228,7 @@ function ImageNodeImpl({ id, data, selected }: NodeProps<GraphNode>) {
       ))}
       <div className="image-node__preview">
         {d.imageUrl && d.status !== "asset-missing" ? (
-          isVideoUrl(d.imageUrl) ? (
-            <video src={d.imageUrl} controls loop playsInline muted className="image-node__video nodrag" />
-          ) : (
+          false ? null : (
             <img src={d.imageUrl} alt={t("node.nodeImageAlt")} />
           )
         ) : isBusy && d.partialImageUrl ? (

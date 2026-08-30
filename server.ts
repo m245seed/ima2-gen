@@ -63,10 +63,10 @@ async function loadApiKey(): Promise<ApiKeyLoadResult> {
 }
 
 
-async function createOpenAI(apiKey: string | null | undefined) {
+async function createOpenAI(apiKey: string | null | undefined, baseUrl?: string | null) {
   if (!apiKey) return null;
   const OpenAI = (await import("openai")).default;
-  return new OpenAI({ apiKey });
+  return new OpenAI({ apiKey, baseURL: baseUrl || undefined });
 }
 
 function readPackageVersion(): string {
@@ -242,7 +242,7 @@ export async function createRuntimeContext(overrides: StartServerOverrides = {})
         }
       : await loadApiKey();
   const apiKey = loadedKey.apiKey;
-  const openai = overrides.openai ?? await createOpenAI(apiKey);
+  const openai = overrides.openai ?? await createOpenAI(apiKey, (config as any).apiProvider?.baseUrl);
   const oauthPort = config.oauth.proxyPort;
   // Discover pool early (sync discovery, but needs config loaded). May be null for single-account mode.
   let oauthPool: OAuthPool | null = null;

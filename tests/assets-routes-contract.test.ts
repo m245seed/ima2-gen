@@ -12,6 +12,7 @@ const GENERATED_DIR = join(TEST_DIR, "generated");
 mkdirSync(GENERATED_DIR, { recursive: true });
 writeFileSync(join(GENERATED_DIR, "a.png"), "png!");
 writeFileSync(join(GENERATED_DIR, "b.mp4"), "mp4!");
+writeFileSync(join(GENERATED_DIR, "b.png"), "png2!");
 mkdirSync(join(GENERATED_DIR, "subdir"), { recursive: true });
 
 const { registerAssetsRoutes } = await import("../routes/assets.ts");
@@ -46,16 +47,16 @@ async function request(base: string, path: string, method = "GET", body?: unknow
 }
 
 describe("assets routes contract", () => {
-  it("promotes image and video files and round-trips metadata through list", async () => withApp(async (base) => {
+  it("promotes image files and round-trips metadata through list", async () => withApp(async (base) => {
     const image = await request(base, "/api/assets", "POST", { filePath: "a.png", kind: "image", metadata: { width: 8 } });
-    const video = await request(base, "/api/assets", "POST", { filePath: "b.mp4", kind: "video", metadata: { seconds: 2 } });
+    const second = await request(base, "/api/assets", "POST", { filePath: "b.png", kind: "image", metadata: { width: 16 } });
     assert.equal(image.response.status, 201);
-    assert.equal(video.response.status, 201);
+    assert.equal(second.response.status, 201);
     assert.equal(image.body.asset.kind, "image");
-    assert.equal(video.body.asset.kind, "video");
+    assert.equal(second.body.asset.kind, "image");
     const listed = await request(base, "/api/assets");
     assert.deepEqual(listed.body.assets.find((a: any) => a.id === image.body.asset.id).metadata, { width: 8 });
-    assert.deepEqual(listed.body.assets.find((a: any) => a.id === video.body.asset.id).metadata, { seconds: 2 });
+    assert.deepEqual(listed.body.assets.find((a: any) => a.id === second.body.asset.id).metadata, { width: 16 });
   }));
 
   it("quick-registers one idempotent Element linked to its source asset", async () => withApp(async (base) => {
@@ -97,9 +98,9 @@ describe("assets routes contract", () => {
     assert.equal(missing.response.status, 404);
     assert.equal(missing.body.error.code, "SOURCE_ASSET_NOT_FOUND");
 
-    const video = await request(base, "/api/assets", "POST", { filePath: "b.mp4", kind: "video" });
+    const other = await request(base, "/api/assets", "POST", { filePath: "b.png", kind: "image" });
     const mismatch = await request(base, "/api/assets/promote-element", "POST", {
-      result: { filePath: "a.png" }, sourceAssetId: video.body.asset.id, elementKind: "character",
+      result: { filePath: "a.png" }, sourceAssetId: other.body.asset.id, elementKind: "character",
     });
     assert.equal(mismatch.response.status, 400);
     assert.equal(mismatch.body.error.code, "INVALID_ELEMENT_SOURCE");

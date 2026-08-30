@@ -2,7 +2,7 @@ import { jsonFetch } from "./api-core";
 import type { OAuthStatus, BillingResponse } from "../types";
 
 export function getInflight(params?: {
-  kind?: "classic" | "node" | "multimode" | "video";
+  kind?: "classic" | "node" | "multimode";
   sessionId?: string;
   includeTerminal?: boolean;
 }): Promise<{
