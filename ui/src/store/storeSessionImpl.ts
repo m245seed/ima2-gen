@@ -18,10 +18,11 @@ import {
 } from "./storeGraphSave";
 import type { StoreSet, StoreGet } from "./storeTypes";
 
+import { loadLatestWorkflowBatch } from "../lib/nodeWorkflowStorage";
+
 export async function loadSessionsImpl(set: StoreSet, get: StoreGet): Promise<void> {
   try {
     const { sessions } = await apiListSessions();
-    set({ sessions });
     const current = get().activeSessionId;
     if (!current) {
       const savedId = loadActiveSessionId();
@@ -47,6 +48,9 @@ export async function switchSessionImpl(
   get: StoreGet,
 ): Promise<void> {
   if (id === get().activeSessionId) return;
+  // A running flow belongs to the outgoing session's graph: stop it before
+  // the new session installs its own batch record.
+  if (get().nodeWorkflowRunning) get().cancelNodeWorkflow();
   try {
     await get().flushGraphSave("switch-session");
   } catch (err) {
@@ -66,6 +70,9 @@ export async function switchSessionImpl(
       graphEdges,
       graphHistoryPast: [],
       graphHistoryFuture: [],
+      nodeWorkflow: loadLatestWorkflowBatch(id),
+      nodeWorkflowRunning: false,
+      nodeWorkflowPreviewRun: null,
       sessionLoading: false,
     });
     saveActiveSessionId(id);
@@ -147,6 +154,9 @@ export async function createAndSwitchSessionImpl(
       graphEdges: [],
       graphHistoryPast: [],
       graphHistoryFuture: [],
+      nodeWorkflow: loadLatestWorkflowBatch(session.id),
+      nodeWorkflowRunning: false,
+      nodeWorkflowPreviewRun: null,
     });
     saveActiveSessionId(session.id);
   } catch (err) {

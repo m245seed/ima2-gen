@@ -130,6 +130,80 @@
   color: var(--text-dim);
   white-space: nowrap;
 }
+.node-batch-bar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.node-batch-bar__field input {
+  width: 44px;
+  min-height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Run strip (workflow bulk execution) */
+.node-workflow-runs {
+  position: absolute;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: min(920px, calc(100vw - 320px));
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  box-shadow: 0 14px 36px var(--shadow-soft);
+  backdrop-filter: blur(12px);
+  z-index: 5;
+}
+.node-workflow-runs__progress {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.node-workflow-runs__chip {
+  min-height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.node-workflow-runs__chip[aria-pressed="true"] {
+  border-color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+.node-workflow-runs__chip--done {
+  border-color: var(--accent-bright);
+}
+.node-workflow-runs__chip--failed {
+  border-color: var(--red);
+  color: var(--red);
+}
+.node-workflow-runs__chip--canceled,
+.node-workflow-runs__chip--queued {
+  opacity: 0.65;
+}
+.node-workflow-runs__chip--running {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+.node-workflow-runs__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 
 .image-node {
   position: relative;

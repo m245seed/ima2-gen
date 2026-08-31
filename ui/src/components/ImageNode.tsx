@@ -50,7 +50,24 @@ function getPreviewWidth(size?: string | null): number {
 
 function ImageNodeImpl({ id, data, selected }: NodeProps<GraphNode>) {
   const { t } = useI18n();
-  const d = data as ImageNodeData;
+  const stage = useAppStore((s) => {
+    const run = s.nodeWorkflow && s.nodeWorkflowPreviewRun != null
+      ? s.nodeWorkflow.runs[s.nodeWorkflowPreviewRun - 1]
+      : null;
+    return run?.stages[id] ?? null; // stored object → stable reference
+  });
+  const d = (stage
+    ? {
+        ...(data as ImageNodeData),
+        status: stage.status,
+        imageUrl: stage.imageUrl,
+        partialImageUrl: stage.partialImageUrl,
+        pendingPhase: stage.pendingPhase,
+        elapsed: stage.elapsed ?? undefined,
+        error: stage.error ?? undefined,
+        errorInfo: null,
+      }
+    : data) as ImageNodeData;
   const updateNodePrompt = useAppStore((s) => s.updateNodePrompt);
   const addNodeReferences = useAppStore((s) => s.addNodeReferences);
   const addNodeReferenceFromUrl = useAppStore((s) => s.addNodeReferenceFromUrl);

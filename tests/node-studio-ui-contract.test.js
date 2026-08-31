@@ -42,7 +42,8 @@ const elementTray = read("ui/src/components/node-canvas/NodeElementTray.tsx");
 const elementController = read("ui/src/components/node-canvas/useNodeElementController.ts");
 const elementNode = read("ui/src/components/node-canvas/ElementReferenceNode.tsx");
 const graphSave = read("ui/src/store/storeGraphSave.ts");
-const nodeRun = read("ui/src/store/storeNodeGenImpl.ts");
+// Request shaping moved into the shared builder; both files form the node-run contract.
+const nodeRun = read("ui/src/store/storeNodeGenImpl.ts") + "\n" + read("ui/src/store/storeNodeRunRequest.ts");
 const routes = read("routes/nodeTemplates.ts");
 const routeIndex = read("routes/index.ts");
 const templateApi = read("ui/src/lib/api-node-templates.ts");
@@ -196,9 +197,10 @@ describe("NB — atomic branch consumer", () => {
     assert.match(branching, /\.\.\.\(applyVariant \? variant\.settingsPatch : \{\}\)/);
     assert.match(branching, /if \(applyVariant && variant\.provider\) data\.provider = variant\.provider/);
     assert.match(nodeRun, /const nodeProvider = \(typeof node\.data\.provider === "string"[\s\S]*: s\.provider\)/);
-    assert.match(nodeRun, /const nodeModel = \(typeof node\.data\.model === "string"[\s\S]*: s\.imageModel\)/);
+    assert.match(nodeRun, /const request: NodeGenerateRequest = \{[\s\S]*provider: nodeProvider,[\s\S]*model: nodeModel/);
+    assert.match(nodeRun, /postNodeGenerateStream\(built\.request,/);
     assert.match(nodeRun, /const size = options\.sizeOverride \?\? \(typeof node\.data\.size === "string"[\s\S]*: s\.getResolvedSize\(\)\)/);
-    assert.match(nodeRun, /postNodeGenerateStream\(\{[\s\S]*provider: nodeProvider,[\s\S]*model: nodeModel/);
+    assert.match(nodeRun, /const nodeModel = \(typeof node\.data\.model === "string"[\s\S]*: s\.imageModel\)/);
   });
 });
 
@@ -227,12 +229,17 @@ describe("EN — element node lifecycle", () => {
     assert.match(traversal, /source\.type === "elementReferenceNode"/);
     assert.match(traversal, /queue\.push\(source\.id\)/);
     const single = section(nodeRun, "export async function runGenerateNodeInPlaceImpl", "export async function runNodeBatchImpl");
-    assert.ok(single.indexOf("collectElementInputs(get().graphNodes, get().graphEdges, [clientId])") < single.indexOf("postNodeGenerateStream({"));
-    assert.match(single, /resolveElementInputsForRun\(elementInputs, set, get\)/);
-    assert.match(single, /if \(elementResolution\.ok === false\)[\s\S]*showToast[\s\S]*return null/);
-    assert.match(single, /mergeRunReferences\(node\.data\.referenceImages \?\? \[\], elementResolution\.referenceDataUrls/);
+    // Single run delegates request shaping to the shared builder.
+    assert.match(single, /const built = await buildNodeRunRequest\(clientId, \{/);
+    assert.match(single, /postNodeGenerateStream\(built\.request,/);
+    // Missing elements block the run with a toast (mapped from the builder result).
+    assert.match(single, /if \(built\.reason === "element-missing"\)[\s\S]*showToast[\s\S]*return null/);
+    // Element inputs resolve upstream of the request payload inside the builder.
+    const builder = section(nodeRun, "export async function buildNodeRunRequest", "\n}");
+    assert.ok(builder.indexOf("collectElementInputs(s.graphNodes, s.graphEdges, [clientId])") < builder.indexOf("const request: NodeGenerateRequest = {"));
+    assert.match(builder, /resolveElementInputsForRun\(elementInputs, set, get\)/);
     const batch = section(nodeRun, "export async function runNodeBatchImpl", "\n}");
-    assert.ok(batch.indexOf("collectElementInputs(get().graphNodes, get().graphEdges, candidates)") < batch.indexOf("set({ nodeBatchRunning: true"));
+    assert.match(builder, /mergeRunReferences\(node\.data\.referenceImages \?\? \[\], elementResolution\.referenceDataUrls/);
     assert.match(batch, /batchElementInputs\.find\(\(input\) => input\.missing\)/);
     assert.match(batch, /type !== "elementReferenceNode"/);
   });

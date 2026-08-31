@@ -8,6 +8,7 @@ const STORE_SOURCES = [
   "ui/src/store/storeHelpers.ts",
   "ui/src/store/storeGraphSave.ts",
   "ui/src/store/storeNodeGenImpl.ts",
+  "ui/src/store/storeNodeRunRequest.ts",
   "ui/src/store/storeGenImpl.ts",
   "ui/src/store/storeInflightImpl.ts",
   "ui/src/store/storeGraphNodeImpl.ts",

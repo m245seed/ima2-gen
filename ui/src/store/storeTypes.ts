@@ -18,6 +18,7 @@ import type {
 import type { HistoryCursor, SessionSummary, PromptItem, PromptFolder } from "../lib/api";
 import type { ClientNodeId } from "../lib/graph";
 import type { NodeBatchMode } from "../lib/nodeBatch";
+import type { WorkflowStagePhase } from "../lib/nodeWorkflowRun";
 import type { ImaErrorCode } from "../lib/errorCodes";
 import type { CustomSizeAdjustmentReason } from "../lib/size";
 import type { ReasoningEffort } from "../lib/reasoning";
@@ -209,6 +210,39 @@ export type PresetState = {
   restorePresetIds: (ids: string[]) => void;
 };
 
+export type WorkflowStageState = {
+  clientId: ClientNodeId;
+  phase: WorkflowStagePhase;
+  /** Projection used by the node card: queued|running → "pending", done → "ready",
+   *  error → "error", skipped → "stale", canceled → "empty". */
+  status: ImageNodeStatus;
+  serverNodeId: string | null;
+  imageUrl: string | null;
+  partialImageUrl: string | null;
+  pendingPhase: string | null;
+  elapsed: number | null;
+  error: string | null;
+};
+
+export type WorkflowRunState = {
+  index: number;
+  phase: "queued" | "running" | "done" | "failed" | "canceled";
+  stages: Record<string, WorkflowStageState>;
+};
+
+export type WorkflowBatchState = {
+  batchId: string;
+  sessionId: string | null;
+  rootId: ClientNodeId;
+  stageIds: ClientNodeId[];
+  generateStageCount: number;
+  runCount: number;
+  parallelism: number;
+  startedAt: number;
+  phase: "running" | "done" | "failed" | "canceled";
+  runs: WorkflowRunState[];
+  totals: { done: number; failed: number; skipped: number; canceled: number };
+};
 export type AppState = PresetState & ReferenceTraySlice & {
   // Element-mention catalog (higgsfield 110): full AssetItem records upserted
   // on selection so tray chips survive a fresh store; missing ids block
@@ -370,6 +404,17 @@ export type AppState = PresetState & ReferenceTraySlice & {
   clearNodeSelection: () => void;
   runNodeBatch: (mode: NodeBatchMode) => Promise<void>;
   cancelNodeBatch: () => void;
+  nodeWorkflow: WorkflowBatchState | null;
+  nodeWorkflowRunning: boolean;
+  nodeWorkflowPreviewRun: number | null;
+  nodeWorkflowRunCount: number;
+  nodeWorkflowParallelism: number;
+  runNodeWorkflow: () => Promise<void>;
+  cancelNodeWorkflow: () => void;
+  clearNodeWorkflow: () => void;
+  setNodeWorkflowPreviewRun: (runIndex: number | null) => void;
+  setNodeWorkflowRunCount: (value: number) => void;
+  setNodeWorkflowParallelism: (value: number) => void;
   addRootNode: () => ClientNodeId;
   createRootNodeFromHistoryItem: (item: GenerateItem) => ClientNodeId;
   addChildNode: (parentClientId: ClientNodeId) => ClientNodeId;

@@ -16,83 +16,20 @@ import {
 } from "../lib/nodeBatch";
 import { handleError } from "../lib/errorHandler";
 import { buildNodeErrorInfo } from "../lib/nodeErrorInfo";
-import { effectiveReferenceLimit } from "../lib/referenceLimits";
 import { t } from "../i18n";
 import {
   type PersistedInFlight,
-  stripDataUrlPrefix,
   isCanceledGenerationError,
 } from "./storeHelpers";
 import type { AppState } from "./storeTypes";
 import { clearFlightAbort, registerFlightAbort } from "./flightAbortRegistry";
-import { getAssetById } from "../lib/api-assets";
-import { assetMediaUrl } from "../lib/assetPreview";
-import { elementReferenceFilenames, upsertElementCatalog } from "../lib/elementCatalog";
-import { collectElementInputs, type ElementInputNode } from "../lib/nodeElementInputs";
-import { fetchAsDataUrl } from "../lib/image";
+import { collectElementInputs } from "../lib/nodeElementInputs";
+import { buildNodeRunRequest } from "./storeNodeRunRequest";
 
 type StoreSet = (p: Partial<AppState>) => void;
 type StoreGet = () => AppState;
 
 const nodeGenerationLocks = new Set<string>();
-
-/**
- * Resolve every upstream element input before a run (higgsfield 120 EN,
- * Socrates B3): missing/deleted elements block; existing elements are
- * re-fetched so the run uses the LATEST refs/notes and records a revision
- * snapshot on the element node. Returns ref dataURLs to merge into the
- * request, or the blocking element's display name.
- */
-async function resolveElementInputsForRun(
-  inputs: ElementInputNode[],
-  set: StoreSet,
-  get: StoreGet,
-): Promise<{ ok: true; referenceDataUrls: string[]; notes: string[]; elementIds: string[]; revisions: Record<string, unknown> } | { ok: false; name: string }> {
-  const dataUrls: string[] = [];
-  const notes: string[] = [];
-  const elementIds: string[] = [];
-  const revisions: Record<string, unknown> = {};
-  for (const input of inputs) {
-    if (input.missing || !input.elementId) {
-      if (input.missing) return { ok: false, name: input.name };
-      continue;
-    }
-    let asset;
-    try {
-      asset = (await getAssetById(input.elementId)).asset;
-    } catch {
-      return { ok: false, name: input.name };
-    }
-    // Keep the catalog fresh and snapshot the resolved revision on the node.
-    const catalog = upsertElementCatalog(get().elementCatalog, asset);
-    const revision = (asset as unknown as Record<string, unknown>).updatedAt ?? asset.createdAt;
-    elementIds.push(asset.id);
-    revisions[asset.id] = revision;
-    if (typeof asset.notes === "string" && asset.notes.trim()) notes.push(`${asset.name}: ${asset.notes.trim()}`);
-    set({
-      elementCatalog: catalog,
-      graphNodes: get().graphNodes.map((n) => n.id === input.nodeId
-        ? { ...n, data: { ...n.data, resolvedRevision: revision, missing: false } as typeof n.data }
-        : n),
-    });
-    for (const file of elementReferenceFilenames(asset)) {
-      try {
-        const dataUrl = await fetchAsDataUrl(assetMediaUrl(file));
-        if (!dataUrls.includes(dataUrl)) dataUrls.push(dataUrl);
-      } catch { /* an unreadable ref is dropped, not fatal */ }
-    }
-  }
-  return { ok: true, referenceDataUrls: dataUrls, notes, elementIds, revisions };
-}
-
-function mergeRunReferences(nodeRefs: string[], elementRefs: string[], activeLimit: number): string[] {
-  const merged: string[] = [];
-  for (const ref of [...nodeRefs, ...elementRefs]) {
-    if (!merged.includes(ref)) merged.push(ref);
-    if (merged.length >= activeLimit) break;
-  }
-  return merged;
-}
 
 export async function runGenerateNodeInPlaceImpl(
   clientId: ClientNodeId,
@@ -112,56 +49,47 @@ export async function runGenerateNodeInPlaceImpl(
   if (repairedNodes.some((n, i) => n.data.parentServerNodeId !== beforeRepair[i]?.data.parentServerNodeId)) {
     set({ graphNodes: repairedNodes });
   }
-  const node = repairedNodes.find((n) => n.id === clientId);
-  if (!node) {
-    nodeGenerationLocks.delete(clientId);
-    return null;
-  }
-  // Element inputs (upstream traversal): missing/deleted blocks; existing
-  // elements are re-fetched and their latest refs merge into the request.
-  const elementInputs = collectElementInputs(get().graphNodes, get().graphEdges, [clientId]);
-  const elementResolution = await resolveElementInputsForRun(elementInputs, set, get);
-  if (elementResolution.ok === false) {
-    get().showToast(t("node.elementMissing", { name: elementResolution.name }), true);
-    nodeGenerationLocks.delete(clientId);
-    return null;
-  }
-  const { prompt, parentServerNodeId } = node.data;
-  if (!prompt.trim()) {
-    get().showToast(t("toast.promptRequired"), true);
-    nodeGenerationLocks.delete(clientId);
-    return null;
-  }
-  const s = get();
-  // Branch variants carry per-node provider/model/size (settingsPatch).
-  // Prefer them over global settings.
-  const nodeProvider = (typeof node.data.provider === "string" && node.data.provider ? node.data.provider : s.provider) as AppState["provider"];
-  const variantRefLimit = effectiveReferenceLimit({
-    provider: nodeProvider,
-    serverLimit: s.referenceLimit,
-  });
-  const nodeRefs = mergeRunReferences(node.data.referenceImages ?? [], elementResolution.referenceDataUrls, variantRefLimit);
-  const nodeModel = (typeof node.data.model === "string" && node.data.model ? node.data.model : s.imageModel) as AppState["imageModel"];
-  const size = options.sizeOverride ?? (typeof node.data.size === "string" && node.data.size ? node.data.size : s.getResolvedSize());
-  const effectiveParentServerNodeId =
-    options.parentServerNodeIdOverride !== undefined
-      ? options.parentServerNodeIdOverride
-      : parentServerNodeId;
-  const incoming = get().graphEdges.find((edge) => edge.target === clientId);
-  if (incoming && !effectiveParentServerNodeId) {
-    get().showToast(t("node.parentImageRequired"), true);
-    nodeGenerationLocks.delete(clientId);
-    return null;
-  }
-
-  const requestSessionId = s.activeSessionId;
+  const requestSessionId = get().activeSessionId;
   const startedAt = Date.now();
   const randSuffix = Math.random().toString(36).slice(2, 6);
   const flightId = `fn_${clientId}_${startedAt}_${randSuffix}`;
   const controller = new AbortController();
   registerFlightAbort(flightId, controller);
+  const built = await buildNodeRunRequest(clientId, {
+    requestId: flightId,
+    ...(options.sizeOverride !== undefined ? { sizeOverride: options.sizeOverride } : {}),
+    ...(options.parentServerNodeIdOverride !== undefined
+      ? { parentServerNodeId: options.parentServerNodeIdOverride }
+      : {}),
+    requireParentWhenIncoming: true,
+  }, set, get);
+  if (built.ok === false) {
+    if (built.reason === "missing-node") {
+      // Node vanished mid-flight: silent bail, same as the pre-build check.
+      clearFlightAbort(flightId);
+      nodeGenerationLocks.delete(clientId);
+      return null;
+    }
+    if (built.reason === "missing-prompt") {
+      get().showToast(t("toast.promptRequired"), true);
+      clearFlightAbort(flightId);
+      nodeGenerationLocks.delete(clientId);
+      return null;
+    }
+    if (built.reason === "element-missing") {
+      get().showToast(t("node.elementMissing", { name: built.name }), true);
+      clearFlightAbort(flightId);
+      nodeGenerationLocks.delete(clientId);
+      return null;
+    }
+    get().showToast(t("node.parentImageRequired"), true);
+    clearFlightAbort(flightId);
+    nodeGenerationLocks.delete(clientId);
+    return null;
+  }
+  const prompt = built.request.prompt;
   const nextInFlight: PersistedInFlight[] = [
-    ...s.inFlight,
+    ...get().inFlight,
     {
       id: flightId,
       prompt,
@@ -187,12 +115,12 @@ export async function runGenerateNodeInPlaceImpl(
               partialImageUrl: null,
               error: undefined,
               errorInfo: null,
-              size,
+              size: built.size,
             },
           }
         : n,
     ),
-    activeGenerations: s.activeGenerations + 1,
+    activeGenerations: get().activeGenerations + 1,
     inFlight: nextInFlight,
   });
   get().startInFlightPolling();
@@ -200,30 +128,7 @@ export async function runGenerateNodeInPlaceImpl(
   let graphMutated = true;
 
   try {
-    const res = await postNodeGenerateStream({
-      parentNodeId: effectiveParentServerNodeId,
-      prompt,
-      quality: s.quality,
-      size,
-      format: s.format,
-      moderation: s.moderation,
-      provider: nodeProvider,
-      model: nodeModel,
-      reasoningEffort: s.reasoningEffort,
-      storyboard: s.storyboardActive || undefined,
-      requestId: flightId,
-      sessionId: requestSessionId,
-      clientNodeId: clientId,
-      contextMode: "parent-plus-refs",
-      searchMode: s.webSearchEnabled ? "on" : "off",
-      webSearchEnabled: s.webSearchEnabled,
-      ...(nodeRefs.length
-        ? { references: nodeRefs.map(stripDataUrlPrefix) }
-        : {}),
-      ...(elementResolution.elementIds.length
-        ? { elementIds: elementResolution.elementIds, elementRevisions: elementResolution.revisions, elementNotes: elementResolution.notes }
-        : {}),
-    }, {
+    const res = await postNodeGenerateStream(built.request, {
         onPartial: (partial) => {
           if (get().activeSessionId !== requestSessionId) return;
           set({
@@ -372,6 +277,7 @@ export async function runNodeBatchImpl(
   get: StoreGet,
 ): Promise<void> {
   if (get().nodeBatchRunning) return;
+  if (get().nodeWorkflowRunning) { get().showToast(t("nodeWorkflow.busy"), true); return; }
   // Element reference nodes are inputs, never generation targets (Socrates B4).
   const selectedIds = getSelectedNodeIds(get().graphNodes)
     .filter((id) => get().graphNodes.find((n) => n.id === id)?.type !== "elementReferenceNode");

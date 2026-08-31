@@ -20,6 +20,13 @@ export function NodeBatchBar() {
   const runNodeBatch = useAppStore((s) => s.runNodeBatch);
   const cancelNodeBatch = useAppStore((s) => s.cancelNodeBatch);
   const disconnectEdges = useAppStore((s) => s.disconnectEdges);
+  const nodeWorkflowRunning = useAppStore((s) => s.nodeWorkflowRunning);
+  const nodeWorkflowRunCount = useAppStore((s) => s.nodeWorkflowRunCount);
+  const nodeWorkflowParallelism = useAppStore((s) => s.nodeWorkflowParallelism);
+  const runNodeWorkflow = useAppStore((s) => s.runNodeWorkflow);
+  const cancelNodeWorkflow = useAppStore((s) => s.cancelNodeWorkflow);
+  const setNodeWorkflowRunCount = useAppStore((s) => s.setNodeWorkflowRunCount);
+  const setNodeWorkflowParallelism = useAppStore((s) => s.setNodeWorkflowParallelism);
 
   const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
   const selectedEdgeIds = edges.filter((edge) => edge.selected).map((edge) => edge.id);
@@ -35,6 +42,44 @@ export function NodeBatchBar() {
 
   return (
     <Panel position="top-center" className="node-batch-bar nodrag">
+      {/* Workflow controls lead the bar: they need no selection. */}
+      <span className="node-batch-bar__meta">{t("nodeWorkflow.label")}</span>
+      <label className="node-batch-bar__field">
+        {t("nodeWorkflow.runs")}
+        <input
+          type="number"
+          min={1}
+          max={20}
+          value={nodeWorkflowRunCount}
+          onChange={(e) => setNodeWorkflowRunCount(Number(e.target.value))}
+          disabled={nodeWorkflowRunning}
+          aria-label={t("nodeWorkflow.runs")}
+        />
+      </label>
+      <label className="node-batch-bar__field">
+        {t("nodeWorkflow.parallel")}
+        <input
+          type="number"
+          min={1}
+          max={12}
+          value={nodeWorkflowParallelism}
+          onChange={(e) => setNodeWorkflowParallelism(Number(e.target.value))}
+          disabled={nodeWorkflowRunning}
+          aria-label={t("nodeWorkflow.parallel")}
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => void runNodeWorkflow()}
+        disabled={nodeWorkflowRunning || nodeBatchRunning}
+      >
+        {t("nodeWorkflow.run")}
+      </button>
+      {nodeWorkflowRunning ? (
+        <button type="button" onClick={cancelNodeWorkflow}>
+          {t("nodeWorkflow.cancel")}
+        </button>
+      ) : null}
       <button type="button" onClick={toggleNodeSelectionMode} aria-pressed={nodeSelectionMode}>
         {nodeSelectionMode ? t("nodeBatch.selectionOn") : t("nodeBatch.selectionOff")}
       </button>

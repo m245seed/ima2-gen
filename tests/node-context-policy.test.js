@@ -38,7 +38,10 @@ describe("node context and edit search policy", () => {
 
   it("forwards the selected provider from Node Mode requests", () => {
     const store = readStoreBundle();
-    const nodePayload = /postNodeGenerateStream\(\{\s*[\s\S]*?\},\s*\{/.exec(store)?.[0] ?? "";
+    // The request shape moved into the shared builder (storeNodeRunRequest.ts);
+    // both node paths send it via postNodeGenerateStream(built.request, ...).
+    const nodePayload = /const request: NodeGenerateRequest = \{[\s\S]*?\n  \};/.exec(store)?.[0] ?? "";
+    assert.match(store, /postNodeGenerateStream\(built\.request,/);
     // Branch variants carry per-node overrides; the payload uses them and the
     // fallback chain still lands on the globally selected provider/model.
     assert.match(nodePayload, /provider:\s*nodeProvider/);

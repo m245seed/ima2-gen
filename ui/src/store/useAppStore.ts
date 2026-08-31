@@ -39,6 +39,15 @@ import {
   runNodeBatchImpl,
 } from "./storeNodeGenImpl";
 import {
+  runNodeWorkflowImpl,
+  cancelNodeWorkflowImpl,
+  clearNodeWorkflowImpl,
+  setNodeWorkflowPreviewRunImpl,
+  setNodeWorkflowRunCountImpl,
+  setNodeWorkflowParallelismImpl,
+} from "./storeNodeWorkflowImpl";
+import { loadWorkflowSettings } from "../lib/nodeWorkflowStorage";
+import {
   generateMultimodeImpl,
   runGenerateImpl,
 } from "./storeGenImpl";
@@ -149,6 +158,7 @@ import type { AppState, GraphSaveReason } from "./storeTypes";
 import { effectiveReferenceLimit } from "../lib/referenceLimits";
 import { physicalSourceCount as countPhysicalSources } from "../lib/referenceTray";
 const storedGenerationDefaults = loadGenerationDefaults();
+const storedWorkflowSettings = loadWorkflowSettings();
 const storedImageModel = loadImageModel();
 const initialProvider = storedGenerationDefaults.provider ?? "oauth";
 
@@ -409,6 +419,11 @@ trashPending: null,
   nodeSelectionMode: false,
   nodeBatchRunning: false,
   nodeBatchStopping: false,
+  nodeWorkflow: null,
+  nodeWorkflowRunning: false,
+  nodeWorkflowPreviewRun: null,
+  nodeWorkflowRunCount: storedWorkflowSettings.runCount,
+  nodeWorkflowParallelism: storedWorkflowSettings.parallelism,
   toggleNodeSelectionMode: () => toggleNodeSelectionModeImpl(set, get),
   selectAllGraphNodes: () => {
     set({ graphNodes: applySelectedNodeIds(get().graphNodes, get().graphNodes.map((n) => n.id)) });
@@ -467,6 +482,13 @@ duplicateBranchRoot: (sourceClientId) => duplicateBranchRootImpl(sourceClientId,
   async runNodeBatch(mode) {
     await runNodeBatchImpl(mode, set, get);
   },
+
+  runNodeWorkflow: () => runNodeWorkflowImpl(set, get),
+  cancelNodeWorkflow: () => cancelNodeWorkflowImpl(set, get),
+  clearNodeWorkflow: () => clearNodeWorkflowImpl(set, get),
+  setNodeWorkflowPreviewRun: (runIndex) => setNodeWorkflowPreviewRunImpl(runIndex, set, get),
+  setNodeWorkflowRunCount: (value) => setNodeWorkflowRunCountImpl(value, set, get),
+  setNodeWorkflowParallelism: (value) => setNodeWorkflowParallelismImpl(value, set, get),
 
   deleteNode: (clientId) => deleteNodeImpl(clientId, set, get),
 deleteNodes: (clientIds) => deleteNodesImpl(clientIds, set, get),

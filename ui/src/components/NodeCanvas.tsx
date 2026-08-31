@@ -17,6 +17,7 @@ import "@xyflow/react/dist/style.css";
 import { useAppStore, type GraphNode, type GraphEdge } from "../store/useAppStore";
 import { ImageNode } from "./ImageNode";
 import { NodeBatchBar } from "./NodeBatchBar";
+import { NodeWorkflowRunStrip } from "./node-canvas/NodeWorkflowRunStrip";
 import { useI18n } from "../i18n";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { ElementReferenceNode } from "./node-canvas/ElementReferenceNode";
@@ -146,6 +147,7 @@ function NodeCanvasInner() {
           <div className="node-canvas__hint">
             {t("nodeCanvas.hint")}
           </div>
+          <NodeWorkflowRunStrip />
         </>
       ) : null}
     </main>
